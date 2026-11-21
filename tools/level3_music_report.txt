@@ -1,0 +1,346 @@
+EL PACTO DE HIARETH — ACTO 3: LIMBO / Los nombres olvidados
+Generado exclusivamente con NumPy y codificado con FFmpeg/libvorbis.
+
+REFERENCIAS (OGG decodificado a PCM float32 estéreo, 44.1 kHz)
+RMS de ambos canales con NumPy; LUFS integrados y true peak con FFmpeg
+ebur128/BS.1770. Valores de pico positivos pertenecen a las referencias.
+No se ha modificado ninguna referencia.
+Level1: 336.673515 s; RMS -12.91 dBFS; I -10.4 LUFS; pico 0.83 dBFS; true peak 0.9 dBTP.
+  Tempo aprox. (candidatos): 86.1 BPM (r=0.638), 172.3 BPM (r=0.502), 56.2 BPM (r=0.465)
+  Tonalidad aprox.: Do mayor (r=0.713); La menor (r=0.675); Sol mayor (r=0.606)
+  SHA-256 conservado: c254ab5c8491710e6fed596984e7babb923e89fff0bbbe6ee2359971fd747c1f
+Level2: 198.373515 s; RMS -13.05 dBFS; I -10.4 LUFS; pico 0.02 dBFS; true peak 0.0 dBTP.
+  Tempo aprox. (candidatos): 53.8 BPM (r=0.83), 107.7 BPM (r=0.779), 71.8 BPM (r=0.715)
+  Tonalidad aprox.: Si menor (r=0.739); Si mayor (r=0.54); Re mayor (r=0.421)
+  SHA-256 conservado: 0bf164d464bb11149333ec12beb0096c7d85aa60d9a54f2bfcf74fefe8da6c49
+Level4: 184.000000 s; RMS -16.73 dBFS; I -13.8 LUFS; pico 0.53 dBFS; true peak 0.5 dBTP.
+  Tempo aprox. (candidatos): 95.7 BPM (r=0.629), 63.0 BPM (r=0.612), 184.6 BPM (r=0.583)
+  Tonalidad aprox.: Si menor (r=0.734); Mi menor (r=0.714); Si mayor (r=0.578)
+  SHA-256 conservado: 78bf83f655c89b2b8e600184335fafdd175f8ea44f8cbae16560c137c02cade4
+BOSSFIGTH: 163.000000 s; RMS -13.29 dBFS; I -10.9 LUFS; pico 0.59 dBFS; true peak 0.7 dBTP.
+  Tempo aprox. (candidatos): 89.1 BPM (r=0.554), 136.0 BPM (r=0.54), 52.7 BPM (r=0.513)
+  Tonalidad aprox.: Do menor (r=0.901); Do mayor (r=0.718); Sol menor (r=0.522)
+  SHA-256 conservado: aed96690cd855f80534bb3e5ccf9245c0ed41e549bed4f7c0557ed91a7b90373
+Estimaciones musicales: autocorrelación de flujo espectral (FFT 2048, salto 256,
+11.025 kHz); cromas de picos interpolados (FFT 8192) frente a perfiles
+Krumhansl. Tempo susceptible a medio/doble pulso; tonalidad relativa o modal
+ambigua. Son estimaciones, no transcripciones. Level4 y BOSSFIGTH tienen
+candidatos de tempo muy próximos en puntuación.
+Media aritmética de RMS en dB: -13.992 dBFS; objetivo: -14.792 dBFS.
+
+COMPOSICIÓN ORIGINAL
+Re menor con color frigio (Mib y bIImaj7) y dominante A7(b9) puntual.
+80 BPM, 4/4, 32 compases, 96 segundos exactos; melodía original sin samples.
+A (0–24 s): motivo descendente de celesta, arpegio sobrio, aldea vacía.
+A2 (24–48 s): respuestas cambiadas y registro ocasionalmente más alto.
+B (48–72 s): expansión hacia Sib/Fa, melodía ascendente y mayor pulso.
+A' (72–96 s): regreso del motivo con sombra grave y reposo final en Re.
+Progresión por compás (todos 4/4):
+  A: Dm(add9) | Bbmaj7/D | Gm(add9) | Dm/A | Ebmaj7 | Bbmaj7 | Asus4(b9) | Dm(add9)
+  A2: Dm(add9) | C(add9)/D | Bbmaj7 | Gm(add9) | Ebmaj7/G | Dm/F | Asus4(b9) | Dm(add9)
+  B: Bbmaj7 | Fmaj7/A | Gm(add9) | Dm/F | Ebmaj7 | Gm(add9) | Asus4(b9) | A7(b9)
+  A': Dm(add9) | Bbmaj7/D | Gm(add9) | Dm/A | Ebmaj7 | Gm6 | Asus4(b9) | Dm(add9)
+Celesta de modos resonantes con decaimiento por parcial; laúd/harpa con
+posición de pulsación y amortiguación de armónicos; coro de tres voces
+desafinadas por nota, formantes y vibrato; bordón Re/La periódico; cuatro
+campanas lejanas; tambor de marco de membrana y ruido suave. Paneo moderado.
+Reverb de capilla: reflexiones tempranas + cola difusa amortiguada de 3.6 s.
+Convolución circular y colas de instrumentos envueltas sobre el inicio;
+bordón con número entero de ciclos. Ataque/salida técnicos de solo 36 ms.
+OGG Vorbis calidad 10; se selecciona el fundido mínimo que supera
+las verificaciones después de la compresión con pérdida.
+Control suave de picos por encima de 0.52; sin normalizar a 0 dBFS.
+Se prioriza el RMS del soundtrack existente, según el requisito del proyecto.
+
+VERIFICACIÓN DEL OGG FINAL REDECODIFICADO (no del render previo)
+Estéreo, 44100 Hz; 4233600 muestras/canal; duración 96.000000 s.
+Pico de muestra -1.987 dBFS < -1 dBFS.
+True peak -2.0 dBTP; sonoridad integrada -12.6 LUFS.
+RMS -14.758 dBFS; diferencia frente a la media -0.766 dB (tolerancia ±3 dB).
+Unión última/primera muestra: diferencia máxima 0.000912505 FS (-60.80 dBFS).
+Paso interior absoluto percentil 99: 0.039453447 FS.
+Ventanas adyacentes de 10 ms: inicio -39.546, final -38.248 dBFS; diferencia -1.298 dB.
+Ventanas adyacentes de 50 ms: inicio -19.016, final -18.468 dBFS; diferencia -0.547 dB.
+Ventanas adyacentes de 100 ms: inicio -16.660, final -16.982 dBFS; diferencia +0.322 dB.
+Ventanas adyacentes de 1000 ms: inicio -13.434, final -16.100 dBFS; diferencia +2.666 dB.
+Correlación estéreo global: 0.5633.
+Criterios automáticos: duración 80–110 s, pico y true peak < -1 dB, RMS ±3 dB,
+salto de unión < 0.001 FS y menor que p99 interior, energía en 100 ms ±1 dB.
+Todos los criterios anteriores: PASS.
+La compresión con pérdida no conserva igualdad exacta de muestras; se miden
+sus errores tras decodificar. No se ha realizado escucha humana; las
+verificaciones de continuidad y sonoridad aquí son numéricas.
+Reproducir: tools/.venv/bin/python tools/gen_music_level3.py
+Dependencias: NumPy del venv, FFmpeg con libvorbis; semilla fija 197903.
+
+MÉTRICAS COMPLETAS (JSON)
+{
+  "references": {
+    "Level1": {
+      "duration_s": 336.673514739229,
+      "samples_per_channel": 14847302,
+      "rms_dbfs": -12.906476091293344,
+      "sample_peak_dbfs": 0.8303291785172907,
+      "integrated_lufs": -10.4,
+      "true_peak_dbtp": 0.9,
+      "tempo_candidates": [
+        {
+          "bpm": 86.1,
+          "autocorrelation": 0.638
+        },
+        {
+          "bpm": 172.3,
+          "autocorrelation": 0.502
+        },
+        {
+          "bpm": 56.2,
+          "autocorrelation": 0.465
+        },
+        {
+          "bpm": 112.3,
+          "autocorrelation": 0.236
+        },
+        {
+          "bpm": 68.0,
+          "autocorrelation": 0.214
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Do mayor",
+          "correlation": 0.713
+        },
+        {
+          "key": "La menor",
+          "correlation": 0.675
+        },
+        {
+          "key": "Sol mayor",
+          "correlation": 0.606
+        }
+      ],
+      "chroma": [
+        0.1154,
+        0.069,
+        0.0747,
+        0.0626,
+        0.0861,
+        0.0727,
+        0.0778,
+        0.0971,
+        0.0698,
+        0.0992,
+        0.0684,
+        0.1074
+      ],
+      "sha256": "c254ab5c8491710e6fed596984e7babb923e89fff0bbbe6ee2359971fd747c1f"
+    },
+    "Level2": {
+      "duration_s": 198.37351473922902,
+      "samples_per_channel": 8748272,
+      "rms_dbfs": -13.047316363120594,
+      "sample_peak_dbfs": 0.016188485561259465,
+      "integrated_lufs": -10.4,
+      "true_peak_dbtp": 0.0,
+      "tempo_candidates": [
+        {
+          "bpm": 53.8,
+          "autocorrelation": 0.83
+        },
+        {
+          "bpm": 107.7,
+          "autocorrelation": 0.779
+        },
+        {
+          "bpm": 71.8,
+          "autocorrelation": 0.715
+        },
+        {
+          "bpm": 143.6,
+          "autocorrelation": 0.124
+        },
+        {
+          "bpm": 86.1,
+          "autocorrelation": 0.111
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Si menor",
+          "correlation": 0.739
+        },
+        {
+          "key": "Si mayor",
+          "correlation": 0.54
+        },
+        {
+          "key": "Re mayor",
+          "correlation": 0.421
+        }
+      ],
+      "chroma": [
+        0.0867,
+        0.0785,
+        0.0868,
+        0.0718,
+        0.0765,
+        0.059,
+        0.0953,
+        0.0706,
+        0.0758,
+        0.0984,
+        0.0796,
+        0.121
+      ],
+      "sha256": "0bf164d464bb11149333ec12beb0096c7d85aa60d9a54f2bfcf74fefe8da6c49"
+    },
+    "Level4": {
+      "duration_s": 184.0,
+      "samples_per_channel": 8114400,
+      "rms_dbfs": -16.729619149290738,
+      "sample_peak_dbfs": 0.5343023923591637,
+      "integrated_lufs": -13.8,
+      "true_peak_dbtp": 0.5,
+      "tempo_candidates": [
+        {
+          "bpm": 95.7,
+          "autocorrelation": 0.629
+        },
+        {
+          "bpm": 63.0,
+          "autocorrelation": 0.612
+        },
+        {
+          "bpm": 184.6,
+          "autocorrelation": 0.583
+        },
+        {
+          "bpm": 129.2,
+          "autocorrelation": 0.558
+        },
+        {
+          "bpm": 76.0,
+          "autocorrelation": 0.507
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Si menor",
+          "correlation": 0.734
+        },
+        {
+          "key": "Mi menor",
+          "correlation": 0.714
+        },
+        {
+          "key": "Si mayor",
+          "correlation": 0.578
+        }
+      ],
+      "chroma": [
+        0.0811,
+        0.0539,
+        0.0781,
+        0.0506,
+        0.1167,
+        0.0468,
+        0.1312,
+        0.098,
+        0.0575,
+        0.0881,
+        0.056,
+        0.142
+      ],
+      "sha256": "78bf83f655c89b2b8e600184335fafdd175f8ea44f8cbae16560c137c02cade4"
+    },
+    "BOSSFIGTH": {
+      "duration_s": 163.0,
+      "samples_per_channel": 7188300,
+      "rms_dbfs": -13.285295584073594,
+      "sample_peak_dbfs": 0.5856958402089555,
+      "integrated_lufs": -10.9,
+      "true_peak_dbtp": 0.7,
+      "tempo_candidates": [
+        {
+          "bpm": 89.1,
+          "autocorrelation": 0.554
+        },
+        {
+          "bpm": 136.0,
+          "autocorrelation": 0.54
+        },
+        {
+          "bpm": 52.7,
+          "autocorrelation": 0.513
+        },
+        {
+          "bpm": 66.3,
+          "autocorrelation": 0.51
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Do menor",
+          "correlation": 0.901
+        },
+        {
+          "key": "Do mayor",
+          "correlation": 0.718
+        },
+        {
+          "key": "Sol menor",
+          "correlation": 0.522
+        }
+      ],
+      "chroma": [
+        0.1224,
+        0.0615,
+        0.0906,
+        0.0901,
+        0.0648,
+        0.0872,
+        0.0657,
+        0.1075,
+        0.0791,
+        0.0736,
+        0.0795,
+        0.0781
+      ],
+      "sha256": "aed96690cd855f80534bb3e5ccf9245c0ed41e549bed4f7c0557ed91a7b90373"
+    }
+  },
+  "final": {
+    "duration_s": 96.0,
+    "samples_per_channel": 4233600,
+    "rms_dbfs": -14.757700584990324,
+    "sample_peak_dbfs": -1.9868561668367284,
+    "integrated_lufs": -12.6,
+    "true_peak_dbtp": -2.0
+  },
+  "loop": {
+    "boundary_sample_difference": 0.0009125049109570682,
+    "boundary_difference_dbfs": -60.795295791220084,
+    "interior_step_p99": 0.03945344708859921,
+    "window_10ms": {
+      "start_rms_dbfs": -39.545992897969256,
+      "end_rms_dbfs": -38.247606320031565,
+      "difference_db": -1.2983865779376913
+    },
+    "window_50ms": {
+      "start_rms_dbfs": -19.015695056079355,
+      "end_rms_dbfs": -18.468457359931353,
+      "difference_db": -0.5472376961480023
+    },
+    "window_100ms": {
+      "start_rms_dbfs": -16.659585680352993,
+      "end_rms_dbfs": -16.98158174607338,
+      "difference_db": 0.32199606572038775
+    },
+    "window_1000ms": {
+      "start_rms_dbfs": -13.434159910440895,
+      "end_rms_dbfs": -16.10006247123193,
+      "difference_db": 2.665902560791034
+    },
+    "stereo_correlation": 0.5633445890095055
+  }
+}

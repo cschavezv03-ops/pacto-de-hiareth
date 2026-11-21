@@ -23,6 +23,7 @@ export default class HudScene extends Phaser.Scene {
   }
 
   create() {
+    this.extraShown = false; // la instancia de la escena se reutiliza
     this.buildPlate();
     this.buildSpecialGauge();
     this.buildKillCounter();
@@ -31,13 +32,16 @@ export default class HudScene extends Phaser.Scene {
     // Pausa → Opciones), así que el icono de sonido solo se muestra con ratón/teclado.
     if (!this.sys.game.device.input.touch) muteButton(this, GAME_WIDTH - 16, 14);
 
+    // Phaser emite 'changedata-<clave>' al cambiar un valor, pero el PRIMER set de una
+    // clave solo emite el evento genérico 'setdata' (parent, key, value).
     const watch = (key, fn) => {
-      const handler = (_p, v) => fn(v);
-      this.registry.events.on(`changedata-${key}`, handler);
-      this.registry.events.on(`setdata-${key}`, handler);
+      const onChange = (_p, v) => fn(v);
+      const onSet = (_p, k, v) => { if (k === key) fn(v); };
+      this.registry.events.on(`changedata-${key}`, onChange);
+      this.registry.events.on('setdata', onSet);
       this.events.once('shutdown', () => {
-        this.registry.events.off(`changedata-${key}`, handler);
-        this.registry.events.off(`setdata-${key}`, handler);
+        this.registry.events.off(`changedata-${key}`, onChange);
+        this.registry.events.off('setdata', onSet);
       });
     };
     watch('hearts', (v) => this.drawHearts(v));
@@ -66,21 +70,28 @@ export default class HudScene extends Phaser.Scene {
     g.lineStyle(1, 0xffd9a8, 0.22).strokeRoundedRect(x + 4, y + 4, w - 8, h - 8, 7);
     g.fillStyle(0xff9a3c, 0.35).fillRect(x + 12, y + 48, w - 24, 1);
 
+    // 3 corazones + 1 hueco para el corazón extra dorado (orbes).
     this.hearts = [];
-    for (let i = 0; i < RULES.PLAYER_HEARTS; i += 1) {
-      this.hearts.push(this.add.image(x + 30 + i * 40, y + 26, 'heart_full').setScale(0.95));
+    for (let i = 0; i < RULES.PLAYER_HEARTS + 1; i += 1) {
+      this.hearts.push(this.add.image(x + 28 + i * 35, y + 26, 'heart_full').setScale(0.85));
     }
     const diff = GameState.difficulty;
-    this.diffText = this.add.text(x + w - 14, y + 26, diff.label, {
-      fontFamily: FONT_UI, fontSize: '13px', color: '#ffd9a8',
-      backgroundColor: '#2a1d3c', padding: { x: 6, y: 3 },
+    this.diffText = this.add.text(x + w - 12, y + 26, diff.label, {
+      fontFamily: FONT_UI, fontSize: '12px', color: '#ffd9a8',
+      backgroundColor: '#2a1d3c', padding: { x: 4, y: 3 },
     }).setOrigin(1, 0.5);
 
-    const flame = this.add.image(x + 22, y + 63, 'orb_fire').setScale(0.55);
+    const flame = this.textures.exists('fx_orb')
+      ? this.add.sprite(x + 22, y + 63, 'fx_orb', 0).setScale(0.9)
+      : this.add.image(x + 22, y + 63, 'orb_fire').setScale(0.55);
+    if (this.anims.exists('orb-spin') && flame.play) flame.play('orb-spin');
     void flame;
-    this.scoreText = this.add.text(x + 36, y + 63, '0', {
+    this.scoreText = this.add.text(x + 36, y + 61, '0', {
       fontFamily: FONT_UI, fontSize: '17px', color: COLORS.ink, stroke: '#000', strokeThickness: 3,
     }).setOrigin(0, 0.5);
+    // Progreso hacia la siguiente vida (cada 10 000 puntos).
+    this.add.rectangle(x + 36, y + 74, 96, 4, 0x2a1d3c).setOrigin(0, 0.5);
+    this.lifeBar = this.add.rectangle(x + 36, y + 74, 0, 4, 0xffb347).setOrigin(0, 0.5);
     const short = (this.registry.get('levelTitle') ?? '').split('—')[0].trim();
     this.actText = this.add.text(x + w - 14, y + 63, this.mode === 'boss' ? 'Acto final' : short, {
       fontFamily: FONT_UI, fontSize: '14px', color: COLORS.dim,
@@ -89,17 +100,27 @@ export default class HudScene extends Phaser.Scene {
 
   drawHearts(n, instant = false) {
     this.tweens.killTweensOf(this.hearts);
+    const base = RULES.PLAYER_HEARTS;
     this.hearts.forEach((h, i) => {
       const full = i < n;
-      const wasFull = h.texture.key === 'heart_full';
-      h.setTexture(full ? 'heart_full' : 'heart_empty').setScale(0.95).setAlpha(1);
+      const wasFull = h.visible && h.texture.key === 'heart_full';
+      if (i >= base) {
+        // Hueco del corazón extra: solo visible cuando se tiene (dorado).
+        h.setVisible(full).setTexture(this.textures.exists('heart_gold') ? 'heart_gold' : 'heart_full').setScale(0.85).setAlpha(1);
+        if (full && !instant && !this.extraShown) this.tweens.add({ targets: h, scale: { from: 1.8, to: 0.85 }, duration: 380, ease: 'Back.Out' });
+        this.extraShown = full;
+        return;
+      }
+      h.setTexture(full ? 'heart_full' : 'heart_empty').setScale(0.85).setAlpha(1);
       if (!instant && wasFull && !full) {
-        this.tweens.add({ targets: h, scale: { from: 1.7, to: 0.95 }, duration: 260, ease: 'Back.Out' });
+        this.tweens.add({ targets: h, scale: { from: 1.6, to: 0.85 }, duration: 260, ease: 'Back.Out' });
+      } else if (!instant && !wasFull && full) {
+        this.tweens.add({ targets: h, scale: { from: 1.6, to: 0.85 }, duration: 300, ease: 'Back.Out' }); // curación
       }
     });
     // Último corazón: latido para avisar sin texto.
     if (n === 1) {
-      this.tweens.add({ targets: this.hearts[0], scale: 1.12, yoyo: true, repeat: -1, duration: 380, ease: 'Sine.InOut' });
+      this.tweens.add({ targets: this.hearts[0], scale: 1.02, yoyo: true, repeat: -1, duration: 380, ease: 'Sine.InOut' });
     }
   }
 
@@ -272,6 +293,7 @@ export default class HudScene extends Phaser.Scene {
     if (s !== this.lastScore) {
       this.lastScore = s;
       this.scoreText.setText(s.toLocaleString('es'));
+      this.lifeBar.width = 96 * Phaser.Math.Clamp(GameState.lifeProgress, 0, 1);
     }
   }
 }

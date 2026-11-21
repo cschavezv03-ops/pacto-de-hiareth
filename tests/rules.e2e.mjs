@@ -6,7 +6,9 @@ import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 
 const url = process.argv[2] ?? 'http://localhost:5173';
-const browser = await chromium.launch();
+// GPU (Vulkan/ANGLE) para FPS realistas; PW_GPU=0 fuerza WebGL por software.
+const GPU_ARGS = process.env.PW_GPU === '0' ? [] : ['--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--enable-gpu'];
+const browser = await chromium.launch({ args: GPU_ARGS });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));
@@ -389,6 +391,93 @@ await step('act 3: crouch dodges the high slash, sweep hits a crouched Aidan, ch
   assert.equal(ambush.after.body, true);
   assert.notEqual(ambush.after.action, 'hidden');
   return { highCrouched, highStanding, sweepCrouched, charge, ambush };
+});
+
+await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life, slime lava', async () => {
+  const out = {};
+  // Plataforma frágil (Acto 2): se rompe tras ~0.5 s de pie encima.
+  await page.evaluate(() => { window.__GameState.newGame('normal'); window.game.events.emit('story:goto', { type: 'level', id: 'act2' }); });
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForTimeout(300);
+  out.fragile = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level; const m = s.movers.getChildren()[0]; const p = s.player;
+    p.invulnerableUntil = p.clock + 1e6;
+    p.controls.update = () => {}; p.controls.isDown = () => false; p.controls.justPressed = () => false; p.controls.justReleased = () => false; p.controls.axisX = () => 0;
+    p.body.reset(m.body.center.x, m.body.top - 4); // cae sobre ella y la plataforma lo arrastra
+    let landedAt = null;
+    const watch = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (landedAt === null && m.stand > 0) landedAt = s.levelClock; } });
+    s.time.delayedCall(330, () => { const mid = m.broken; s.time.delayedCall(800, () => { watch.remove(); resolve({ brokenAt330: mid, brokenAt1130: m.broken, trap: m.trap, landed: landedAt !== null }); }); });
+  }));
+  assert.equal(out.fragile.trap, 'fragile');
+  assert.equal(out.fragile.landed, true, 'Aidan aterrizó sobre la plataforma');
+  assert.equal(out.fragile.brokenAt330, false, 'no se rompe al instante');
+  assert.equal(out.fragile.brokenAt1130, true, 'se rompe tras ~0.5 s encima');
+
+  // Ataque en el aire golpea a un enemigo.
+  out.air = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level; const p = s.player; const e = s.enemies.getChildren().find((x) => x.alive);
+    e.minX = e.maxX = e.x;
+    const restore = Object.getPrototypeOf(p.controls);
+    p.controls.isDown = restore.isDown.bind(p.controls); p.controls.justPressed = restore.justPressed.bind(p.controls);
+    p.controls.justReleased = restore.justReleased.bind(p.controls); p.controls.axisX = restore.axisX.bind(p.controls); p.controls.update = restore.update.bind(p.controls);
+    p.body.reset(e.x - 60, e.y - 70); p.facing = 1; p.body.setVelocity(0, -200);
+    const hp0 = e.hp;
+    s.time.delayedCall(60, () => { const air = !p.onGround; p.startAirAttack(); s.time.delayedCall(400, () => resolve({ air, anim: p.anims.currentAnim?.key, hp0, hp1: e.hp })); });
+  }));
+  assert.equal(out.air.air, true);
+  assert.equal(out.air.hp1, out.air.hp0 - 1);
+
+  // Orbes: matar suelta orbes; recogerlos suma puntos; cruzar 10000 cura un corazón.
+  out.orbs = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level; const p = s.player; const GS = window.__GameState;
+    const e = s.enemies.getChildren().find((x) => x.alive);
+    const active0 = s.orbs.countActive(true);
+    for (let i = 0; i < e.maxHp; i += 1) e.hit(9000 + i, e.x - 40);
+    const dropped = s.orbs.countActive(true) - active0;
+    const score0 = GS.score;
+    const orb = s.orbs.getChildren().find((o) => o.active && !o.placed);
+    s.collectOrb(orb);
+    const gained = GS.score - score0;
+    p.hearts = 2; s.registry.set('hearts', 2);
+    const toNext = Math.ceil((1 - GS.lifeProgress) * 10000);
+    s.awardScore(toNext);
+    resolve({ dropped, gained, heartsAfter: p.hearts, placed: s.orbs.getChildren().filter((o) => o.placed && o.active).length });
+  }));
+  assert.ok(out.orbs.dropped >= 4, 'el enemigo suelta orbes');
+  assert.equal(out.orbs.gained, 250);
+  assert.equal(out.orbs.heartsAfter, 3, 'cruzar 10000 puntos cura un corazón');
+  assert.ok(out.orbs.placed > 0, 'hay orbes repartidos por el nivel');
+
+  // Plataforma fantasma (Acto 3) y lava del slime (Acto 1).
+  await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act3' }));
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  out.phantom = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level; const m = s.movers.getChildren()[0]; const p = s.player;
+    p.invulnerableUntil = p.clock + 1e6;
+    p.body.reset(m.body.center.x, m.body.top - 2);
+    s.time.delayedCall(900, () => resolve({ trap: m.trap, broken: m.broken, alpha: m.alpha }));
+  }));
+  assert.equal(out.phantom.trap, 'phantom');
+  assert.equal(out.phantom.broken, true);
+  await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act1' }));
+  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.__level.player, null, { timeout: 6000 });
+  out.lava = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level; const p = s.player;
+    const e = s.enemies.getChildren().find((x) => x.alive && x.kind === 'slime' && !x.cfg.flying && x.y > 400);
+    p.invulnerableUntil = p.clock + 1e6;
+    s.spawnLava(e.x, true);
+    const f = s.lava.getChildren().find((x) => x.active);
+    const harmfulAtSpawn = f?.harmful;
+    s.time.delayedCall(400, () => {
+      p.invulnerableUntil = 0; const h0 = p.hearts;
+      p.body.reset(f.x, f.y - 2);
+      s.time.delayedCall(150, () => resolve({ exists: !!f, harmfulAtSpawn, harmful: f.harmful, h0, h1: p.hearts }));
+    });
+  }));
+  assert.equal(out.lava.exists, true);
+  assert.equal(out.lava.harmfulAtSpawn, false, 'aparece con aviso, sin dañar');
+  assert.ok(out.lava.h1 < out.lava.h0, 'la lava quema');
+  return out;
 });
 
 await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -> skipped', async () => {

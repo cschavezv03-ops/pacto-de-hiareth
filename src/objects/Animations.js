@@ -76,6 +76,10 @@ export function createAnimations(scene) {
   strip(scene, 'aidan-crouch', 'aidan_crouch', 16, 0); // termina en el último frame (agachado)
   strip(scene, 'skeleton-sweep', 'skeleton_sweep', 14, 0);
   strip(scene, 'skeleton-charge', 'skeleton_charge', 14);
+  strip(scene, 'aidan-jump-attack', 'aidan_jump_attack', 20, 0);
+  strip(scene, 'orb-spin', 'fx_orb', 12);
+  strip(scene, 'orb-pickup', 'fx_orb_pickup', 18, 0);
+  strip(scene, 'lava-burn', 'fx_lava', 10);
   // Esqueleto emboscado: se levanta reproduciendo su muerte al revés (sprite original).
   if (!scene.anims.exists('skeleton-rise') && scene.textures.exists('skeleton_death')) {
     const n = scene.textures.get('skeleton_death').frameTotal - 1;

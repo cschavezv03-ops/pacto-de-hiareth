@@ -115,7 +115,7 @@ export default class MenuScene extends Phaser.Scene {
     const text = this.add.text(W / 2, H / 2 - 14, [
       'PLATAFORMAS',
       'Mover: A / D o ← / →     Saltar: Espacio',
-      'Agacharse: S / ↓     Atacar: J o clic izquierdo',
+      'Agacharse: S / ↓     Atacar: J o clic (también en el aire)',
       'Fuego fantasma: K o clic derecho (se recarga)',
       '',
       'COMBATE FINAL',

@@ -89,7 +89,8 @@ export default class BossScene extends Phaser.Scene {
   }
 
   init() {
-    this.hearts = RULES.PLAYER_HEARTS;
+    // Una vida ganada con orbes antes del combate da un corazón extra (solo el primer intento).
+    this.hearts = RULES.PLAYER_HEARTS + (GameState.consumeBonusHeart() ? 1 : 0);
     this.maxHealth = Math.round(BOSS_TUNING.HEALTH * GameState.difficulty.bossHealthMult);
     this.bossHealth = this.maxHealth;
     this.phase = 1;

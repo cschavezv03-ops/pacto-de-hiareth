@@ -28,12 +28,17 @@ export const STORY = Object.freeze([
   { type: 'ending' }, // se resuelve a ENDING_CONVENTIONAL o ENDING_IF
 ]);
 
+/** Cada LIFE_EVERY puntos (orbes + niveles) Aidan recupera un corazón o gana uno extra. */
+export const LIFE_EVERY = 10000;
+
 const state = {
   enemiesKilled: 0,
   storyIndex: 0,
   score: 0,
   difficulty: 'normal',
   checkpoint: null, // { levelId, index } — último punto de control activado
+  nextLifeAt: LIFE_EVERY,  // puntuación a la que se concede la siguiente vida
+  bonusHeart: false,       // vida ganada fuera del juego activo: se usa al iniciar el siguiente tramo
 };
 
 export const GameState = {
@@ -44,6 +49,8 @@ export const GameState = {
     state.score = 0;
     state.difficulty = DIFFICULTIES[difficulty] ? difficulty : 'normal';
     state.checkpoint = null;
+    state.nextLifeAt = LIFE_EVERY;
+    state.bonusHeart = false;
     this.persist();
     return this.currentStep();
   },
@@ -57,6 +64,8 @@ export const GameState = {
     state.score = save.run.score ?? 0;
     state.difficulty = DIFFICULTIES[save.run.difficulty] ? save.run.difficulty : 'normal';
     state.checkpoint = save.run.checkpoint ?? null;
+    state.nextLifeAt = save.run.nextLifeAt ?? (Math.floor(state.score / LIFE_EVERY) + 1) * LIFE_EVERY;
+    state.bonusHeart = Boolean(save.run.bonusHeart);
     return this.currentStep();
   },
 
@@ -106,9 +115,38 @@ export const GameState = {
     return state.score;
   },
 
+  /**
+   * Suma puntos y devuelve cuántas vidas se han ganado al cruzar umbrales de LIFE_EVERY.
+   * Quien llama decide cómo aplicarlas (curar en vivo o guardarlas con grantBonusHeart).
+   */
   addScore(points) {
     state.score += Math.max(0, Math.round(points));
     SaveManager.submitHighScore(state.score);
+    let lives = 0;
+    while (state.score >= state.nextLifeAt) {
+      lives += 1;
+      state.nextLifeAt += LIFE_EVERY;
+    }
+    return lives;
+  },
+
+  /** Progreso hacia la siguiente vida (0..1), para el HUD. */
+  get lifeProgress() {
+    return 1 - (state.nextLifeAt - state.score) / LIFE_EVERY;
+  },
+
+  /** Guarda una vida ganada cuando no hay nivel activo (p. ej. al completar un nivel). */
+  grantBonusHeart() {
+    state.bonusHeart = true;
+    this.persist();
+  },
+
+  /** Consume la vida guardada al empezar un nivel o el jefe (true = empieza con 4 corazones). */
+  consumeBonusHeart() {
+    const had = state.bonusHeart;
+    state.bonusHeart = false;
+    if (had) this.persist();
+    return had;
   },
 
   /** Paso actual de la historia con el final ya resuelto. */

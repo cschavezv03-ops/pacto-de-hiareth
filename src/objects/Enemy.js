@@ -21,6 +21,9 @@ export const ENEMY_TYPES = {
     // Pensado para poder esquivarse sin matar (ruta pacifista): aviso de 0.45 s, se puede pasar
     // por debajo durante el salto (≈100 px de alto) y hay 2.3-3 s de calma tras aterrizar.
     leap: { range: 170, windupMs: 450, vy: -430, maxVx: 200, cooldownMs: [2300, 3000] },
+    // Rastros de lava (roca de lava): charco al aterrizar del salto y brasas al caminar.
+    // No es un ataque a distancia (el documento lo reserva al alien): es terreno que quema.
+    lava: { onLanding: true, emberEveryMs: [2400, 3200] },
   },
   alien: {
     hits: RULES.ENEMY_HITS.alien,
@@ -117,6 +120,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.pauseUntil = 0;
     this.alive = true;
     this.spawnTime = levelNow(scene);
+    this.nextEmber = levelNow(scene) + Phaser.Math.Between(1500, 3000);
     this.action = null;         // null | 'windup' | 'leap' | 'swing' | 'chargeWindup' | 'charge' | 'hidden' | 'rising'
     this.strike = null;
     this.nextCharge = 0;
@@ -189,6 +193,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     body.setVelocityX(this.dir * speed);
     this.setFlipX(this.dir < 0);
+
+    // Brasas al caminar (slime): pequeñas y breves, se saltan con facilidad.
+    if (cfg.lava && speed > 0 && time >= this.nextEmber && (body.blocked.down || body.touching.down)) {
+      this.nextEmber = time + Phaser.Math.Between(...cfg.lava.emberEveryMs);
+      this.scene.events.emit('enemy:lava', this.x - this.dir * 18, false);
+    }
 
     if (cfg.flying) {
       // Flotación suave sobre la plataforma voladora.
@@ -279,6 +289,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       if (time > this.actionUntil && (body.blocked.down || body.touching.down)) {
         this.endAction(time, cfg.leap.cooldownMs);
         this.playLanding();
+        if (cfg.lava?.onLanding) this.scene.events.emit('enemy:lava', this.x, true);
       }
       return true;
     }

@@ -11,6 +11,27 @@ import { TILE } from '../objects/ProceduralTextures.js';
 
 const GROUND_ROWS = 2;
 
+/**
+ * Plataformas móviles con trampa (las plataformas que solo "tapaban" los fosos ahora exigen
+ * decidir rápido): 'fragile' se agrieta y cae si Aidan se queda encima 0.5 s;
+ * 'phantom' (Acto 3, Limbo) se desvanece al pisarla.
+ */
+const MOVER_TRAP = Object.freeze({
+  fragileMs: 500,        // tiempo de pie encima antes de romperse
+  standGraceMs: 250,     // si se baja más que esto, la cuenta se reinicia
+  phantomFadeMs: 450,    // la plataforma fantasma se desvanece en este tiempo
+  respawnMs: 3000,
+});
+
+/** Orbes: valor y cuántos suelta cada enemigo al ser derrotado. */
+const ORBS = Object.freeze({
+  value: 250,
+  drop: { slime: 4, alien: 6, skeleton: 8 },
+  lifeMs: 9000,          // los orbes soltados desaparecen (parpadean los últimos 2 s)
+  magnetRange: 95,
+  magnetSpeed: 420,
+});
+
 /** Fuego fantasma (ataque a distancia con recarga, ver Player.PLAYER_TUNING.specialCooldownMs). */
 const GHOST_FIRE = Object.freeze({
   speed: 470,   // px/s
@@ -64,12 +85,15 @@ export default class LevelScene extends Phaser.Scene {
 
     this.buildHazards();
     this.buildGhostFire();
+    this.buildLava();
     this.buildEnemies();
+    this.buildOrbs();
     this.buildGoal();
     this.buildCheckpoints();
     this.wireCollisions();
 
     // HUD y estado compartido
+    if (GameState.consumeBonusHeart()) this.player.hearts = RULES.PLAYER_HEARTS + 1; // vida guardada
     this.registry.set('hearts', this.player.hearts);
     this.registry.set('bossHealth', null);
     this.registry.set('levelTitle', null);
@@ -136,6 +160,17 @@ export default class LevelScene extends Phaser.Scene {
         plat.dy = (p.dy ?? 0) * TILE;
         plat.period = p.ms ?? 2000;
         plat.prevX = x;
+        plat.trap = p.trap ?? def.moverTrap ?? 'fragile';
+        plat.stand = 0;
+        plat.stoodAt = -1e9;
+        plat.broken = false;
+        if (plat.trap === 'phantom') {
+          // Aspecto espectral para que se lea como "no fiable".
+          plat.setTint(0xcbb2ff).setAlpha(0.85);
+          this.tweens.add({ targets: plat, alpha: 0.6, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.InOut' });
+        } else if (this.textures.exists('fx_crack')) {
+          plat.crack = this.add.tileSprite(x, y, w, 16, 'fx_crack', 0).setOrigin(0).setDepth(3.5).setVisible(false);
+        }
       } else if (type === 'crumble') {
         const plat = this.add.tileSprite(x, y, w, 14, 'platform_ice').setOrigin(0).setDepth(3);
         this.physics.add.existing(plat, true);
@@ -176,6 +211,195 @@ export default class LevelScene extends Phaser.Scene {
         ic.armed = true;
         ic.homeX = ic.x;
       }
+    }
+  }
+
+  /** Trampas de las plataformas móviles (frágil / fantasma). */
+  updateMoverTrap(m, delta, tx, ty) {
+    if (m.crack) m.crack.setPosition(m.x, m.y);
+    if (m.broken) return;
+    const standing = this.levelClock - m.stoodAt < 50;
+    if (standing) m.stand += delta;
+    else if (this.levelClock - m.stoodAt > MOVER_TRAP.standGraceMs) m.stand = 0;
+
+    if (m.trap === 'phantom') {
+      if (m.stand > 0 && !m.fading) {
+        m.fading = true;
+        this.tweens.killTweensOf(m);
+        AudioManager.sfx(this, 'sfx_ui_select', { volume: 0.4, rate: 0.6 });
+        this.tweens.add({ targets: m, alpha: 0, duration: MOVER_TRAP.phantomFadeMs, onComplete: () => this.breakMover(m, tx, ty, false) });
+      }
+      return;
+    }
+    // Frágil: grietas progresivas y rotura a los 0.5 s de estar encima.
+    const ratio = Math.min(1, m.stand / MOVER_TRAP.fragileMs);
+    if (m.crack) {
+      m.crack.setVisible(ratio > 0);
+      if (ratio > 0) m.crack.setFrame(Math.min(3, Math.floor(ratio * 4)));
+    }
+    if (ratio > 0) m.setTint(Phaser.Display.Color.GetColor(255, Math.round(255 - ratio * 90), Math.round(255 - ratio * 90)));
+    if (ratio >= 1) this.breakMover(m, tx, ty, true);
+  }
+
+  breakMover(m, tx, ty, crumble) {
+    m.broken = true;
+    m.body.enable = false;
+    m.crack?.setVisible(false);
+    if (crumble) {
+      AudioManager.sfx(this, 'sfx_enemy_hit', { volume: 0.6, rate: 0.7 });
+      const dust = this.add.particles(m.x + m.width / 2, m.y + 8, 'fx_pixel', {
+        speed: { min: 30, max: 120 }, angle: { min: 20, max: 160 }, gravityY: 500, lifespan: 600,
+        scale: { start: 1.2, end: 0 }, tint: [0x8a8f99, 0x5a5f69, 0xc9ccd4], quantity: 20, emitting: false,
+      }).setDepth(6);
+      dust.explode(20);
+      this.time.delayedCall(700, () => dust.destroy());
+      this.tweens.add({ targets: m, y: m.y + 40, alpha: 0, duration: 380, ease: 'Quad.In' });
+    }
+    this.time.delayedCall(MOVER_TRAP.respawnMs, () => {
+      if (!m.active) return;
+      m.broken = false;
+      m.fading = false;
+      m.stand = 0;
+      m.stoodAt = -1e9;
+      m.clearTint();
+      // Reaparece en la posición que le toca en su recorrido.
+      const w = (Math.PI * 2) / m.period;
+      const k = (1 - Math.cos(w * this.levelClock)) / 2;
+      m.body.enable = true;
+      m.body.reset(m.originX0 + m.dx * k, m.originY0 + m.dy * k);
+      m.setAlpha(0);
+      const targetAlpha = m.trap === 'phantom' ? 0.85 : 1;
+      if (m.trap === 'phantom') m.setTint(0xcbb2ff);
+      this.tweens.add({ targets: m, alpha: targetAlpha, duration: 300, onComplete: () => {
+        if (m.trap === 'phantom') this.tweens.add({ targets: m, alpha: 0.6, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.InOut' });
+      } });
+    });
+  }
+
+  // ---------------------------------------------------------------- orbes
+  buildOrbs() {
+    this.orbs = this.physics.add.group({ maxSize: 80 });
+    this.events.on('enemy:killed', (enemy) => this.dropOrbs(enemy));
+    // Orbes repartidos por el nivel (también para quien no derrota enemigos).
+    for (const c of this.def.orbs ?? []) {
+      const n = c.n ?? 5;
+      for (let i = 0; i < n; i += 1) {
+        const ox = (c.x + 0.5) * TILE + (i - (n - 1) / 2) * 22;
+        const oy = GROUND_Y - (c.h ?? 2) * TILE - Math.sin((i / Math.max(1, n - 1)) * Math.PI) * 18;
+        const orb = this.spawnOrb(ox, oy, false);
+        if (orb) orb.placed = true;
+      }
+    }
+  }
+
+  spawnOrb(x, y, dropped) {
+    const key = this.textures.exists('fx_orb') ? 'fx_orb' : 'orb_fire';
+    const orb = this.orbs.get(x, y, key);
+    if (!orb) return null;
+    orb.enableBody(true, x, y, true, true);
+    orb.setDepth(7).setAlpha(1).setScale(key === 'fx_orb' ? 1.2 : 0.8);
+    orb.body.setCircle(8, orb.width / 2 - 8, orb.height / 2 - 8);
+    orb.placed = false;
+    orb.collected = false;
+    if (this.anims.exists('orb-spin')) orb.play({ key: 'orb-spin', startFrame: Phaser.Math.Between(0, 5) });
+    if (dropped) {
+      orb.body.setAllowGravity(true).setBounce(0.45).setDrag(60, 0);
+      orb.body.setVelocity(Phaser.Math.Between(-140, 140), Phaser.Math.Between(-380, -220));
+      orb.expireAt = this.levelClock + ORBS.lifeMs;
+    } else {
+      orb.body.setAllowGravity(false).setVelocity(0, 0);
+      orb.baseY = y;
+      orb.expireAt = Infinity;
+    }
+    return orb;
+  }
+
+  dropOrbs(enemy) {
+    const n = ORBS.drop[enemy.kind] ?? 3;
+    for (let i = 0; i < n; i += 1) this.spawnOrb(enemy.x, enemy.y - 30, true);
+  }
+
+  collectOrb(orb) {
+    if (orb.collected || !orb.active) return;
+    orb.collected = true;
+    orb.disableBody(true, true);
+    AudioManager.sfx(this, 'sfx_ui_select', { volume: 0.5, rate: 1.4 + Math.random() * 0.2 });
+    if (this.anims.exists('orb-pickup')) {
+      const fx = this.add.sprite(orb.x, orb.y, 'fx_orb_pickup', 0).setDepth(8);
+      fx.play('orb-pickup');
+      fx.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => fx.destroy());
+    }
+    this.awardScore(ORBS.value);
+  }
+
+  /** Suma puntos y aplica las vidas ganadas (cura o corazón extra). */
+  awardScore(points) {
+    const lives = GameState.addScore(points);
+    for (let i = 0; i < lives; i += 1) {
+      const kind = this.player.heal();
+      if (kind) {
+        AudioManager.sfx(this, 'sfx_level_clear', { volume: 0.7 });
+        this.registry.set('toast', { text: kind === 'heal' ? '¡Corazón recuperado!' : '¡Corazón extra!', t: this.time.now });
+      } else {
+        GameState.grantBonusHeart(); // ya tiene 4: se guarda para el siguiente tramo
+      }
+    }
+  }
+
+  updateOrbs() {
+    const p = this.player;
+    for (const orb of this.orbs.getChildren()) {
+      if (!orb.active || orb.collected) continue;
+      if (orb.placed) orb.y = orb.baseY + Math.sin((this.levelClock + orb.x) / 300) * 4;
+      // Imán suave cerca de Aidan.
+      const dx = p.x - orb.x;
+      const dy = (p.y - 38) - orb.y;
+      const d = Math.hypot(dx, dy);
+      if (d < ORBS.magnetRange && !p.dead) {
+        orb.body.setAllowGravity(false);
+        orb.body.setVelocity((dx / d) * ORBS.magnetSpeed, (dy / d) * ORBS.magnetSpeed);
+        if (orb.placed) orb.baseY = orb.y;
+      }
+      if (orb.expireAt !== Infinity) {
+        const left = orb.expireAt - this.levelClock;
+        if (left < 2000) orb.setAlpha(Math.floor(left / 120) % 2 ? 0.3 : 1);
+        if (left <= 0 || orb.y > PIT_Y) orb.disableBody(true, true);
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------- lava (slimes)
+  buildLava() {
+    this.lava = this.physics.add.group({ allowGravity: false, maxSize: 24 });
+    this.events.on('enemy:lava', (x, big) => this.spawnLava(x, big));
+  }
+
+  spawnLava(x, big) {
+    if (!this.textures.exists('fx_lava')) return;
+    const fire = this.lava.get(x, GROUND_Y, 'fx_lava');
+    if (!fire) return;
+    // Solo sobre suelo firme (nunca sobre un foso).
+    const tx = x / TILE;
+    if (!this.def.ground.some(([a, b]) => tx >= a && tx <= b)) { fire.disableBody(true, true); return; }
+    fire.enableBody(true, x, GROUND_Y, true, true);
+    fire.body.setAllowGravity(false).setImmovable(true);
+    const scale = big ? 1.5 : 0.95;
+    fire.setOrigin(0.5, 1).setScale(scale).setDepth(5).setAlpha(0.55);
+    fire.body.setSize(fire.width * 0.75, 10).setOffset(fire.width * 0.125, fire.height - 11);
+    if (this.anims.exists('lava-burn')) fire.play('lava-burn');
+    // Aparece sin dañar (aviso) y luego quema hasta que se apaga.
+    fire.harmful = false;
+    fire.expireAt = this.levelClock + (big ? 2600 : 1800);
+    fire.armAt = this.levelClock + 260;
+  }
+
+  updateLava() {
+    for (const f of this.lava.getChildren()) {
+      if (!f.active) continue;
+      if (!f.harmful && this.levelClock >= f.armAt) { f.harmful = true; f.setAlpha(1); }
+      const left = f.expireAt - this.levelClock;
+      if (left < 400) f.setAlpha(Math.max(0, left / 400));
+      if (left <= 0) f.disableBody(true, true);
     }
   }
 
@@ -300,7 +524,9 @@ export default class LevelScene extends Phaser.Scene {
     const p = this.player;
     this.physics.add.collider(p, this.solids);
     this.physics.add.collider(p, this.oneWay);
-    this.physics.add.collider(p, this.movers);
+    this.physics.add.collider(p, this.movers, (pl, plat) => {
+      if (pl.body.touching.down && plat.body.touching.up) plat.stoodAt = this.levelClock;
+    });
     this.physics.add.collider(p, this.crumbles, (_pl, plat) => this.startCrumble(plat));
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.collider(this.enemies, this.oneWay);
@@ -340,6 +566,11 @@ export default class LevelScene extends Phaser.Scene {
     });
 
     this.physics.add.overlap(p, this.checkpoints, (_pl, cp) => this.activateCheckpoint(cp));
+
+    this.physics.add.collider(this.orbs, this.solids);
+    this.physics.add.collider(this.orbs, this.oneWay);
+    this.physics.add.overlap(p, this.orbs, (_pl, orb) => this.collectOrb(orb));
+    this.physics.add.overlap(p, this.lava, (pl, f) => { if (f.harmful) pl.takeHit(f.x); });
 
     // Meta del nivel.
     this.physics.add.overlap(p, this.goal, () => this.completeLevel());
@@ -384,10 +615,13 @@ export default class LevelScene extends Phaser.Scene {
       const tx = m.originX0 + m.dx * k;
       const ty = m.originY0 + m.dy * k;
       m.body.setVelocity(m.dx * dk + (tx - m.body.x) * 4, m.dy * dk + (ty - m.body.y) * 4);
+      this.updateMoverTrap(m, delta, tx, ty);
     }
 
     // El arrastre sobre plataformas móviles lo hace Arcade (body.friction.x = 1 por defecto).
     this.player.update(time, delta);
+    this.updateOrbs();
+    this.updateLava();
     this.updateSafeSpot();
 
     for (const e of this.enemies.getChildren()) {
@@ -472,7 +706,8 @@ export default class LevelScene extends Phaser.Scene {
 
     const seconds = (this.time.now - this.startTime) / 1000;
     const timeBonus = Math.max(0, Math.round((300 - seconds) * 5));
-    GameState.addScore(1000 + this.player.hearts * 300 + timeBonus);
+    // Vidas ganadas al completar: se guardan para el siguiente tramo.
+    if (GameState.addScore(1000 + Math.min(3, this.player.hearts) * 300 + timeBonus) > 0) GameState.grantBonusHeart();
 
     this.cameras.main.fadeOut(900, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -508,6 +743,7 @@ export default class LevelScene extends Phaser.Scene {
     this.events.off('player:dead');
     this.events.off('enemy:killed');
     this.events.off('player:special');
+    this.events.off('enemy:lava');
     this.registry.set('special', null);
     if (import.meta.env.DEV && window.__level === this) window.__level = null;
   }

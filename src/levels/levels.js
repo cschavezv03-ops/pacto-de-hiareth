@@ -8,6 +8,8 @@
  *             ambush: esqueleto que espera como montón de huesos y se levanta al acercarse Aidan
  *  hazards:   { type: 'spikes', x, w }  |  { type: 'icicle', x }  (estalactita que cae)
  *  goal:      { x, texture, label }  — al tocarlo termina el nivel
+ *  orbs:      [{ x, h, n }] — grupos de orbes flotantes (recompensan explorar; también sin matar)
+ *  moverTrap: 'fragile' | 'phantom' — trampa de las plataformas móviles del nivel
  *  checkpoints: [x, ...] — puntos de control sobre suelo firme, fuera de zonas de patrulla
  *             (no se usan en dificultad Difícil)
  *
@@ -58,6 +60,7 @@ export const LEVEL_DATA = {
     hazards: [],
     goal: { x: 184, texture: 'goal_sign' },
     checkpoints: [60, 124],
+    orbs: [{ x: 26, h: 6.5 }, { x: 56, h: 7.5 }, { x: 86, h: 7.5 }, { x: 110, h: 5.5 }, { x: 153, h: 7.5 }],
   },
 
   act2: {
@@ -101,6 +104,7 @@ export const LEVEL_DATA = {
     ],
     goal: { x: 193, texture: 'goal_portal' },
     checkpoints: [65, 125],
+    orbs: [{ x: 44, h: 5.5 }, { x: 79, h: 7.5 }, { x: 110, h: 8.5 }, { x: 139, h: 7.5 }, { x: 177, h: 6.5 }],
   },
 
   act3: {
@@ -151,6 +155,8 @@ export const LEVEL_DATA = {
     ],
     goal: { x: 198, texture: 'goal_house' },
     checkpoints: [60, 107, 167],
+    moverTrap: 'phantom', // Limbo: las plataformas móviles se desvanecen al pisarlas
+    orbs: [{ x: 48, h: 7.5 }, { x: 69, h: 5.5 }, { x: 102, h: 7.5 }, { x: 132, h: 8.5 }, { x: 161, h: 7.5 }],
   },
 
   // Acto 4 (solo ruta pacifista): SIN ENEMIGOS. Reto de desplazamiento y entorno.
@@ -194,5 +200,6 @@ export const LEVEL_DATA = {
     ],
     goal: { x: 168, texture: 'goal_camp' },
     checkpoints: [57, 131],
+    orbs: [{ x: 40, h: 4.5 }, { x: 62, h: 5.5 }, { x: 86, h: 4.5 }, { x: 112, h: 5.5 }, { x: 138, h: 4.5 }],
   },
 };

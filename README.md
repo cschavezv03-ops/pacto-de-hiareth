@@ -51,6 +51,7 @@ node tests/rules.e2e.mjs http://localhost:5173
 | Moverse a la izquierda / derecha | `A` / `D` o `←` / `→` | Botones `◀` / `▶` | `WASD` o flechas (vuelo libre en 4 direcciones) | Cruceta `▲ ◀ ▶ ▼` |
 | Saltar | `Espacio` (también `W` / `↑`) | Botón `⤒` | — | — |
 | Agacharse | `S` / `↓` (mantener) | Botón `▼` | — | — |
+| Ataque en el aire | `J` / clic izquierdo mientras salta | Botón `🔥` en el aire | — | — |
 | Atacar / disparar | `J` o clic izquierdo | Botón `🔥` | `J` (también `Espacio` o clic izquierdo); un disparo por pulsación | Botón `🔥` |
 | Fuego fantasma (especial de nivel) | `K` o clic derecho | Botón `✦` | — | — |
 | Media luna de fuego (especial del jefe) | — | — | `K` o clic derecho | Botón `☾` |
@@ -111,6 +112,11 @@ src/
 - Al pulsar **Nueva partida** se elige **Fácil**, **Intermedio** (valores originales) o **Difícil**. Solo cambia cuántos golpes aguantan los enemigos y el jefe; en Difícil no hay puntos de control.
 - Cada nivel tiene braseros de **punto de control**: al morir se reaparece en el último encendido.
 - **Opciones** (menú principal o pausa): volumen de música y efectos, silencio y la opción **«Enemigos derrotados»** (apagada por defecto) que muestra un contador en el HUD para quien quiera saber si va por la ruta sin muertes. El icono de altavoz (arriba a la derecha) silencia con un clic; la tecla `M` también.
+
+## Orbes y vidas
+
+- Los enemigos derrotados sueltan **orbes** (slime 4, alien 6, esqueleto 8; 250 puntos cada uno) que se recogen tocándolos (tienen un pequeño imán) y desaparecen a los 9 s. Cada nivel tiene además grupos de orbes flotantes en zonas altas o difíciles, así que también se consiguen sin derrotar a nadie.
+- Cada **10 000 puntos** Aidan recupera un corazón; si ya tiene los 3, gana un **corazón extra dorado** (máximo 1). Si la vida se gana al completar un nivel, el corazón extra se guarda para el siguiente nivel o para el jefe. La barra ámbar bajo la puntuación indica el progreso hacia la siguiente vida.
 
 ## Flujo de escenas
 

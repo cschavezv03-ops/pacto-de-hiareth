@@ -332,3 +332,18 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 - **Latch de pulsaciones** en `InputManager`: una pulsación más corta que un frame no se pierde.
 - **Contador de enemigos derrotados opcional**: las Instrucciones (§6) prohíben mostrar el contador. El equipo pidió poder verlo; se implementó como opción «Enemigos derrotados» en Opciones, **apagada por defecto**, para conservar la sorpresa del Acto 4 (ruta pacifista) a quien no la active.
 - **Agacharse y repertorio del esqueleto**: pedidos por el equipo tras las pruebas. Agacharse no figuraba en las Instrucciones; los nuevos ataques del esqueleto son cuerpo a cuerpo para respetar «solo el alien utiliza ataques a distancia». La ruta pacifista sigue siendo viable (todos los ataques se esquivan) y el Acto 4 sigue apareciendo solo con `enemiesKilled === 0`.
+
+## 8. Cambios de la ronda «orbes y trampas»
+
+| Mecánica | Valores |
+| --- | --- |
+| Plataformas móviles frágiles (Actos 1, 2 y 4) | Se agrietan (4 etapas) y caen tras **0,5 s** de estar encima; reaparecen a los 3 s en su recorrido. Bajarse más de 0,25 s reinicia la cuenta |
+| Plataformas móviles fantasma (Acto 3, Limbo) | Aspecto espectral; se desvanecen en 0,45 s al pisarlas y reaparecen a los 3 s |
+| Lava del slime | Charco grande al aterrizar de su salto (dura 2,6 s) y brasas pequeñas al caminar cada 2,4-3,2 s (duran 1,8 s). Aparecen **sin dañar durante 0,26 s** (aviso) y solo sobre suelo firme |
+| Ataque en el aire | `J` en el aire; 6 frames a 20 fps, golpe en los frames 2-3; no frena la caída ni el control aéreo |
+| Orbes | 250 puntos; slime 4, alien 6, esqueleto 8; duran 9 s (parpadean los 2 últimos); imán a 95 px; 5 grupos de 5 orbes fijos por nivel |
+| Vidas | Cada 10 000 puntos (`LIFE_EVERY`): cura 1 corazón o da 1 corazón extra (máx. 4 en total); si se gana fuera del nivel se guarda (`GameState.bonusHeart`) |
+| Música del Acto 3 | Tema nuevo «Los nombres olvidados» (re menor/frigio, 80 BPM, loop de 96 s) generado con `tools/gen_music_level3.py`; el original del equipo era idéntico al del Acto 1 |
+
+**Desviaciones aprobadas por el equipo en esta ronda:** recuperar corazones durante un nivel (las Instrucciones §5.3 decían que no) y la animación de ataque aéreo (el Documento Maestro decía no asumirla; se generó a partir del sprite original). Los slimes dejan **terreno** que quema en lugar de lanzar llamas, para respetar «solo el alien utiliza ataques a distancia» y no alterar el contador de la ruta pacifista (como habrían hecho los mini slimes). Los orbes fijos garantizan que la ruta pacifista también pueda ganar vidas.
+
