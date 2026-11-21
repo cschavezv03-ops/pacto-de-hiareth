@@ -197,7 +197,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     // Brasas al caminar (slime): pequeñas y breves, se saltan con facilidad.
     if (cfg.lava && speed > 0 && time >= this.nextEmber && (body.blocked.down || body.touching.down)) {
       this.nextEmber = time + Phaser.Math.Between(...cfg.lava.emberEveryMs);
-      this.scene.events.emit('enemy:lava', this.x - this.dir * 18, false);
+      this.scene.events.emit('enemy:lava', this.x - this.dir * 18, false, this.y);
     }
 
     if (cfg.flying) {
@@ -289,7 +289,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       if (time > this.actionUntil && (body.blocked.down || body.touching.down)) {
         this.endAction(time, cfg.leap.cooldownMs);
         this.playLanding();
-        if (cfg.lava?.onLanding) this.scene.events.emit('enemy:lava', this.x, true);
+        if (cfg.lava?.onLanding) this.scene.events.emit('enemy:lava', this.x, true, this.y);
       }
       return true;
     }

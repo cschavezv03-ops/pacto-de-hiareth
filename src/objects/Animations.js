@@ -80,6 +80,8 @@ export function createAnimations(scene) {
   strip(scene, 'orb-spin', 'fx_orb', 12);
   strip(scene, 'orb-pickup', 'fx_orb_pickup', 18, 0);
   strip(scene, 'lava-burn', 'fx_lava', 10);
+  strip(scene, 'ufo-hover', 'fx_ufo', 8);
+  strip(scene, 'ufo-charge', 'fx_ufo_charge', 14);
   // Esqueleto emboscado: se levanta reproduciendo su muerte al revés (sprite original).
   if (!scene.anims.exists('skeleton-rise') && scene.textures.exists('skeleton_death')) {
     const n = scene.textures.get('skeleton_death').frameTotal - 1;

@@ -9,6 +9,7 @@
  *  hazards:   { type: 'spikes', x, w }  |  { type: 'icicle', x }  (estalactita que cae)
  *  goal:      { x, texture, label }  — al tocarlo termina el nivel
  *  orbs:      [{ x, h, n }] — grupos de orbes flotantes (recompensan explorar; también sin matar)
+ *  ufos:      [{ x, zone: [min, max] }] — platillos abductores (peligro, no enemigo)
  *  moverTrap: 'fragile' | 'phantom' — trampa de las plataformas móviles del nivel
  *  checkpoints: [x, ...] — puntos de control sobre suelo firme, fuera de zonas de patrulla
  *             (no se usan en dificultad Difícil)
@@ -98,6 +99,8 @@ export const LEVEL_DATA = {
     ],
     goal: { x: 193, texture: 'goal_portal' },
     checkpoints: [65, 125],
+    // Platillos abductores: persiguen despacio y lanzan un haz tractor (salir de la luz).
+    ufos: [{ x: 22, zone: [12, 30] }, { x: 76, zone: [66, 90] }, { x: 136, zone: [124, 150] }, { x: 172, zone: [160, 188] }],
     orbs: [{ x: 44, h: 5.5 }, { x: 79, h: 7.5 }, { x: 110, h: 8.5 }, { x: 139, h: 7.5 }, { x: 177, h: 6.5 }],
   },
 

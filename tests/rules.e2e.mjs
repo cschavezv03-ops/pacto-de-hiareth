@@ -484,9 +484,79 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
     });
   }));
   assert.equal(out.lava.exists, true);
+  // Slime sobre plataforma: la lava aparece en la plataforma, no en el suelo de abajo.
+  out.lavaPlatform = await page.evaluate(() => {
+    const s = window.__level;
+    const e = s.enemies.getChildren().find((x) => x.alive && x.kind === 'slime' && x.y < 400);
+    s.lava.getChildren().forEach((f) => f.disableBody(true, true));
+    s.events.emit('enemy:lava', e.x, true, e.y);
+    const f = s.lava.getChildren().find((x) => x.active);
+    return { slimeY: Math.round(e.y), lavaY: f ? Math.round(f.y) : null };
+  });
+  assert.ok(out.lavaPlatform.lavaY !== null && Math.abs(out.lavaPlatform.lavaY - out.lavaPlatform.slimeY) < 10, JSON.stringify(out.lavaPlatform));
   assert.equal(out.lava.harmfulAtSpawn, false, 'aparece con aviso, sin dañar');
   assert.ok(out.lava.h1 < out.lava.h0, 'la lava quema');
   return out;
+});
+
+await step('act 2 UFO: aligns, warns, lifts and abducts (no kill counted); loading screens have full backdrops', async () => {
+  await page.evaluate(() => { window.__GameState.newGame('normal'); window.game.events.emit('story:goto', { type: 'level', id: 'act2' }); });
+  await page.waitForFunction(() => window.game.scene.isActive('Loading'), null, { timeout: 6000 });
+  const loading = await page.evaluate(() => {
+    const L = window.game.scene.getScene('Loading');
+    return { step: L.step, layers: L.children.list.filter((o) => o.type === 'Image' && o.texture.key.startsWith('bg_act2')).length };
+  });
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 8000 });
+  const r = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level; const p = s.player; const u = s.ufos[0];
+    const kills0 = window.__GameState.enemiesKilled;
+    p.invulnerableUntil = 0;
+    p.controls.update = () => {}; p.controls.isDown = () => false; p.controls.justPressed = () => false; p.controls.justReleased = () => false; p.controls.axisX = () => 0;
+    p.body.reset(u.sprite.x + 10, p.y);
+    const states = new Set(); let minY = p.y; const h0 = p.hearts;
+    const t = s.time.addEvent({ delay: 16, loop: true, callback: () => { states.add(u.state); minY = Math.min(minY, p.y); } });
+    s.time.delayedCall(3200, () => { t.remove(); resolve({ ufos: s.ufos.length, states: [...states], lifted: Math.round(p.y - minY) > 0, h0, h1: p.hearts, kills: window.__GameState.enemiesKilled - kills0 }); });
+  }));
+  assert.equal(loading.step.id, 'act2');
+  assert.ok(loading.layers >= 3, 'la pantalla de carga usa todas las capas del escenario');
+  assert.ok(r.ufos >= 3);
+  assert.ok(r.states.includes('charge') && r.states.includes('beam'), JSON.stringify(r));
+  assert.ok(r.h1 < r.h0, 'quedarse en el haz abduce (−1 corazón)');
+  assert.equal(r.kills, 0, 'el platillo no cuenta como enemigo');
+  return { loading, ...r };
+});
+
+await step('conventional route end to end: the Act 4 loading screen and level never appear', async () => {
+  await page.evaluate(() => {
+    window.__GameState.newGame('normal');
+    window.__loadingSeen = [];
+    const L = window.game.scene.getScene('Loading');
+    L.events.on('create', () => window.__loadingSeen.push(L.step.id ?? L.step.type));
+    window.game.events.emit('story:goto', window.__GameState.currentStep());
+  });
+  const seen = [];
+  for (let i = 0; i < 12; i += 1) {
+    await page.waitForFunction(() => ['VisualNovel', 'Level', 'Boss'].some((k) => window.game.scene.isActive(k)), null, { timeout: 9000 });
+    await page.waitForTimeout(500);
+    const st = await page.evaluate(() => (window.game.scene.isActive('VisualNovel') ? 'vn:' + window.game.scene.getScene('VisualNovel').sceneId
+      : window.game.scene.isActive('Level') ? 'level:' + window.__level.levelId : 'boss'));
+    seen.push(st);
+    if (st.startsWith('vn:')) { await page.keyboard.press('Enter'); await page.waitForTimeout(500); }
+    else if (st.startsWith('level:')) {
+      await page.evaluate(() => {
+        const s = window.__level;
+        if (s.levelId === 'act1') { const e = s.enemies.getChildren()[0]; for (let k = 0; k < e.maxHp; k += 1) e.hit(800 + k, e.x - 30); }
+        s.player.invulnerableUntil = s.player.clock + 1e7;
+        s.player.body.reset(s.goal.x - 10, s.goal.y - 4);
+      });
+      await page.waitForTimeout(2600);
+    } else break;
+  }
+  const loadingSeen = await page.evaluate(() => window.__loadingSeen);
+  assert.ok(!seen.includes('level:act4'), JSON.stringify(seen));
+  assert.ok(!loadingSeen.includes('act4'), JSON.stringify(loadingSeen));
+  assert.deepEqual(loadingSeen, ['act1', 'act2', 'act3', 'boss']);
+  return { seen, loadingSeen };
 });
 
 await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -> skipped', async () => {
@@ -502,7 +572,10 @@ await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -
   await page.waitForFunction(() => window.game.scene.isActive('VisualNovel'), null, { timeout: 6000 });
   await page.waitForTimeout(500);
   await page.keyboard.press('Enter'); // after_act3 -> siguiente paso
-  await page.waitForFunction(() => window.__level?.levelId === 'act4' || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.isActive('Loading') || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 6000 });
+  const loadingStep = await page.evaluate(() => (window.game.scene.isActive('Loading') ? window.game.scene.getScene('Loading').step.id : null));
+  assert.equal(loadingStep, 'act4', 'sin muertes aparece la pantalla de carga del Acto 4');
+  await page.waitForFunction(() => window.__level?.levelId === 'act4' || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 8000 });
   const pacNext = await page.evaluate(() => (window.game.scene.isActive('Level') ? window.__level.levelId : window.game.scene.getScene('VisualNovel').sceneId));
   const conv = await page.evaluate(() => {
     const GS = window.__GameState;

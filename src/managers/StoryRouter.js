@@ -6,14 +6,14 @@
  *     this.game.events.emit('story:goto', next);
  * El router detiene las escenas activas de juego y arranca la escena del paso:
  *   { type: 'vn', id }     -> SCENES.VN     con { sceneId: id }
- *   { type: 'level', id }  -> SCENES.LEVEL  con { levelId: id }
- *   { type: 'boss' }       -> SCENES.BOSS
+ *   { type: 'level', id }  -> SCENES.LOADING -> SCENES.LEVEL con { levelId: id }
+ *   { type: 'boss' }       -> SCENES.LOADING -> SCENES.BOSS
  *   { type: 'ending', id } -> SCENES.VN     con { sceneId: id, isEnding: true }
  */
 import { SCENES } from '../config/constants.js';
 import { AudioManager } from './AudioManager.js';
 
-const MANAGED = [SCENES.VN, SCENES.LEVEL, SCENES.BOSS, SCENES.HUD, SCENES.PAUSE, SCENES.GAME_OVER, SCENES.BOSS_DEFEAT, SCENES.MENU, SCENES.ENDING];
+const MANAGED = [SCENES.VN, SCENES.LEVEL, SCENES.BOSS, SCENES.HUD, SCENES.PAUSE, SCENES.GAME_OVER, SCENES.BOSS_DEFEAT, SCENES.LOADING, SCENES.MENU, SCENES.ENDING];
 
 export function goToStep(game, step) {
   const sm = game.scene;
@@ -25,11 +25,12 @@ export function goToStep(game, step) {
     case 'vn':
       sm.start(SCENES.VN, { sceneId: step.id });
       break;
+    // Niveles y jefe pasan por su pantalla de carga (solo la del paso real siguiente).
     case 'level':
-      sm.start(SCENES.LEVEL, { levelId: step.id });
+      sm.start(SCENES.LOADING, { step });
       break;
     case 'boss':
-      sm.start(SCENES.BOSS, {});
+      sm.start(SCENES.LOADING, { step });
       break;
     case 'ending':
       AudioManager.stopMusic();

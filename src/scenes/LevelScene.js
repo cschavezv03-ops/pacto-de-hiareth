@@ -7,6 +7,7 @@ import { AudioManager } from '../managers/AudioManager.js';
 import { InputManager } from '../managers/InputManager.js';
 import { Player } from '../objects/Player.js';
 import { Enemy, Alien } from '../objects/Enemy.js';
+import { Ufo } from '../objects/Ufo.js';
 import { TILE } from '../objects/ProceduralTextures.js';
 
 const GROUND_ROWS = 2;
@@ -91,6 +92,7 @@ export default class LevelScene extends Phaser.Scene {
     this.buildGhostFire();
     this.buildLava();
     this.buildEnemies();
+    this.buildUfos();
     this.buildOrbs();
     this.buildGoal();
     this.buildCheckpoints();
@@ -215,6 +217,17 @@ export default class LevelScene extends Phaser.Scene {
         ic.armed = true;
         ic.homeX = ic.x;
       }
+    }
+  }
+
+  /** Platillos abductores (peligro ambiental del Acto 2). */
+  buildUfos() {
+    this.ufos = [];
+    if (!this.textures.exists('fx_ufo') || !this.textures.exists('fx_beam')) return;
+    for (const u of this.def.ufos ?? []) {
+      this.ufos.push(new Ufo(this, {
+        x: u.x * TILE, minX: u.zone[0] * TILE, maxX: u.zone[1] * TILE, groundY: GROUND_Y,
+      }));
     }
   }
 
@@ -383,17 +396,29 @@ export default class LevelScene extends Phaser.Scene {
   // ---------------------------------------------------------------- lava (slimes)
   buildLava() {
     this.lava = this.physics.add.group({ allowGravity: false, maxSize: 24 });
-    this.events.on('enemy:lava', (x, big) => this.spawnLava(x, big));
+    this.events.on('enemy:lava', (x, big, y) => this.spawnLava(x, big, y));
   }
 
-  spawnLava(x, big) {
+  /**
+   * Charco de lava en la superficie sobre la que está el slime (suelo o plataforma).
+   * @param {number} y pies del slime; si falta, se asume el suelo.
+   */
+  spawnLava(x, big, y = GROUND_Y) {
     if (!this.textures.exists('fx_lava')) return;
-    const fire = this.lava.get(x, GROUND_Y, 'fx_lava');
-    if (!fire) return;
-    // Solo sobre suelo firme (nunca sobre un foso).
     const tx = x / TILE;
-    if (!this.def.ground.some(([a, b]) => tx >= a && tx <= b)) { fire.disableBody(true, true); return; }
-    fire.enableBody(true, x, GROUND_Y, true, true);
+    let surfaceY = null;
+    if (Math.abs(y - GROUND_Y) < 6) {
+      if (this.def.ground.some(([a, b]) => tx >= a && tx <= b)) surfaceY = GROUND_Y; // nunca sobre un foso
+    } else {
+      // Sobre una plataforma: la de la altura del slime que esté bajo él.
+      const plat = this.def.platforms.find((p) => (p.type ?? 'static') === 'static'
+        && Math.abs(GROUND_Y - p.h * TILE - y) < 8 && tx >= p.x && tx <= p.x + p.w);
+      if (plat) surfaceY = GROUND_Y - plat.h * TILE;
+    }
+    if (surfaceY === null) return;
+    const fire = this.lava.get(x, surfaceY, 'fx_lava');
+    if (!fire) return;
+    fire.enableBody(true, x, surfaceY, true, true);
     fire.body.setAllowGravity(false).setImmovable(true);
     const scale = big ? 1.5 : 0.95;
     fire.setOrigin(0.5, 1).setScale(scale).setDepth(5).setAlpha(0.55);
@@ -640,6 +665,7 @@ export default class LevelScene extends Phaser.Scene {
     this.player.update(time, delta);
     this.updateOrbs();
     this.updateLava();
+    for (const u of this.ufos) u.update(this.levelClock, delta, this.player);
     this.updateSafeSpot();
 
     for (const e of this.enemies.getChildren()) {

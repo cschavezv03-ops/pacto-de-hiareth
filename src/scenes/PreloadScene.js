@@ -33,6 +33,9 @@ const ANIM_KEYS = {
   'fx/orb_pickup.png': 'fx_orb_pickup',
   'fx/lava_trail.png': 'fx_lava',
   'fx/platform_crack.png': 'fx_crack',
+  'fx/ufo.png': 'fx_ufo',
+  'fx/ufo_charge.png': 'fx_ufo_charge',
+  'fx/tractor_beam.png': 'fx_beam',
 };
 
 /** Carga todos los assets con barra de progreso y crea las animaciones globales. */
@@ -99,6 +102,8 @@ export default class PreloadScene extends Phaser.Scene {
     this.load.once('filecomplete-json-anim_meta2', queueAnimSheets);
     this.load.json('anim_meta3', 'assets/sprites/anim_sprites3.json');
     this.load.once('filecomplete-json-anim_meta3', queueAnimSheets);
+    this.load.json('anim_meta4', 'assets/sprites/anim_sprites4.json');
+    this.load.once('filecomplete-json-anim_meta4', queueAnimSheets);
 
     MUSIC.forEach(({ key, url }) => this.load.audio(key, url));
     SFX.forEach(({ key, url }) => this.load.audio(key, url));

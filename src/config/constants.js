@@ -18,7 +18,8 @@ export const SCENES = Object.freeze({
   HUD: 'Hud',            // HUD paralelo a LEVEL/BOSS.
   PAUSE: 'Pause',
   GAME_OVER: 'GameOver',
-  BOSS_DEFEAT: 'BossDefeat', // tarjeta de derrota del jefe (progreso + reintento)
+  BOSS_DEFEAT: 'BossDefeat',
+  LOADING: 'Loading',        // pantalla de carga de cada nivel / del jefe // tarjeta de derrota del jefe (progreso + reintento)
   ENDING: 'Ending',      // placeholder del desenlace (Frank lo reemplaza por VN).
 });
 

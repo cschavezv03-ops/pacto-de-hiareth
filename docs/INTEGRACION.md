@@ -162,6 +162,11 @@ Reglas:
 - `muteButton(scene, x, y, { onOpenAudio })` dibuja el icono de altavoz pixel art (sin recuadro).
 - Para manejadores de teclado propios, envolverlos con `oncePerKeyEvent(handler)` (Phaser puede reemitir el mismo evento).
 
+### Pantallas de carga y fondos
+
+- `SCENES.LOADING` (`LoadingScene`): el router la muestra antes de cada nivel y del jefe con `{ step }`. La VN de Frank no necesita gestionarla.
+- `drawBackdrop(scene, id, dim)` en `src/ui/Backdrop.js` dibuja el escenario completo de un acto (`'act1'…'act4' | 'boss'`). Úsalo como fondo de cualquier pantalla: algunas capas sueltas son solo cielo.
+
 ## 8. Registry usado por el HUD
 
 `HudScene` se lanza en paralelo a `LEVEL` y `BOSS` y solo lee del registry global:

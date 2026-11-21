@@ -350,3 +350,12 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 
 **Desviaciones aprobadas por el equipo en esta ronda:** recuperar corazones durante un nivel (las Instrucciones §5.3 decían que no) y la animación de ataque aéreo (el Documento Maestro decía no asumirla; se generó a partir del sprite original). Los slimes dejan **terreno** que quema en lugar de lanzar llamas, para respetar «solo el alien utiliza ataques a distancia» y no alterar el contador de la ruta pacifista (como habrían hecho los mini slimes). Los orbes fijos garantizan que la ruta pacifista también pueda ganar vidas.
 
+## 9. Ronda «platillos y pantallas de carga»
+
+| Cambio | Detalle |
+| --- | --- |
+| Platillo abductor (Acto 2) | 4 platillos (`ufos` en `levels.js`). Persiguen a 85 px/s dentro de su zona (Aidan corre a 250), se alinean, **avisan 0,65 s** cargando el emisor y lanzan un haz tractor de 1,5 s y 60 px de ancho: dentro del haz Aidan es elevado y, si sigue 0,8 s, es abducido (−1 corazón). Recarga 2,4-3,2 s. Es un **peligro ambiental**: no se puede destruir, no suelta orbes y no cuenta para `enemiesKilled` (la ruta pacifista no cambia). Sprites `fx/ufo*.png` y `fx/tractor_beam.png` (`tools/gen_anim_sprites4.py`) |
+| Lava en plataformas | Los slimes sobre plataformas dejan la lava en su plataforma (antes aparecía en el suelo de abajo) |
+| Pantalla de carga por nivel | `LoadingScene` antes de cada nivel y del jefe, con el escenario completo, título, dificultad y un consejo. El router la genera solo para el paso real siguiente: la del Acto 4 solo aparece en la ruta pacifista (prueba E2E de la ruta convencional completa) |
+| Fondos completos | Pantallas de carga y tarjetas de la novela visual componen todas las capas del escenario (`ui/Backdrop.js`); antes usaban solo la capa más lejana, que en el Acto 2 es un cielo liso |
+
