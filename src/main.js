@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { GAME_WIDTH, GAME_HEIGHT } from './config/constants.js';
 import { installStoryRouter } from './managers/StoryRouter.js';
+import { GameState } from './managers/GameState.js';
 import BootScene from './scenes/BootScene.js';
 import PreloadScene from './scenes/PreloadScene.js';
 import MenuScene from './scenes/MenuScene.js';
@@ -39,4 +40,5 @@ installStoryRouter(game);
 
 if (import.meta.env.DEV) {
   window.game = game; // depuración y pruebas automatizadas
+  window.__GameState = GameState; // misma instancia que usa el juego
 }

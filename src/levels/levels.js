@@ -7,6 +7,8 @@
  *  enemies:   { type, x, zone: [min, max], h? }  h = sobre plataforma (tiles sobre suelo)
  *  hazards:   { type: 'spikes', x, w }  |  { type: 'icicle', x }  (estalactita que cae)
  *  goal:      { x, texture, label }  — al tocarlo termina el nivel
+ *  checkpoints: [x, ...] — puntos de control sobre suelo firme, fuera de zonas de patrulla
+ *             (no se usan en dificultad Difícil)
  *
  * Alcance del salto de Aidan: ~4.4 tiles de altura y ~5 tiles de distancia.
  * Ruta crítica: huecos ≤ 4 tiles, escalones ≤ 3.5 tiles.
@@ -52,6 +54,7 @@ export const LEVEL_DATA = {
     ],
     hazards: [],
     goal: { x: 184, texture: 'goal_sign' },
+    checkpoints: [60, 124],
   },
 
   act2: {
@@ -66,16 +69,16 @@ export const LEVEL_DATA = {
       { x: 20, h: 3, w: 4 },
       { x: 30, h: 2, w: 4 },
       { x: 42, h: 4, w: 5 },
-      { x: 58, h: 3, w: 2, type: 'moving', dx: 3, ms: 2200 },
+      { x: 58, h: 3, w: 2, type: 'moving', dx: 3, ms: 3800 },
       { x: 70, h: 3, w: 4 },
       { x: 77, h: 6, w: 5 },
-      { x: 88, h: 3, w: 2, type: 'moving', dx: 3, ms: 2000 },
+      { x: 88, h: 3, w: 2, type: 'moving', dx: 3, ms: 3500 },
       { x: 100, h: 4, w: 5 },
       { x: 108, h: 7, w: 4 },
       { x: 118, h: 2, w: 4 },
       { x: 130, h: 3, w: 4 },
       { x: 137, h: 6, w: 5 },
-      { x: 150, h: 3, w: 2, type: 'moving', dx: 3, ms: 1900 },
+      { x: 150, h: 3, w: 2, type: 'moving', dx: 3, ms: 3300 },
       { x: 165, h: 3, w: 5 },
       { x: 175, h: 5, w: 4 },
     ],
@@ -93,6 +96,7 @@ export const LEVEL_DATA = {
       { type: 'spikes', x: 182, w: 2 },
     ],
     goal: { x: 193, texture: 'goal_portal' },
+    checkpoints: [65, 125],
   },
 
   act3: {
@@ -105,30 +109,30 @@ export const LEVEL_DATA = {
     ground: [[0, 28], [32, 55], [59, 80], [85, 110], [114, 140], [145, 170], [174, 205]],
     platforms: [
       { x: 16, h: 3, w: 4 },
-      { x: 28, h: 3, w: 2, type: 'moving', dx: 2, ms: 1800 },
+      { x: 28, h: 3, w: 2, type: 'moving', dx: 2, ms: 3100 },
       { x: 40, h: 3, w: 4 },
       { x: 46, h: 6, w: 5 },
       { x: 55, h: 2, w: 3 },
       { x: 66, h: 4, w: 6 },
-      { x: 80, h: 3, w: 2, type: 'moving', dx: 3, ms: 2000 },
+      { x: 80, h: 3, w: 2, type: 'moving', dx: 3, ms: 3500 },
       { x: 92, h: 3, w: 4 },
       { x: 99, h: 6, w: 6 },
-      { x: 110, h: 3, w: 2, type: 'moving', dx: 2, ms: 1700 },
+      { x: 110, h: 3, w: 2, type: 'moving', dx: 2, ms: 2900 },
       { x: 122, h: 4, w: 5 },
       { x: 130, h: 7, w: 4 },
-      { x: 140, h: 3, w: 2, type: 'moving', dx: 3, ms: 1900 },
+      { x: 140, h: 3, w: 2, type: 'moving', dx: 3, ms: 3300 },
       { x: 152, h: 3, w: 4 },
       { x: 159, h: 6, w: 5 },
-      { x: 170, h: 3, w: 2, type: 'moving', dx: 2, ms: 1700 },
+      { x: 170, h: 3, w: 2, type: 'moving', dx: 2, ms: 2900 },
       { x: 182, h: 3, w: 5 },
     ],
     enemies: [
       { type: 'skeleton', x: 12, zone: [7, 24] },
       { type: 'skeleton', x: 44, zone: [35, 52] },
-      { type: 'skeleton', x: 70, zone: [61, 78] },
-      { type: 'skeleton', x: 96, zone: [87, 107] },
+      { type: 'skeleton', x: 70, zone: [64, 78] },
+      { type: 'skeleton', x: 96, zone: [87, 104] },
       { type: 'skeleton', x: 126, zone: [116, 138] },
-      { type: 'skeleton', x: 156, zone: [147, 168] },
+      { type: 'skeleton', x: 156, zone: [147, 163] },
       { type: 'skeleton', x: 186, zone: [176, 194] },
     ],
     hazards: [
@@ -136,6 +140,7 @@ export const LEVEL_DATA = {
       { type: 'spikes', x: 118, w: 2 },
     ],
     goal: { x: 198, texture: 'goal_house' },
+    checkpoints: [60, 107, 167],
   },
 
   // Acto 4 (solo ruta pacifista): SIN ENEMIGOS. Reto de desplazamiento y entorno.
@@ -154,12 +159,12 @@ export const LEVEL_DATA = {
       { x: 48, h: 3, w: 2, type: 'crumble' },
       { x: 51, h: 5, w: 2, type: 'crumble' },
       { x: 60, h: 4, w: 5 },
-      { x: 70, h: 3, w: 2, type: 'moving', dx: 3, ms: 2200 },
+      { x: 70, h: 3, w: 2, type: 'moving', dx: 3, ms: 3800 },
       { x: 84, h: 3, w: 4 },
       { x: 96, h: 2, w: 2, type: 'crumble' },
       { x: 99, h: 4, w: 2, type: 'crumble' },
       { x: 110, h: 4, w: 5 },
-      { x: 122, h: 3, w: 2, type: 'moving', dx: 3, ms: 2000 },
+      { x: 122, h: 3, w: 2, type: 'moving', dx: 3, ms: 3500 },
       { x: 136, h: 3, w: 4 },
       { x: 148, h: 2, w: 3, type: 'crumble' },
     ],
@@ -178,5 +183,6 @@ export const LEVEL_DATA = {
       { type: 'icicle', x: 163 },
     ],
     goal: { x: 168, texture: 'goal_camp' },
+    checkpoints: [57, 131],
   },
 };

@@ -63,4 +63,16 @@ export function createAnimations(scene) {
 
   // Morrigannus
   strip(scene, 'boss-idle', 'boss_idle', 8);
+
+  // Props animados (si el PNG trae varios frames)
+  strip(scene, 'goal_portal-anim', 'goal_portal', 8);
+  strip(scene, 'goal_camp-anim', 'goal_camp', 8);
+  if (!scene.anims.exists('checkpoint-lit') && scene.textures.exists('prop_checkpoint')) {
+    scene.anims.create({
+      key: 'checkpoint-lit',
+      frames: scene.anims.generateFrameNumbers('prop_checkpoint', { start: 1, end: 4 }),
+      frameRate: 9,
+      repeat: -1,
+    });
+  }
 }

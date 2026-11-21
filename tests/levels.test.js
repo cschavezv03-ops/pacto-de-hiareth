@@ -71,3 +71,16 @@ test('cada acto usa su enemigo correspondiente', () => {
   assert.deepEqual([...kinds('act2')], ['alien']);
   assert.deepEqual([...kinds('act3')], ['skeleton']);
 });
+
+test('los checkpoints están sobre suelo, lejos de pinchos y de zonas de patrulla', () => {
+  for (const [id, def] of Object.entries(LEVEL_DATA)) {
+    assert.ok(def.checkpoints?.length >= 2, `${id}: al menos 2 checkpoints`);
+    for (const c of def.checkpoints) {
+      assert.ok(def.ground.some(([a, b]) => c >= a + 1 && c + 1 <= b - 1), `${id}: checkpoint ${c} sin suelo`);
+      for (const h of def.hazards) assert.ok(Math.abs(h.x - c) >= 3, `${id}: checkpoint ${c} junto a peligro en ${h.x}`);
+      for (const e of def.enemies.filter((x) => x.type !== 'alien' && !x.h)) {
+        assert.ok(c < e.zone[0] - 2 || c > e.zone[1] + 2, `${id}: checkpoint ${c} dentro de la zona de un ${e.type}`);
+      }
+    }
+  }
+});

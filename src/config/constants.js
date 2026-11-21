@@ -49,4 +49,24 @@ export const RULES = Object.freeze({
   ENEMY_HITS: { slime: 4, alien: 6, skeleton: 8 },
 });
 
+/**
+ * Niveles de dificultad (aprobados por el equipo tras las pruebas manuales).
+ * Solo cambian la resistencia de los enemigos/jefe y los checkpoints: la IA y los
+ * corazones de Aidan (3) son iguales en todas. 'normal' = valores del documento.
+ */
+export const DIFFICULTIES = Object.freeze({
+  easy: { id: 'easy', label: 'Fácil', hitMult: 0.5, bossHealthMult: 0.65, checkpoints: true,
+    desc: 'Enemigos más frágiles · con puntos de control' },
+  normal: { id: 'normal', label: 'Intermedio', hitMult: 1, bossHealthMult: 1, checkpoints: true,
+    desc: 'Experiencia original · con puntos de control' },
+  hard: { id: 'hard', label: 'Difícil', hitMult: 1.5, bossHealthMult: 1.25, checkpoints: false,
+    desc: 'Enemigos más resistentes · sin puntos de control' },
+});
+
+/** Golpes necesarios para derrotar a un enemigo según la dificultad. */
+export function enemyHits(type, difficultyId) {
+  const d = DIFFICULTIES[difficultyId] ?? DIFFICULTIES.normal;
+  return Math.max(1, Math.round(RULES.ENEMY_HITS[type] * d.hitMult));
+}
+
 export const STORAGE_KEY = 'pactoHiareth.save.v1';

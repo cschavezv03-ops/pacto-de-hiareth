@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT, VN_SCENES } from '../config/constants.js';
 import { GameState } from '../managers/GameState.js';
 import { AudioManager } from '../managers/AudioManager.js';
-import { FONT_TITLE, FONT_UI, COLORS, muteButton, panel } from '../ui/UiKit.js';
+import { FONT_TITLE, FONT_UI, COLORS, muteButton, panel, oncePerKeyEvent } from '../ui/UiKit.js';
 
 /**
  * ESCENA VN PROVISIONAL (placeholder de integración).
@@ -109,8 +109,8 @@ export default class VNScene extends Phaser.Scene {
     muteButton(this, W - 12, 12);
     this.cameras.main.fadeIn(400, 0, 0, 0);
 
-    this.input.keyboard.on('keydown-ENTER', () => this.next());
-    this.input.keyboard.on('keydown-SPACE', () => this.next());
+    this.input.keyboard.on('keydown-ENTER', oncePerKeyEvent(() => this.next()));
+    this.input.keyboard.on('keydown-SPACE', oncePerKeyEvent(() => this.next()));
     this.input.on('pointerup', (p) => { if (p.y > 60) this.next(); });
   }
 

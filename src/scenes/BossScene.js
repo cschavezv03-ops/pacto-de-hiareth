@@ -50,7 +50,9 @@ export default class BossScene extends Phaser.Scene {
 
   init() {
     this.hearts = RULES.PLAYER_HEARTS;
-    this.bossHealth = BOSS_TUNING.HEALTH;
+    // La dificultad solo escala la vida del jefe (Fácil 0.65x, Intermedio 1x, Difícil 1.25x).
+    this.maxHealth = Math.round(BOSS_TUNING.HEALTH * GameState.difficulty.bossHealthMult);
+    this.bossHealth = this.maxHealth;
     this.elapsedMs = 0;
     this.intensity = 0;
     this.patternRemainingMs = BOSS_TUNING.INTRO_MS;
@@ -306,12 +308,15 @@ export default class BossScene extends Phaser.Scene {
 
   publishBossHealth() {
     this.registry.set('bossHealth', {
-      current: this.bossHealth, max: BOSS_TUNING.HEALTH, name: 'Morrigannus',
+      current: this.bossHealth, max: this.maxHealth, name: 'Morrigannus',
     });
   }
 
-  hitBoss(bullet) {
-    if (this.finished || !bullet.active) return;
+  hitBoss(a, b) {
+    // Phaser ordena los argumentos de overlap(grupo, sprite) como (sprite, miembro):
+    // nunca asumir el orden, o se desactivaría al propio jefe.
+    const bullet = a === this.boss ? b : a;
+    if (this.finished || !bullet.active || bullet === this.boss) return;
     bullet.disableBody(true, true);
     this.bossHealth = Math.max(0, this.bossHealth - BOSS_TUNING.SHOT_DAMAGE);
     this.publishBossHealth();
@@ -325,7 +330,8 @@ export default class BossScene extends Phaser.Scene {
     if (this.bossHealth === 0) this.win();
   }
 
-  hitPlayer(_player, bullet) {
+  hitPlayer(a, b) {
+    const bullet = a === this.player ? b : a;
     if (this.finished || !bullet.active || this.elapsedMs < this.invulnerableUntil) return;
     bullet.disableBody(true, true);
     this.hearts = Math.max(0, this.hearts - 1);

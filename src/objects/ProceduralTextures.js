@@ -112,7 +112,10 @@ export function generateProceduralTextures(scene) {
   ice.generateTexture('platform_ice', TILE, 14);
   ice.destroy();
 
-  // Portal (meta del Acto 2) y destino genérico.
+  generateFallbackProps(scene);
+
+  // Metas de respaldo (solo si no se cargaron los PNG de public/assets/props).
+  if (scene.textures.exists('goal_portal')) return;
   const portal = scene.make.graphics({ x: 0, y: 0 }, false);
   for (let r = 0; r < 6; r += 1) {
     portal.lineStyle(4, [0x7a3cff, 0x9c5bff, 0xbf8cff, 0x5be0ff, 0x9c5bff, 0x3d1a7a][r], 1);
@@ -153,4 +156,50 @@ export function generateProceduralTextures(scene) {
   sign.fillStyle(0xff9a3c).fillTriangle(44, 18, 58, 25, 44, 32);
   sign.generateTexture('goal_sign', 64, 100);
   sign.destroy();
+}
+
+/**
+ * Respaldos procedurales para los props de Codex (checkpoint e iconos de sonido),
+ * por si public/assets/props no está disponible.
+ */
+function generateFallbackProps(scene) {
+  if (!scene.textures.exists('icon_sound_on')) {
+    const speaker = (key, muted) => {
+      const g = scene.make.graphics({ x: 0, y: 0 }, false);
+      const px = (x, y, c) => g.fillStyle(c).fillRect(x * 2, y * 2, 2, 2);
+      const body = ['..........', '....X.....', '...XX.....', 'XXXXX.....', 'XXXXX.....', 'XXXXX.....', 'XXXXX.....', '...XX.....', '....X.....'];
+      body.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === 'X') px(x + 1, y + 2, 0xf4ecff); }));
+      if (muted) {
+        [[8, 4], [9, 5], [10, 6], [11, 7], [11, 4], [10, 5], [9, 6], [8, 7]].forEach(([x, y]) => px(x, y + 1, 0xff6b7d));
+      } else {
+        [[8, 5], [8, 6], [8, 7], [10, 3], [11, 4], [11, 5], [11, 6], [11, 7], [11, 8], [10, 9]].forEach(([x, y]) => px(x, y, 0xf4ecff));
+      }
+      g.generateTexture(key, 28, 28);
+      g.destroy();
+    };
+    speaker('icon_sound_on', false);
+    speaker('icon_sound_off', true);
+  }
+  if (!scene.textures.exists('prop_checkpoint')) {
+    const fw = 20;
+    const fh = 36;
+    const g = scene.make.graphics({ x: 0, y: 0 }, false);
+    for (let f = 0; f < 5; f += 1) {
+      const ox = f * fw;
+      g.fillStyle(0x4a4458).fillRect(ox + 6, 18, 8, 18);
+      g.fillStyle(0x6b6480).fillRect(ox + 3, 14, 14, 5);
+      g.fillStyle(0x2c2836).fillRect(ox + 3, 18, 14, 1);
+      if (f === 0) {
+        g.fillStyle(0x777777).fillRect(ox + 6, 11, 8, 3);
+      } else {
+        const h = [10, 12, 9, 11][f - 1];
+        g.fillStyle(0xff7a1a).fillTriangle(ox + 4, 14, ox + 10, 14 - h, ox + 16, 14);
+        g.fillStyle(0xffd34a).fillTriangle(ox + 7, 14, ox + 10, 14 - h * 0.6, ox + 13, 14);
+      }
+    }
+    g.generateTexture('prop_checkpoint', fw * 5, fh);
+    g.destroy();
+    const tex = scene.textures.get('prop_checkpoint');
+    for (let f = 0; f < 5; f += 1) tex.add(f, 0, f * fw, 0, fw, fh);
+  }
 }

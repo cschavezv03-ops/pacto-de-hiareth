@@ -19,6 +19,25 @@ Estas reglas vienen del Documento Maestro y de las Instrucciones de Sebas; no se
 
 No se recuperan corazones durante un nivel. Al llegar a 0 se produce Game Over y el nivel se reinicia completo, con todos sus enemigos.
 
+## 1.1 Niveles de dificultad (cambio aprobado por el equipo tras las pruebas manuales)
+
+Se elige al pulsar **Nueva partida** y se guarda con la partida. Solo cambian la resistencia de los enemigos, la vida del jefe y la disponibilidad de checkpoints; la IA, la velocidad y los 3 corazones de Aidan son idénticos.
+
+| Dificultad | Golpes slime / alien / esqueleto | Vida de Morrigannus | Checkpoints |
+| --- | --- | --- | --- |
+| Fácil | 2 / 3 / 4 (×0.5) | 1950 (×0.65) | Sí |
+| Intermedio | 4 / 6 / 8 (valores del documento) | 3000 | Sí |
+| Difícil | 6 / 9 / 12 (×1.5) | 3750 (×1.25) | No |
+
+> **Desviación respecto a las Instrucciones de Sebas (§5.3 y §13):** el documento original fijaba los golpes por enemigo y no definía checkpoints. Ambos cambios los pidió el equipo después de jugar; Intermedio conserva exactamente los valores originales.
+
+### Checkpoints
+
+- 2-3 braseros por nivel (`checkpoints` en `levels.js`), sobre suelo firme y fuera de las zonas de patrulla y de los peligros (validado en `tests/levels.test.js`).
+- Al tocarlos se encienden, se guarda el progreso (`GameState.setCheckpoint`) y aparece el aviso «Punto de control».
+- Game Over / Reintentar reaparece en el último checkpoint activado con 3 corazones; **todos los enemigos del nivel reaparecen** y `enemiesKilled` se conserva.
+- Se borran al terminar el nivel. No existen en Difícil ni en el combate final.
+
 ## 2. Movimiento de Aidan (`PLAYER_TUNING`)
 
 | Parámetro | Valor | Comentario |
@@ -174,13 +193,16 @@ Plataformas móviles: movimiento senoidal con período de 1700–2200 ms y despl
 - **No se implementa dash.** No es necesario para el diseño de niveles y mantiene el alcance bajo control. El documento lo dejaba a criterio de Sebas.
 - **Coyote time (100 ms) y jump buffer (120 ms)**, con salto variable al soltar `Espacio`. Sigue siendo un salto simple: **no hay doble salto**.
 - **El ataque solo se ejecuta desde el suelo**, porque no existe animación de ataque aéreo. `Attack1` y `Attack2` se alternan como **variantes visuales de la misma acción**, no como habilidades distintas.
-- **Caer a un foso resta 1 corazón** (respetando la invulnerabilidad) y reaparece en el último punto seguro sobre suelo firme, lejos de bordes y pinchos. No es un checkpoint: el Game Over sigue reiniciando el nivel completo.
+- **Caer a un foso resta 1 corazón** (respetando la invulnerabilidad) y reaparece en el último punto seguro sobre suelo firme, lejos de bordes y pinchos. No sustituye a los checkpoints: el Game Over reinicia desde el último checkpoint (o desde el inicio en Difícil).
 - **Los aliens disparan con temporizador fijo**, pero solo si están dentro de la cámara, para que no lleguen balas desde fuera de la pantalla. Si un proyectil impacta a Aidan, sigue su trayectoria (§7.2). Sus proyectiles caducan a los 6 s o al salir del escenario (incluido un margen de 200 px respecto a la vista).
 - **Los esqueletos se acercan a Aidan solo si está dentro de su zona**; nunca la abandonan, ni siquiera al perseguir.
 - **El jefe no cuenta para `enemiesKilled`**: es obligatorio y contarlo haría imposible la ruta pacifista.
 - **Acto 4 con obstáculos ambientales**: pinchos de hielo, estalactitas que caen al acercarse Aidan, plataformas de hielo que se desmoronan y reaparecen, y plataformas móviles. **Sin enemigos.**
 - **Puntuación independiente de las muertes**: no debe premiar ni revelar la ruta. Solo suma completar el nivel, los corazones restantes y el bonus de tiempo.
 - **Fondos del Acto 4**: las capas 1–4 se fusionaron en `far.png` por rendimiento (menos fill-rate y menos texturas activas).
+- **Plataformas móviles**: velocidad analítica (derivada exacta de un movimiento senoidal) con corrección de deriva y periodos de 2,9-3,8 s. La versión anterior derivaba la velocidad de la diferencia de posición entre frames y oscilaba bruscamente con el paso fijo de Arcade.
+- **Teclado de la UI**: Phaser puede reemitir el mismo `KeyboardEvent` en más de un paso; los manejadores de menús usan `oncePerKeyEvent` (UiKit) para procesarlo una sola vez.
+- **Volumen**: música y efectos ajustables de 0 a 100 % en pasos de 10 % (menú → Audio y pausa → Audio); se guarda en localStorage.
 - **Phaser 3.90 en lugar de 4.x** por estabilidad y por la documentación disponible para el equipo.
 
 - **Reloj propio de Aidan**: la invulnerabilidad, el coyote time y el buffer de salto usan un reloj que solo avanza durante el juego activo, para que la pausa no consuma la invulnerabilidad.

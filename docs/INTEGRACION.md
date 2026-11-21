@@ -124,6 +124,11 @@ Módulo puro (`src/managers/GameState.js`), sin dependencias de Phaser. La secue
 4. La VN puede consultar `isPacifist()` para adaptar detalles internos, pero el desenlace ya viene decidido en `sceneId`.
 5. No guardar estado propio en `localStorage` desde la VN: usa `GameState` y `SaveManager`.
 
+### Dificultad y checkpoints
+
+- `GameState.newGame(difficulty)` con `'easy' | 'normal' | 'hard'` (por defecto `'normal'`). `GameState.difficulty` devuelve `{ id, label, hitMult, bossHealthMult, checkpoints }`.
+- `GameState.checkpointFor(levelId)` / `setCheckpoint(levelId, index)`: los usa solo el gameplay; `advanceStory()` borra el checkpoint al cambiar de paso. La VN no necesita tocarlos.
+
 ## 7. Audio global (`AudioManager`)
 
 Un único punto de control para música, efectos y mute. Se inicializa una vez en `PreloadScene` con `AudioManager.init(game)`.
@@ -146,6 +151,13 @@ Reglas:
 - Si la VN tiene música propia, añádela al manifiesto y reprodúcela con `playMusic`; no crees objetos `sound` sueltos.
 - **No dupliques el botón de mute.** Usa el único botón compartido: `muteButton(this, GAME_WIDTH - 12, 12)` de `src/ui/UiKit.js`. Ya se sincroniza con `onMuteChange` y con la tecla `M`.
 - El mute se guarda en `SaveManager` y se restaura al arrancar.
+
+### Volumen y panel de audio
+
+- `AudioManager.setMusicVolume(v)` / `setSfxVolume(v)` (0..1, pasos de 0.1, se guardan) y los getters `musicVolume` / `sfxVolume`.
+- `audioPanel(scene, onClose)` en `src/ui/UiKit.js` abre el panel modal de audio (música, efectos, silencio). La VN puede reutilizarlo en vez de crear otra interfaz de audio.
+- `muteButton(scene, x, y, { onOpenAudio })` dibuja el icono de altavoz pixel art (sin recuadro).
+- Para manejadores de teclado propios, envolverlos con `oncePerKeyEvent(handler)` (Phaser puede reemitir el mismo evento).
 
 ## 8. Registry usado por el HUD
 

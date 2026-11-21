@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
-import { RULES } from '../config/constants.js';
+import { RULES, enemyHits } from '../config/constants.js';
 import { AudioManager } from '../managers/AudioManager.js';
+import { GameState } from '../managers/GameState.js';
 
 /**
  * Configuración por tipo de enemigo. La resistencia (golpes) es una decisión
@@ -74,7 +75,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.baseY = spec.y;
     }
 
-    this.hp = cfg.hits;
+    // Resistencia según la dificultad (Intermedio = valores del documento: 4/6/8).
+    this.hp = enemyHits(spec.type, GameState.difficulty.id);
+    this.maxHp = this.hp;
     this.minX = spec.minX;
     this.maxX = spec.maxX;
     this.dir = Phaser.Math.Between(0, 1) ? 1 : -1;

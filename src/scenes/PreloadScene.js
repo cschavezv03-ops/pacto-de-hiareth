@@ -5,6 +5,17 @@ import { AudioManager } from '../managers/AudioManager.js';
 import { generateProceduralTextures } from '../objects/ProceduralTextures.js';
 import { createAnimations } from '../objects/Animations.js';
 
+/** Nombre de archivo en public/assets/props -> clave de textura en el juego. */
+const PROP_KEYS = {
+  goal_house: 'goal_house',
+  goal_sign: 'goal_sign',
+  goal_portal: 'goal_portal',
+  goal_camp: 'goal_camp',
+  checkpoint: 'prop_checkpoint',
+  icon_sound_on: 'icon_sound_on',
+  icon_sound_off: 'icon_sound_off',
+};
+
 /** Carga todos los assets con barra de progreso y crea las animaciones globales. */
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -34,6 +45,19 @@ export default class PreloadScene extends Phaser.Scene {
 
     Object.entries(BACKGROUNDS).forEach(([id, { folder, files }]) => {
       files.forEach((file, i) => this.load.image(`bg_${id}_${i + 1}`, `assets/bg/${folder}/${file}.png`));
+    });
+
+    // Props pixel art (metas, checkpoint, iconos): sus tamaños vienen de props.json,
+    // así que se encolan cuando ese JSON termina de cargar.
+    this.load.json('props_meta', 'assets/props/props.json');
+    this.load.once('filecomplete-json-props_meta', (_key, _type, meta) => {
+      Object.entries(meta ?? {}).forEach(([file, info]) => {
+        const name = file.replace(/\.png$/, '');
+        const key = PROP_KEYS[name] ?? name;
+        this.load.spritesheet(key, `assets/props/${file}`, {
+          frameWidth: info.frameWidth, frameHeight: info.frameHeight,
+        });
+      });
     });
 
     MUSIC.forEach(({ key, url }) => this.load.audio(key, url));

@@ -98,6 +98,12 @@ src/
     └── TouchControls.js        # botones táctiles en HTML para plataformas y para el jefe
 ```
 
+## Dificultad, checkpoints y audio
+
+- Al pulsar **Nueva partida** se elige **Fácil**, **Intermedio** (valores originales) o **Difícil**. Solo cambia cuántos golpes aguantan los enemigos y el jefe; en Difícil no hay puntos de control.
+- Cada nivel tiene braseros de **punto de control**: al morir se reaparece en el último encendido.
+- **Audio**: desde el menú principal o la pausa se ajusta el volumen de música y efectos y el silencio. El icono de altavoz (arriba a la derecha) silencia con un clic; la tecla `M` también.
+
 ## Flujo de escenas
 
 ```text
@@ -152,6 +158,14 @@ Ambas herramientas ya se ejecutaron y su salida está incluida en `public/assets
 
   Requiere Pillow y NumPy.
 
+### Props pixel art
+
+`tools/gen_props.py` genera por código las metas de nivel (cartel, portal, casa abandonada, campamento), el brasero de checkpoint y los iconos de sonido en `public/assets/props/`, con la paleta de cada fondo. `public/assets/props/props.json` describe sus frames y la escena de carga los lee automáticamente.
+
+```bash
+tools/.venv/bin/python tools/gen_props.py
+```
+
 ## Créditos
 
 - **Equipo:** Frank — Visual Novel; Sebas — gameplay (plataformas, física, combate, enemigos, jefe y sistemas compartidos).
@@ -174,7 +188,7 @@ Ambas herramientas ya se ejecutaron y su salida está incluida en `public/assets
 ### Limitaciones
 
 - **La Visual Novel es un placeholder** hasta integrar el trabajo de Frank: `src/scenes/VNScene.js` muestra el título y una descripción de cada tramo, sin diálogos ni retratos.
-- **No hay checkpoints**, por decisión del Documento Maestro: al perder los 3 corazones se reinicia el nivel completo.
+- Los checkpoints y la dificultad se añadieron tras las pruebas manuales del equipo (ver docs/BALANCE.md §1.1); en Difícil no hay checkpoints.
 - **Los sprites de alien, esqueleto y jefe provienen de JPG** y presentan leves artefactos en los bordes tras el recorte con transparencia.
 - El jefe tiene una sola animación (idle) y un único patrón combinado de abanico y círculo, sin fases.
 - El Acto 4 depende de plataformas móviles y quebradizas: un error de salto obliga a repetir el tramo desde el último suelo seguro.
@@ -182,7 +196,6 @@ Ambas herramientas ya se ejecutaron y su salida está incluida en `public/assets
 ### Mejoras futuras
 
 - Integrar la Visual Novel definitiva manteniendo la clave `SCENES.VN` y el contrato de `init`/`advanceStory`.
-- Añadir checkpoints opcionales por tramo si el equipo revisa la decisión actual.
 - Repintar o reexportar los sprites de alien, esqueleto y jefe desde fuentes con canal alfa para eliminar los artefactos de borde.
 - Ampliar patrones del jefe (fases, láseres, lluvia) y variedad de enemigos sin alterar las reglas confirmadas.
 - Guardado de la posición exacta dentro del nivel y ajustes de accesibilidad (remap de teclas, tamaño de texto, reducción de parpadeo).

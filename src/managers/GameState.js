@@ -9,7 +9,7 @@
  *  - El orden de la historia se resuelve con nextStep(); VN y gameplay llaman a
  *    advanceStory() al terminar y reciben el siguiente paso.
  */
-import { LEVELS, VN_SCENES, STORAGE_KEY } from '../config/constants.js';
+import { LEVELS, VN_SCENES, STORAGE_KEY, DIFFICULTIES } from '../config/constants.js';
 import { SaveManager } from './SaveManager.js';
 
 /** Secuencia de la historia. `pacifistOnly` se omite en la ruta convencional. */
@@ -32,14 +32,18 @@ const state = {
   enemiesKilled: 0,
   storyIndex: 0,
   score: 0,
+  difficulty: 'normal',
+  checkpoint: null, // { levelId, index } — último punto de control activado
 };
 
 export const GameState = {
   /** Inicia una partida nueva: único punto donde enemiesKilled vuelve a 0. */
-  newGame() {
+  newGame(difficulty = 'normal') {
     state.enemiesKilled = 0;
     state.storyIndex = 0;
     state.score = 0;
+    state.difficulty = DIFFICULTIES[difficulty] ? difficulty : 'normal';
+    state.checkpoint = null;
     this.persist();
     return this.currentStep();
   },
@@ -51,7 +55,15 @@ export const GameState = {
     state.enemiesKilled = save.run.enemiesKilled ?? 0;
     state.storyIndex = save.run.storyIndex ?? 0;
     state.score = save.run.score ?? 0;
+    state.difficulty = DIFFICULTIES[save.run.difficulty] ? save.run.difficulty : 'normal';
+    state.checkpoint = save.run.checkpoint ?? null;
     return this.currentStep();
+  },
+
+  /** Etiqueta de la dificultad de la partida guardada (para el botón Continuar). */
+  difficultyOfSave() {
+    const run = SaveManager.load().run;
+    return DIFFICULTIES[run?.difficulty]?.label ?? '';
   },
 
   hasSavedRun() {
@@ -71,6 +83,23 @@ export const GameState = {
 
   isPacifist() {
     return state.enemiesKilled === 0;
+  },
+
+  /** Configuración de la dificultad elegida al iniciar la partida. */
+  get difficulty() {
+    return DIFFICULTIES[state.difficulty];
+  },
+
+  /** Índice del checkpoint guardado para un nivel (o -1). Sin checkpoints en Difícil. */
+  checkpointFor(levelId) {
+    if (!this.difficulty.checkpoints) return -1;
+    return state.checkpoint?.levelId === levelId ? state.checkpoint.index : -1;
+  },
+
+  setCheckpoint(levelId, index) {
+    if (!this.difficulty.checkpoints) return;
+    state.checkpoint = { levelId, index };
+    this.persist();
   },
 
   get score() {
@@ -99,6 +128,7 @@ export const GameState = {
     let i = state.storyIndex + 1;
     while (i < STORY.length && STORY[i].pacifistOnly && !this.isPacifist()) i += 1;
     state.storyIndex = Math.min(i, STORY.length - 1);
+    state.checkpoint = null; // los checkpoints son por nivel
     this.persist();
     return this.currentStep();
   },

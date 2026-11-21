@@ -18,7 +18,10 @@ const step = async (name, fn) => {
   try { results[name] = await fn(); } catch (e) { results[name] = `FALLO: ${e.message}`; }
 };
 
-// Partida nueva desde el menú (Enter) -> VN intro -> Enter -> Acto 1
+// Partida nueva desde el menú: Nueva partida -> Intermedio -> VN intro -> Acto 1
+await page.keyboard.press('Enter');
+await page.waitForTimeout(150);
+await page.keyboard.press('ArrowDown');
 await page.keyboard.press('Enter');
 await page.waitForFunction(() => window.game.scene.isActive('VisualNovel'), null, { timeout: 5000 });
 await page.waitForTimeout(600);
@@ -29,14 +32,15 @@ await page.waitForTimeout(800);
 await step('kill slime with 4 hits', async () => {
   const r = await page.evaluate(async () => {
     const s = window.__level;
-    const { GameState } = await import('/src/managers/GameState.js');
+    const GameState = window.__GameState;
     const before = GameState.enemiesKilled;
     const slime = s.enemies.getChildren()[0];
     const hitsTo = [];
-    for (let i = 1; i <= 4; i += 1) hitsTo.push(slime.hit(1000 + i, slime.x - 50));
+    for (let i = 1; i <= slime.maxHp; i += 1) hitsTo.push(slime.hit(1000 + i, slime.x - 50));
     // El mismo golpe no puede dañar dos veces
-    return { before, after: GameState.enemiesKilled, hitsTo, alive: slime.alive };
+    return { before, after: GameState.enemiesKilled, hitsTo, alive: slime.alive, difficulty: GameState.difficulty.id };
   });
+  assert.equal(r.difficulty, 'normal', 'el menú eligió Intermedio');
   assert.deepEqual(r.hitsTo, [false, false, false, true]);
   assert.equal(r.after, r.before + 1);
   return r;
@@ -62,7 +66,7 @@ await step('real melee attack damages enemy once per swing', async () => {
 await step('environmental death does not count', async () => {
   return page.evaluate(async () => {
     const s = window.__level;
-    const { GameState } = await import('/src/managers/GameState.js');
+    const GameState = window.__GameState;
     const before = GameState.enemiesKilled;
     const e = s.enemies.getChildren().find((x) => x.alive);
     e.kill(false);
@@ -86,7 +90,7 @@ await step('contact damage + 1s invulnerability', async () => {
 
 await step('game over restarts level, respawns enemies, keeps kills', async () => {
   const before = await page.evaluate(async () => {
-    const { GameState } = await import('/src/managers/GameState.js');
+    const GameState = window.__GameState;
     const p = window.__level.player;
     p.invulnerableUntil = 0; p.hearts = 1; p.takeHit(p.x);
     return GameState.enemiesKilled;
@@ -96,7 +100,7 @@ await step('game over restarts level, respawns enemies, keeps kills', async () =
   await page.waitForFunction(() => window.__level?.player && window.game.scene.isActive('Level'), null, { timeout: 6000 });
   await page.waitForTimeout(300);
   const after = await page.evaluate(async () => {
-    const { GameState } = await import('/src/managers/GameState.js');
+    const GameState = window.__GameState;
     const s = window.__level;
     return { kills: GameState.enemiesKilled, enemies: s.enemies.getChildren().filter((e) => e.alive).length, hearts: s.player.hearts };
   });
@@ -207,9 +211,99 @@ await step('boss: player shot damages boss; boss scene restarts on death', async
   await page.evaluate(() => { const b = window.__boss; b.player.body.reset(b.boss.x - 200, b.boss.y); });
   await page.keyboard.press('KeyJ');
   await page.waitForTimeout(700);
-  const hp1 = await page.evaluate(() => window.__boss.bossHealth);
-  assert.ok(hp1 < hp0, `boss hp ${hp0} -> ${hp1}`);
-  return { hp0, hp1 };
+  const r = await page.evaluate(() => {
+    const b = window.__boss;
+    return { hp1: b.bossHealth, bossActive: b.boss.active, bossVisible: b.boss.visible, bodyEnabled: b.boss.body.enable };
+  });
+  assert.ok(r.hp1 < hp0, `boss hp ${hp0} -> ${r.hp1}`);
+  // Regresión: el impacto no debe desactivar/ocultar al jefe.
+  assert.ok(r.bossActive && r.bossVisible && r.bodyEnabled, 'Morrigannus sigue activo tras el impacto');
+  // Varios impactos seguidos siguen restando vida.
+  for (let i = 0; i < 4; i += 1) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(160); }
+  await page.waitForTimeout(700);
+  const hp2 = await page.evaluate(() => window.__boss.bossHealth);
+  assert.ok(hp2 < r.hp1, `boss hp ${r.hp1} -> ${hp2}`);
+  return { hp0, ...r, hp2 };
+});
+
+await step('difficulty scales enemy hits and checkpoints', async () => {
+  return page.evaluate(async () => {
+    const GameState = window.__GameState;
+    const { enemyHits } = await import('/src/config/constants.js');
+    const out = {};
+    for (const d of ['easy', 'normal', 'hard']) {
+      out[d] = ['slime', 'alien', 'skeleton'].map((t) => enemyHits(t, d));
+    }
+    GameState.newGame('hard');
+    GameState.setCheckpoint('act1', 1);
+    out.hardCheckpoint = GameState.checkpointFor('act1');
+    GameState.newGame('normal');
+    GameState.advanceStory();
+    GameState.setCheckpoint('act1', 1);
+    out.normalCheckpoint = GameState.checkpointFor('act1');
+    return out;
+  }).then((r) => {
+    assert.deepEqual(r.normal, [4, 6, 8]);
+    assert.deepEqual(r.easy, [2, 3, 4]);
+    assert.deepEqual(r.hard, [6, 9, 12]);
+    assert.equal(r.hardCheckpoint, -1);
+    assert.equal(r.normalCheckpoint, 1);
+    return r;
+  });
+});
+
+await step('checkpoint: activating it and dying respawns there; enemies reset', async () => {
+  await page.evaluate(async () => {
+    const GameState = window.__GameState;
+    GameState.newGame('normal');
+    GameState.advanceStory(); // paso del Acto 1, sin checkpoint guardado
+    window.game.events.emit('story:goto', { type: 'level', id: 'act1' });
+  });
+  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForTimeout(400);
+  const cpX = await page.evaluate(() => {
+    const s = window.__level;
+    const cp = s.checkpoints.getChildren()[0];
+    s.player.invulnerableUntil = s.player.clock + 99999;
+    s.player.body.reset(cp.x, cp.y - 4);
+    return cp.x;
+  });
+  await page.waitForTimeout(400);
+  await page.evaluate(() => { const p = window.__level.player; p.invulnerableUntil = 0; p.hearts = 1; p.takeHit(p.x); });
+  await page.waitForFunction(() => window.game.scene.isActive('GameOver'), null, { timeout: 6000 });
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.__level?.player && window.game.scene.isActive('Level'), null, { timeout: 6000 });
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => ({
+    x: Math.round(window.__level.player.x),
+    enemies: window.__level.enemies.getChildren().filter((e) => e.alive).length,
+    lit: window.__level.checkpoints.getChildren()[0].anims.currentAnim?.key,
+  }));
+  assert.ok(Math.abs(r.x - cpX) < 40, `reaparece en el checkpoint (${r.x} vs ${cpX})`);
+  assert.equal(r.enemies, 9);
+  return { cpX, ...r };
+});
+
+await step('moving platforms move smoothly (no velocity spikes)', async () => {
+  await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act2' }));
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 6000 });
+  const r = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const m = s.movers.getChildren()[0];
+    const xs = [];
+    const onStep = () => xs.push(m.body.x);
+    s.physics.world.on('worldstep', onStep);
+    s.time.delayedCall(4000, () => {
+      s.physics.world.off('worldstep', onStep);
+      const steps = xs.slice(1).map((x, i) => Math.abs(x - xs[i]));
+      const jumps = steps.slice(1).map((d, i) => Math.abs(d - steps[i]));
+      resolve({ maxStep: Math.max(...steps), maxJerk: Math.max(...jumps), range: Math.max(...xs) - Math.min(...xs), n: xs.length });
+    });
+  }));
+  assert.ok(r.maxStep < 3.5, `paso máximo ${r.maxStep}px por tick`);
+  assert.ok(r.maxJerk < 1, `cambio brusco ${r.maxJerk}`);
+  assert.ok(r.range > 80, `recorrido ${r.range}`);
+  return r;
 });
 
 await browser.close();

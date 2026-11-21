@@ -1,9 +1,9 @@
 import Phaser from 'phaser';
-import { SCENES, GAME_WIDTH, GAME_HEIGHT } from '../config/constants.js';
+import { SCENES, GAME_WIDTH, GAME_HEIGHT, DIFFICULTIES } from '../config/constants.js';
 import { GameState } from '../managers/GameState.js';
 import { SaveManager } from '../managers/SaveManager.js';
 import { AudioManager } from '../managers/AudioManager.js';
-import { FONT_TITLE, FONT_UI, COLORS, menuList, muteButton, panel } from '../ui/UiKit.js';
+import { FONT_TITLE, FONT_UI, COLORS, menuList, muteButton, panel, audioPanel } from '../ui/UiKit.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -11,6 +11,10 @@ export default class MenuScene extends Phaser.Scene {
   }
 
   create() {
+    // La instancia de la escena se reutiliza: reiniciar el estado en cada visita.
+    this.starting = false;
+    this.audioOpen = false;
+    this.list = null;
     AudioManager.stopMusic();
     const W = GAME_WIDTH;
     const H = GAME_HEIGHT;
@@ -28,22 +32,65 @@ export default class MenuScene extends Phaser.Scene {
       fontFamily: FONT_UI, fontSize: '18px', color: COLORS.dim, stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    panel(this, W / 2, 290, 380, 200);
-    const options = [{ label: 'Nueva partida', onSelect: () => this.startGame(false) }];
-    if (GameState.hasSavedRun()) options.unshift({ label: 'Continuar', onSelect: () => this.startGame(true) });
-    options.push({ label: 'Controles', onSelect: () => this.toggleHelp() });
-    menuList(this, W / 2, 290 - ((options.length - 1) * 52) / 2, options);
+    this.menuPanel = panel(this, W / 2, 292, 420, 236);
+    this.subtitle = this.add.text(W / 2, 428, '', {
+      fontFamily: FONT_UI, fontSize: '16px', color: COLORS.dim, stroke: '#000', strokeThickness: 3,
+    }).setOrigin(0.5);
+    this.showMainMenu();
 
     const { highScore } = SaveManager.load();
-    this.add.text(W / 2, H - 92, `Mejor puntuación: ${highScore}`, {
+    this.add.text(W / 2, H - 70, `Mejor puntuación: ${highScore}`, {
       fontFamily: FONT_UI, fontSize: '18px', color: COLORS.accent, stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5);
-    this.add.text(W / 2, H - 56, '↑/↓ elegir · Enter confirmar · M silenciar', {
+    this.add.text(W / 2, H - 38, '↑/↓ elegir · Enter confirmar · M silenciar', {
       fontFamily: FONT_UI, fontSize: '16px', color: COLORS.ink, stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5);
 
-    muteButton(this, W - 12, 12);
+    muteButton(this, W - 16, 14, { onOpenAudio: () => this.openAudio() });
     this.helpPanel = null;
+  }
+
+  showMainMenu() {
+    this.list?.destroy();
+    this.subtitle.setText('');
+    const options = [{ label: 'Nueva partida', onSelect: () => this.showDifficultyMenu() }];
+    if (GameState.hasSavedRun()) {
+      const d = GameState.difficultyOfSave?.() ?? '';
+      options.unshift({ label: `Continuar${d ? ` (${d})` : ''}`, onSelect: () => this.startGame(true) });
+    }
+    options.push({ label: 'Audio', onSelect: () => this.openAudio() });
+    options.push({ label: 'Controles', onSelect: () => this.toggleHelp() });
+    this.list = menuList(this, GAME_WIDTH / 2, 292 - ((options.length - 1) * 48) / 2, options, { spacing: 48 });
+  }
+
+  /** Selección de dificultad al empezar (solo cambia resistencia y checkpoints). */
+  showDifficultyMenu() {
+    this.list?.destroy();
+    const diffs = Object.values(DIFFICULTIES);
+    const options = diffs.map((d) => ({ label: d.label, onSelect: () => this.startGame(false, d.id) }));
+    options.push({ label: 'Volver', onSelect: () => this.showMainMenu() });
+    this.list = menuList(this, GAME_WIDTH / 2, 292 - ((options.length - 1) * 46) / 2, options, { spacing: 46 });
+    this.subtitle.setText('Elige la dificultad');
+    // Descripción de la opción enfocada.
+    this.list.items.forEach((t, i) => t.on('pointerover', () => this.subtitle.setText(diffs[i]?.desc ?? 'Volver al menú')));
+    const diffList = this.list;
+    const onKey = () => this.time.delayedCall(0, () => {
+      if (this.list !== diffList) return; // ya se volvió al menú principal
+      const i = this.list.items.findIndex((t) => t.style.color === COLORS.accent);
+      if (i >= 0) this.subtitle.setText(diffs[i]?.desc ?? 'Volver al menú');
+    });
+    this.input.keyboard.on('keydown', onKey);
+    const off = () => this.input.keyboard.off('keydown', onKey);
+    const origDestroy = this.list.destroy;
+    this.list.destroy = () => { off(); origDestroy(); };
+    this.list.items[1] && this.subtitle.setText(diffs[0].desc);
+  }
+
+  openAudio() {
+    if (this.audioOpen) return;
+    this.audioOpen = true;
+    this.list?.setEnabled(false);
+    audioPanel(this, () => { this.audioOpen = false; this.list?.setEnabled(true); });
   }
 
   toggleHelp() {
@@ -79,8 +126,10 @@ export default class MenuScene extends Phaser.Scene {
     this.helpPanel = c;
   }
 
-  startGame(resume) {
-    const step = resume ? GameState.loadGame() : GameState.newGame();
+  startGame(resume, difficulty = 'normal') {
+    if (this.starting) return;
+    this.starting = true;
+    const step = resume ? GameState.loadGame() : GameState.newGame(difficulty);
     this.cameras.main.fadeOut(400, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => this.game.events.emit('story:goto', step));
   }

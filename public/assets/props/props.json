@@ -1,0 +1,156 @@
+{
+  "goal_house.png": {
+    "frameWidth": 110,
+    "frameHeight": 100,
+    "frames": 1,
+    "layout": "horizontal",
+    "margin": 0,
+    "spacing": 0,
+    "origin": {
+      "x": 0.5,
+      "y": 1.0
+    },
+    "background": "Level3",
+    "filter": "nearest",
+    "paletteColors": 27,
+    "source": {
+      "kind": "procedural",
+      "path": "tools/gen_props.py",
+      "seed": 31
+    },
+    "license": "Original project artwork; no third-party asset inputs.",
+    "technical_checks_passed": true
+  },
+  "goal_sign.png": {
+    "frameWidth": 44,
+    "frameHeight": 60,
+    "frames": 1,
+    "layout": "horizontal",
+    "margin": 0,
+    "spacing": 0,
+    "origin": {
+      "x": 0.5,
+      "y": 1.0
+    },
+    "background": "Level1",
+    "filter": "nearest",
+    "paletteColors": 16,
+    "source": {
+      "kind": "procedural",
+      "path": "tools/gen_props.py",
+      "seed": 31
+    },
+    "license": "Original project artwork; no third-party asset inputs.",
+    "technical_checks_passed": true
+  },
+  "goal_portal.png": {
+    "frameWidth": 56,
+    "frameHeight": 84,
+    "frames": 4,
+    "layout": "horizontal",
+    "margin": 0,
+    "spacing": 0,
+    "origin": {
+      "x": 0.5,
+      "y": 1.0
+    },
+    "background": "Level2",
+    "filter": "nearest",
+    "paletteColors": 22,
+    "source": {
+      "kind": "procedural",
+      "path": "tools/gen_props.py",
+      "seed": 31
+    },
+    "license": "Original project artwork; no third-party asset inputs.",
+    "technical_checks_passed": true
+  },
+  "goal_camp.png": {
+    "frameWidth": 100,
+    "frameHeight": 60,
+    "frames": 4,
+    "layout": "horizontal",
+    "margin": 0,
+    "spacing": 0,
+    "origin": {
+      "x": 0.5,
+      "y": 1.0
+    },
+    "background": "Level4IF",
+    "filter": "nearest",
+    "paletteColors": 28,
+    "source": {
+      "kind": "procedural",
+      "path": "tools/gen_props.py",
+      "seed": 31
+    },
+    "license": "Original project artwork; no third-party asset inputs.",
+    "technical_checks_passed": true
+  },
+  "checkpoint.png": {
+    "frameWidth": 16,
+    "frameHeight": 30,
+    "frames": 5,
+    "layout": "horizontal",
+    "margin": 0,
+    "spacing": 0,
+    "origin": {
+      "x": 0.5,
+      "y": 1.0
+    },
+    "background": "neutral",
+    "filter": "nearest",
+    "paletteColors": 13,
+    "source": {
+      "kind": "procedural",
+      "path": "tools/gen_props.py",
+      "seed": 31
+    },
+    "license": "Original project artwork; no third-party asset inputs.",
+    "technical_checks_passed": true
+  },
+  "icon_sound_on.png": {
+    "frameWidth": 14,
+    "frameHeight": 14,
+    "frames": 1,
+    "layout": "horizontal",
+    "margin": 0,
+    "spacing": 0,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "background": "UI",
+    "filter": "nearest",
+    "paletteColors": 4,
+    "source": {
+      "kind": "procedural",
+      "path": "tools/gen_props.py",
+      "seed": 31
+    },
+    "license": "Original project artwork; no third-party asset inputs.",
+    "technical_checks_passed": true
+  },
+  "icon_sound_off.png": {
+    "frameWidth": 14,
+    "frameHeight": 14,
+    "frames": 1,
+    "layout": "horizontal",
+    "margin": 0,
+    "spacing": 0,
+    "origin": {
+      "x": 0.5,
+      "y": 0.5
+    },
+    "background": "UI",
+    "filter": "nearest",
+    "paletteColors": 6,
+    "source": {
+      "kind": "procedural",
+      "path": "tools/gen_props.py",
+      "seed": 31
+    },
+    "license": "Original project artwork; no third-party asset inputs.",
+    "technical_checks_passed": true
+  }
+}

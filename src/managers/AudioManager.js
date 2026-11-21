@@ -64,6 +64,31 @@ export const AudioManager = {
     currentKey = null;
   },
 
+  get musicVolume() {
+    return SaveManager.getAudio().musicVolume;
+  },
+
+  get sfxVolume() {
+    return SaveManager.getAudio().sfxVolume;
+  },
+
+  /** Volumen de música 0..1; se aplica en vivo a la pista actual y se guarda. */
+  setMusicVolume(v) {
+    const vol = Math.round(Math.min(1, Math.max(0, v)) * 10) / 10;
+    SaveManager.setAudio({ musicVolume: vol });
+    if (currentMusic) currentMusic.setVolume(vol);
+    listeners.forEach((fn) => fn(this.muted));
+    return vol;
+  },
+
+  /** Volumen de efectos 0..1 (se guarda). */
+  setSfxVolume(v) {
+    const vol = Math.round(Math.min(1, Math.max(0, v)) * 10) / 10;
+    SaveManager.setAudio({ sfxVolume: vol });
+    listeners.forEach((fn) => fn(this.muted));
+    return vol;
+  },
+
   sfx(scene, key, config = {}) {
     if (!game || !scene.cache.audio.exists(key)) return;
     const vol = (config.volume ?? 1) * SaveManager.getAudio().sfxVolume;

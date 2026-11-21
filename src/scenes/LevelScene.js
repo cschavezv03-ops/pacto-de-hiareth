@@ -28,6 +28,9 @@ export default class LevelScene extends Phaser.Scene {
     this.def = LEVEL_DATA[this.levelId];
     this.finished = false;
     this.startTime = 0;
+    this.levelClock = 0;
+    // Punto de control desde el que se empieza (-1 = inicio). En Difícil siempre -1.
+    this.checkpointIndex = GameState.checkpointFor(this.levelId);
   }
 
   create() {
@@ -43,7 +46,10 @@ export default class LevelScene extends Phaser.Scene {
     this.buildTerrain();
     this.input2 = new InputManager(this, 'platformer');
 
-    this.player = new Player(this, 3 * TILE, GROUND_Y, this.input2);
+    const cps = this.def.checkpoints ?? [];
+    const spawnX = this.checkpointIndex >= 0 ? (cps[this.checkpointIndex] + 0.5) * TILE : 3 * TILE;
+    this.player = new Player(this, spawnX, GROUND_Y, this.input2);
+    this.player.lastSafe = { x: spawnX, y: GROUND_Y };
     this.player.setDepth(10);
     this.cameras.main.startFollow(this.player, true, 0.12, 0.12, 0, 40);
     this.cameras.main.setDeadzone(120, 80);
@@ -51,6 +57,7 @@ export default class LevelScene extends Phaser.Scene {
     this.buildHazards();
     this.buildEnemies();
     this.buildGoal();
+    this.buildCheckpoints();
     this.wireCollisions();
 
     // HUD y estado compartido
@@ -189,13 +196,46 @@ export default class LevelScene extends Phaser.Scene {
 
   buildGoal() {
     const g = this.def.goal;
-    const tex = this.textures.get(g.texture).getSourceImage();
-    this.goal = this.add.image(g.x * TILE, GROUND_Y, g.texture).setOrigin(0.5, 1).setDepth(5);
+    const texture = this.textures.get(g.texture);
+    // Los props pixel art se dibujan a la resolución nativa de los fondos (576x324):
+    // se escalan igual que ellos para que el tamaño de píxel coincida.
+    const meta = this.cache.json.get('props_meta') ?? {};
+    const scale = meta[`${g.texture}.png`] ? GAME_HEIGHT / 324 : 1;
+    this.goal = this.add.sprite(g.x * TILE, GROUND_Y, g.texture, 0).setOrigin(0.5, 1).setDepth(5).setScale(scale);
+    if (this.anims.exists(`${g.texture}-anim`) && texture.frameTotal > 2) this.goal.play(`${g.texture}-anim`);
     this.physics.add.existing(this.goal, true);
-    this.goal.body.setSize(Math.max(40, tex.width * 0.5), tex.height);
-    if (g.texture === 'goal_portal') {
-      this.tweens.add({ targets: this.goal, scaleX: 1.08, scaleY: 0.96, yoyo: true, repeat: -1, duration: 900 });
+    // Cuerpo estrecho y centrado (px de mundo): hay que llegar al objeto, no rozarlo.
+    this.goal.body.setSize(Math.max(40, this.goal.displayWidth * 0.4), this.goal.displayHeight, true);
+  }
+
+  /** Braseros de punto de control (no existen en dificultad Difícil). */
+  buildCheckpoints() {
+    this.checkpoints = this.physics.add.staticGroup();
+    if (!GameState.difficulty.checkpoints) return;
+    const scale = GAME_HEIGHT / 324;
+    (this.def.checkpoints ?? []).forEach((cx, i) => {
+      const cp = this.checkpoints.create((cx + 0.5) * TILE, GROUND_Y, 'prop_checkpoint', 0);
+      cp.setOrigin(0.5, 1).setScale(scale).setDepth(4).refreshBody();
+      cp.index = i;
+      if (i <= this.checkpointIndex) cp.play('checkpoint-lit');
+    });
+  }
+
+  activateCheckpoint(cp) {
+    if (cp.index <= this.checkpointIndex || this.player.dead) return;
+    this.checkpointIndex = cp.index;
+    GameState.setCheckpoint(this.levelId, cp.index);
+    for (const other of this.checkpoints.getChildren()) {
+      if (other.index <= cp.index && other.anims.currentAnim?.key !== 'checkpoint-lit') other.play('checkpoint-lit');
     }
+    AudioManager.sfx(this, 'sfx_level_clear', { volume: 0.5 });
+    this.registry.set('toast', { text: 'Punto de control', t: this.time.now });
+    const burst = this.add.particles(cp.x, cp.y - cp.displayHeight, 'fx_pixel', {
+      speed: { min: 40, max: 140 }, angle: { min: 200, max: 340 }, lifespan: 600,
+      scale: { start: 1.2, end: 0 }, tint: [0xffd34a, 0xff7a1a], quantity: 18, emitting: false,
+    }).setDepth(6);
+    burst.explode(18);
+    this.time.delayedCall(800, () => burst.destroy());
   }
 
   wireCollisions() {
@@ -227,6 +267,8 @@ export default class LevelScene extends Phaser.Scene {
       enemy.hit(p.attackId, p.x);
     });
 
+    this.physics.add.overlap(p, this.checkpoints, (_pl, cp) => this.activateCheckpoint(cp));
+
     // Meta del nivel.
     this.physics.add.overlap(p, this.goal, () => this.completeLevel());
   }
@@ -257,13 +299,19 @@ export default class LevelScene extends Phaser.Scene {
       return;
     }
 
-    // Plataformas móviles (movimiento senoidal); el jugador viaja con ellas.
+    // Plataformas móviles: velocidad analítica de un movimiento senoidal suave
+    // (derivada exacta) + una pequeña corrección de deriva. No se deriva la velocidad
+    // de la diferencia de posición entre frames: Arcade integra a paso fijo y eso
+    // producía oscilaciones bruscas.
+    this.levelClock += delta;
     for (const m of this.movers.getChildren()) {
-      const t = (time % m.period) / m.period;
-      const k = (1 - Math.cos(t * Math.PI * 2)) / 2;
-      const nx = m.originX0 + m.dx * k;
-      const ny = m.originY0 + m.dy * k;
-      m.body.setVelocity((nx - m.x) / (delta / 1000 || 0.016), (ny - m.y) / (delta / 1000 || 0.016));
+      const w = (Math.PI * 2) / m.period;          // rad/ms
+      const t = this.levelClock;
+      const k = (1 - Math.cos(w * t)) / 2;          // 0..1
+      const dk = (Math.sin(w * t) * w * 1000) / 2;  // derivada por segundo
+      const tx = m.originX0 + m.dx * k;
+      const ty = m.originY0 + m.dy * k;
+      m.body.setVelocity(m.dx * dk + (tx - m.body.x) * 4, m.dy * dk + (ty - m.body.y) * 4);
     }
 
     // El arrastre sobre plataformas móviles lo hace Arcade (body.friction.x = 1 por defecto).
@@ -358,7 +406,7 @@ export default class LevelScene extends Phaser.Scene {
     const msg = isTouch
       ? 'Usa los botones: ◀ ▶ moverse · ⤒ saltar · 🔥 atacar'
       : 'A/D o ←/→ moverse · Espacio saltar · J o clic atacar · Esc pausa';
-    const t = this.add.text(GAME_WIDTH / 2, 178, msg, {
+    const t = this.add.text(GAME_WIDTH / 2, 214, msg, {
       fontFamily: '"Trebuchet MS", sans-serif', fontSize: '18px', color: '#ffffff',
       backgroundColor: '#140e24cc', padding: { x: 12, y: 6 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(100);
