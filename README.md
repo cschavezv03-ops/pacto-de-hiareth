@@ -115,8 +115,9 @@ src/
 
 ## Orbes y vidas
 
-- Los enemigos derrotados sueltan **orbes** (slime 4, alien 6, esqueleto 8; 250 puntos cada uno) que se recogen tocándolos (tienen un pequeño imán) y desaparecen a los 9 s. Cada nivel tiene además grupos de orbes flotantes en zonas altas o difíciles, así que también se consiguen sin derrotar a nadie.
-- Cada **10 000 puntos** Aidan recupera un corazón; si ya tiene los 3, gana un **corazón extra dorado** (máximo 1). Si la vida se gana al completar un nivel, el corazón extra se guarda para el siguiente nivel o para el jefe. La barra ámbar bajo la puntuación indica el progreso hacia la siguiente vida.
+- Los enemigos derrotados sueltan **orbes** (slime 3, alien 4, esqueleto 5) y cada nivel tiene 5 grupos de orbes flotantes en zonas altas o difíciles (también se consiguen sin derrotar a nadie). En cuanto Aidan pasa cerca, el orbe le persigue hasta recogerse, aunque siga corriendo.
+- El número del HUD son los orbes. Cada **50 orbes** Aidan recupera un corazón o, si los tiene todos, gana un **corazón extra dorado** (máximo 1). La barra ámbar indica el progreso.
+- **Al perder todas las vidas (Game Over), reiniciar desde la pausa o caer ante el jefe, los orbes vuelven a 0**, así no se pueden acumular corazones muriendo y repitiendo. Cada orbe suma además 50 puntos a la puntuación (High Score).
 
 ## Flujo de escenas
 

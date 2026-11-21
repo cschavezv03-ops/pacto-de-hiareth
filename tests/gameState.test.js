@@ -78,12 +78,16 @@ test('el contador de enemigos derrotados está oculto por defecto (no revela la 
   assert.equal(SaveManager.getSettings().showKills, true);
 });
 
-test('cada 10000 puntos se concede una vida; las vidas fuera del nivel se guardan', async () => {
+test('cada 50 orbes se concede una vida; Game Over los devuelve a 0', async () => {
   const { LIFE_EVERY } = await import('../src/managers/GameState.js');
-  assert.equal(GameState.addScore(LIFE_EVERY - 1), 0);
-  assert.equal(GameState.addScore(1), 1);
-  assert.equal(GameState.addScore(LIFE_EVERY * 2), 2);
-  assert.ok(GameState.lifeProgress >= 0 && GameState.lifeProgress < 1);
+  assert.equal(LIFE_EVERY, 50);
+  assert.equal(GameState.addOrbs(LIFE_EVERY - 1), 0);
+  assert.equal(GameState.addOrbs(1), 1);
+  assert.equal(GameState.orbs, LIFE_EVERY);
+  assert.equal(GameState.addOrbs(LIFE_EVERY * 2), 2);
+  GameState.resetOrbs();
+  assert.equal(GameState.orbs, 0);
+  assert.equal(GameState.lifeProgress, 0);
   GameState.grantBonusHeart();
   assert.equal(GameState.consumeBonusHeart(), true);
   assert.equal(GameState.consumeBonusHeart(), false);

@@ -94,6 +94,7 @@ await step('game over restarts level, respawns enemies, keeps kills', async () =
   const before = await page.evaluate(async () => {
     const GameState = window.__GameState;
     const p = window.__level.player;
+    GameState.addOrbs(12); // orbes que deben perderse con el Game Over
     p.invulnerableUntil = 0; p.hearts = 1; p.takeHit(p.x);
     return GameState.enemiesKilled;
   });
@@ -104,11 +105,12 @@ await step('game over restarts level, respawns enemies, keeps kills', async () =
   const after = await page.evaluate(async () => {
     const GameState = window.__GameState;
     const s = window.__level;
-    return { kills: GameState.enemiesKilled, enemies: s.enemies.getChildren().filter((e) => e.alive).length, expected: s.def.enemies.length, hearts: s.player.hearts };
+    return { kills: GameState.enemiesKilled, enemies: s.enemies.getChildren().filter((e) => e.alive).length, expected: s.def.enemies.length, hearts: s.player.hearts, orbs: GameState.orbs };
   });
   assert.equal(after.kills, before);
   assert.equal(after.enemies, after.expected);
   assert.equal(after.hearts, 3);
+  assert.equal(after.orbs, 0, 'los orbes vuelven a 0 al perder todas las vidas');
   return { before, ...after };
 });
 
@@ -405,13 +407,13 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
     p.controls.update = () => {}; p.controls.isDown = () => false; p.controls.justPressed = () => false; p.controls.justReleased = () => false; p.controls.axisX = () => 0;
     p.body.reset(m.body.center.x, m.body.top - 4); // cae sobre ella y la plataforma lo arrastra
     let landedAt = null;
-    const watch = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (landedAt === null && m.stand > 0) landedAt = s.levelClock; } });
-    s.time.delayedCall(330, () => { const mid = m.broken; s.time.delayedCall(800, () => { watch.remove(); resolve({ brokenAt330: mid, brokenAt1130: m.broken, trap: m.trap, landed: landedAt !== null }); }); });
+    const watch = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (landedAt === null && m.touchedAt !== null) landedAt = s.levelClock; } });
+    s.time.delayedCall(120, () => { const mid = m.broken; s.time.delayedCall(700, () => { watch.remove(); resolve({ brokenAt330: mid, brokenAt1130: m.broken, trap: m.trap, landed: m.touchedAt !== null || m.broken }); }); });
   }));
   assert.equal(out.fragile.trap, 'fragile');
   assert.equal(out.fragile.landed, true, 'Aidan aterrizó sobre la plataforma');
   assert.equal(out.fragile.brokenAt330, false, 'no se rompe al instante');
-  assert.equal(out.fragile.brokenAt1130, true, 'se rompe tras ~0.5 s encima');
+  assert.equal(out.fragile.brokenAt1130, true, 'se rompe ~0.35 s después del primer toque');
 
   // Ataque en el aire golpea a un enemigo.
   out.air = await page.evaluate(() => new Promise((resolve) => {
@@ -434,19 +436,24 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
     const active0 = s.orbs.countActive(true);
     for (let i = 0; i < e.maxHp; i += 1) e.hit(9000 + i, e.x - 40);
     const dropped = s.orbs.countActive(true) - active0;
-    const score0 = GS.score;
+    const orbs0 = GS.orbs;
     const orb = s.orbs.getChildren().find((o) => o.active && !o.placed);
     s.collectOrb(orb);
-    const gained = GS.score - score0;
+    const gained = GS.orbs - orbs0;
     p.hearts = 2; s.registry.set('hearts', 2);
-    const toNext = Math.ceil((1 - GS.lifeProgress) * 10000);
-    s.awardScore(toNext);
-    resolve({ dropped, gained, heartsAfter: p.hearts, placed: s.orbs.getChildren().filter((o) => o.placed && o.active).length });
+    s.awardOrbs(50 - (GS.orbs % 50));
+    const healed = p.hearts;
+    // Persecución: pasar corriendo cerca de un orbe fijo hace que lo siga y se recoja.
+    const placed = s.orbs.getChildren().find((o) => o.placed && o.active);
+    p.body.reset(placed.x - 60, placed.baseY + 40);
+    p.body.setVelocityX(250);
+    const orbs1 = GS.orbs;
+    s.time.delayedCall(900, () => resolve({ dropped, gained, heartsAfter: healed, homed: GS.orbs > orbs1, placedLeft: s.orbs.getChildren().filter((o) => o.placed && o.active).length }));
   }));
-  assert.ok(out.orbs.dropped >= 4, 'el enemigo suelta orbes');
-  assert.equal(out.orbs.gained, 250);
-  assert.equal(out.orbs.heartsAfter, 3, 'cruzar 10000 puntos cura un corazón');
-  assert.ok(out.orbs.placed > 0, 'hay orbes repartidos por el nivel');
+  assert.ok(out.orbs.dropped >= 3, 'el enemigo suelta orbes');
+  assert.equal(out.orbs.gained, 1);
+  assert.equal(out.orbs.heartsAfter, 3, 'llegar a 50 orbes cura un corazón');
+  assert.equal(out.orbs.homed, true, 'el orbe persigue a Aidan y se recoge aunque siga corriendo');
 
   // Plataforma fantasma (Acto 3) y lava del slime (Acto 1).
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act3' }));
@@ -455,10 +462,12 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
     const s = window.__level; const m = s.movers.getChildren()[0]; const p = s.player;
     p.invulnerableUntil = p.clock + 1e6;
     p.body.reset(m.body.center.x, m.body.top - 2);
-    s.time.delayedCall(900, () => resolve({ trap: m.trap, broken: m.broken, alpha: m.alpha }));
+    const y0 = p.y;
+    s.time.delayedCall(500, () => resolve({ trap: m.trap, broken: m.broken || m.fading, fellThrough: p.y > y0 + 40 }));
   }));
   assert.equal(out.phantom.trap, 'phantom');
-  assert.equal(out.phantom.broken, true);
+  assert.equal(out.phantom.broken, true, 'se desvanece al tocarla');
+  assert.equal(out.phantom.fellThrough, true, 'no sostiene a Aidan: es una trampa');
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act1' }));
   await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.__level.player, null, { timeout: 6000 });
   out.lava = await page.evaluate(() => new Promise((resolve) => {
@@ -524,6 +533,9 @@ await step('boss: player shot damages boss; boss scene restarts on death', async
   assert.ok(r.hp1 < hp0, `boss hp ${hp0} -> ${r.hp1}`);
   // Regresión: el impacto no debe desactivar/ocultar al jefe.
   assert.ok(r.bossActive && r.bossVisible && r.bodyEnabled, 'Morrigannus sigue activo tras el impacto');
+  const mult = await page.evaluate(() => ({ speed: window.__boss.speedMult, rest: window.__boss.restMult, diff: window.__GameState.difficulty.id }));
+  const expected = { easy: 1.0, normal: 1.25, hard: 1.45 }[mult.diff];
+  assert.equal(mult.speed, expected, 'velocidad de los orbes del jefe según la dificultad');
   // Varios impactos seguidos siguen restando vida.
   for (let i = 0; i < 4; i += 1) { await page.keyboard.press('KeyJ'); await page.waitForTimeout(160); }
   await page.waitForTimeout(700);

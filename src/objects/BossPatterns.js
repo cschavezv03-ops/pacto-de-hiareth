@@ -88,7 +88,7 @@ export default class BossPatterns {
       }
       if (!track.kind && i === 0) {
         const p = this.tuning.PHASES[s.phase - 1];
-        this.rest = p.rest - p.restReduction * s.intensity;
+        this.rest = (p.rest - p.restReduction * s.intensity) * (s.restMult ?? 1);
       }
     }
   }

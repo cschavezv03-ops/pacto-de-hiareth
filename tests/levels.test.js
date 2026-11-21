@@ -16,6 +16,8 @@ const MAX_GAP_UP = 3.5;      // hueco subiendo
 function surfaces(def) {
   const list = def.ground.map(([a, b]) => ({ a, b, h: 0, kind: 'ground' }));
   for (const p of def.platforms) {
+    // Las plataformas fantasma (trampa) no tienen colisión: no cuentan como apoyo.
+    if (p.type === 'moving' && (p.trap ?? def.moverTrap) === 'phantom') continue;
     const extra = p.type === 'moving' ? Math.abs(p.dx ?? 0) : 0;
     list.push({ a: p.x, b: p.x + p.w + extra, h: p.h, kind: p.type ?? 'static' });
   }
@@ -81,6 +83,17 @@ test('los checkpoints están sobre suelo, lejos de pinchos y de zonas de patrull
       for (const e of def.enemies.filter((x) => x.type !== 'alien' && !x.h)) {
         assert.ok(c < e.zone[0] - 2 || c > e.zone[1] + 2, `${id}: checkpoint ${c} dentro de la zona de un ${e.type}`);
       }
+    }
+  }
+});
+
+test('no quedan plataformas estáticas que regalen el paso sobre fosos saltables (Actos 1-3)', () => {
+  for (const id of ['act1', 'act2', 'act3']) {
+    const d = LEVEL_DATA[id];
+    const gaps = d.ground.slice(1).map(([a], i) => [d.ground[i][1], a]);
+    for (const p of d.platforms.filter((q) => (q.type ?? 'static') === 'static')) {
+      const over = gaps.filter(([g0, g1]) => p.x < g1 && p.x + p.w > g0 && g1 - g0 <= 4);
+      assert.equal(over.length, 0, `${id}: plataforma en x=${p.x} sobre un foso saltable`);
     }
   }
 });

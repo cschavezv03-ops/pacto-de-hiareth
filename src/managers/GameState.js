@@ -28,8 +28,12 @@ export const STORY = Object.freeze([
   { type: 'ending' }, // se resuelve a ENDING_CONVENTIONAL o ENDING_IF
 ]);
 
-/** Cada LIFE_EVERY puntos (orbes + niveles) Aidan recupera un corazón o gana uno extra. */
-export const LIFE_EVERY = 10000;
+/**
+ * Cada LIFE_EVERY orbes Aidan recupera un corazón o gana uno extra (como las monedas de
+ * Mario). Los orbes se pierden al perder todas las vidas (Game Over), así no se pueden
+ * acumular corazones muriendo y repitiendo.
+ */
+export const LIFE_EVERY = 50;
 
 const state = {
   enemiesKilled: 0,
@@ -37,7 +41,7 @@ const state = {
   score: 0,
   difficulty: 'normal',
   checkpoint: null, // { levelId, index } — último punto de control activado
-  nextLifeAt: LIFE_EVERY,  // puntuación a la que se concede la siguiente vida
+  orbs: 0,                 // orbes recogidos desde el último Game Over
   bonusHeart: false,       // vida ganada fuera del juego activo: se usa al iniciar el siguiente tramo
 };
 
@@ -49,7 +53,7 @@ export const GameState = {
     state.score = 0;
     state.difficulty = DIFFICULTIES[difficulty] ? difficulty : 'normal';
     state.checkpoint = null;
-    state.nextLifeAt = LIFE_EVERY;
+    state.orbs = 0;
     state.bonusHeart = false;
     this.persist();
     return this.currentStep();
@@ -64,7 +68,7 @@ export const GameState = {
     state.score = save.run.score ?? 0;
     state.difficulty = DIFFICULTIES[save.run.difficulty] ? save.run.difficulty : 'normal';
     state.checkpoint = save.run.checkpoint ?? null;
-    state.nextLifeAt = save.run.nextLifeAt ?? (Math.floor(state.score / LIFE_EVERY) + 1) * LIFE_EVERY;
+    state.orbs = save.run.orbs ?? 0;
     state.bonusHeart = Boolean(save.run.bonusHeart);
     return this.currentStep();
   },
@@ -115,24 +119,36 @@ export const GameState = {
     return state.score;
   },
 
-  /**
-   * Suma puntos y devuelve cuántas vidas se han ganado al cruzar umbrales de LIFE_EVERY.
-   * Quien llama decide cómo aplicarlas (curar en vivo o guardarlas con grantBonusHeart).
-   */
   addScore(points) {
     state.score += Math.max(0, Math.round(points));
     SaveManager.submitHighScore(state.score);
-    let lives = 0;
-    while (state.score >= state.nextLifeAt) {
-      lives += 1;
-      state.nextLifeAt += LIFE_EVERY;
-    }
-    return lives;
+  },
+
+  get orbs() {
+    return state.orbs;
+  },
+
+  /**
+   * Suma orbes y devuelve cuántas vidas se ganan al llegar a múltiplos de LIFE_EVERY.
+   * Cada orbe también suma 50 puntos a la puntuación (High Score).
+   */
+  addOrbs(n = 1) {
+    const before = Math.floor(state.orbs / LIFE_EVERY);
+    state.orbs += n;
+    this.addScore(50 * n);
+    return Math.floor(state.orbs / LIFE_EVERY) - before;
+  },
+
+  /** Game Over: los orbes acumulados se pierden. */
+  resetOrbs() {
+    state.orbs = 0;
+    state.bonusHeart = false;
+    this.persist();
   },
 
   /** Progreso hacia la siguiente vida (0..1), para el HUD. */
   get lifeProgress() {
-    return 1 - (state.nextLifeAt - state.score) / LIFE_EVERY;
+    return (state.orbs % LIFE_EVERY) / LIFE_EVERY;
   },
 
   /** Guarda una vida ganada cuando no hay nivel activo (p. ej. al completar un nivel). */

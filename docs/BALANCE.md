@@ -337,12 +337,15 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 
 | Mecánica | Valores |
 | --- | --- |
-| Plataformas móviles frágiles (Actos 1, 2 y 4) | Se agrietan (4 etapas) y caen tras **0,5 s** de estar encima; reaparecen a los 3 s en su recorrido. Bajarse más de 0,25 s reinicia la cuenta |
-| Plataformas móviles fantasma (Acto 3, Limbo) | Aspecto espectral; se desvanecen en 0,45 s al pisarlas y reaparecen a los 3 s |
+| Plataformas móviles frágiles (Actos 1, 2 y 4) | Se agrietan (4 etapas) y se rompen **0,35 s después del primer toque**, aunque Aidan salte; reaparecen a los 3 s en su recorrido |
+| Plataformas móviles fantasma (Acto 3, Limbo) | **Trampa sin colisión**: parecen normales (solo un leve parpadeo espectral) y Aidan cae a través; al tocarlas se desvanecen. Los fosos del Acto 3 se acortaron a 4 tiles para que se salten sin ellas |
+| Plataformas eliminadas | 7 plataformas estáticas sobre fosos saltables (Actos 1-3) que regalaban el paso; `tests/levels.test.js` impide reintroducirlas y valida que todo sigue siendo alcanzable |
 | Lava del slime | Charco grande al aterrizar de su salto (dura 2,6 s) y brasas pequeñas al caminar cada 2,4-3,2 s (duran 1,8 s). Aparecen **sin dañar durante 0,26 s** (aviso) y solo sobre suelo firme |
 | Ataque en el aire | `J` en el aire; 6 frames a 20 fps, golpe en los frames 2-3; no frena la caída ni el control aéreo |
-| Orbes | 250 puntos; slime 4, alien 6, esqueleto 8; duran 9 s (parpadean los 2 últimos); imán a 95 px; 5 grupos de 5 orbes fijos por nivel |
-| Vidas | Cada 10 000 puntos (`LIFE_EVERY`): cura 1 corazón o da 1 corazón extra (máx. 4 en total); si se gana fuera del nivel se guarda (`GameState.bonusHeart`) |
+| Orbes | Contador propio (`GameState.orbs`); slime 3, alien 4, esqueleto 5; 5 grupos de 5 fijos por nivel; a menos de 130 px persiguen a Aidan (520 px/s + aceleración) ignorando el terreno; los soltados duran 9 s si nadie se acerca |
+| Vidas | Cada **50 orbes** (`LIFE_EVERY`): cura 1 corazón o da 1 corazón extra (máx. 4). Aproximadamente 1 vida por nivel peleando y 1 cada 2 niveles por la ruta pacifista |
+| Pérdida de orbes | Game Over, reinicio desde la pausa o derrota ante el jefe → orbes a 0 (también el corazón extra guardado). Evita acumular corazones muriendo |
+| Jefe por dificultad | Velocidad de los orbes ×1,0 / ×1,25 / ×1,45 y respiro entre patrones ×1,05 / ×0,85 / ×0,72 (Fácil / Intermedio / Difícil); los avisos previos se mantienen |
 | Música del Acto 3 | Tema nuevo «Los nombres olvidados» (re menor/frigio, 80 BPM, loop de 96 s) generado con `tools/gen_music_level3.py`; el original del equipo era idéntico al del Acto 1 |
 
 **Desviaciones aprobadas por el equipo en esta ronda:** recuperar corazones durante un nivel (las Instrucciones §5.3 decían que no) y la animación de ataque aéreo (el Documento Maestro decía no asumirla; se generó a partir del sprite original). Los slimes dejan **terreno** que quema en lugar de lanzar llamas, para respetar «solo el alien utiliza ataques a distancia» y no alterar el contador de la ruta pacifista (como habrían hecho los mini slimes). Los orbes fijos garantizan que la ruta pacifista también pueda ganar vidas.

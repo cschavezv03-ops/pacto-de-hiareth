@@ -92,6 +92,9 @@ export default class BossScene extends Phaser.Scene {
     // Una vida ganada con orbes antes del combate da un corazón extra (solo el primer intento).
     this.hearts = RULES.PLAYER_HEARTS + (GameState.consumeBonusHeart() ? 1 : 0);
     this.maxHealth = Math.round(BOSS_TUNING.HEALTH * GameState.difficulty.bossHealthMult);
+    // Estilo jefe final de Cuphead: orbes más rápidos y menos respiro según la dificultad.
+    this.speedMult = GameState.difficulty.bossSpeedMult ?? 1;
+    this.restMult = GameState.difficulty.bossRestMult ?? 1;
     this.bossHealth = this.maxHealth;
     this.phase = 1;
     this.elapsedMs = 0;
@@ -268,6 +271,7 @@ export default class BossScene extends Phaser.Scene {
     if (this.pendingDefeat && this.freezeRemaining <= 0) {
       this.pendingDefeat = false;
       this.scene.stop(SCENES.HUD);
+      GameState.resetOrbs(); // perder todas las vidas devuelve los orbes a 0
       this.scene.start('BossDefeat', { progress: 1 - this.bossHealth / this.maxHealth, best: this.saveBest() });
       return;
     }
@@ -430,7 +434,8 @@ export default class BossScene extends Phaser.Scene {
       const angle = angleStart + i * step;
       bullet.setTexture(texture).setAlpha(1).setScale(1);
       bullet.enableBody(true, x, y, true, true);
-      bullet.setVelocity(Math.cos(angle) * speed, Math.sin(angle) * speed);
+      const v = speed * this.speedMult;
+      bullet.setVelocity(Math.cos(angle) * v, Math.sin(angle) * v);
       spawned += 1;
     }
     return spawned;

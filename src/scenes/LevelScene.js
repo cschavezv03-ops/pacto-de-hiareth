@@ -12,24 +12,28 @@ import { TILE } from '../objects/ProceduralTextures.js';
 const GROUND_ROWS = 2;
 
 /**
- * Plataformas móviles con trampa (las plataformas que solo "tapaban" los fosos ahora exigen
- * decidir rápido): 'fragile' se agrieta y cae si Aidan se queda encima 0.5 s;
- * 'phantom' (Acto 3, Limbo) se desvanece al pisarla.
+ * Plataformas móviles con trampa (ya no "tapan" los fosos):
+ *  'fragile' — se agrieta y se rompe 0.35 s después del PRIMER toque, aunque saltes.
+ *  'phantom' — (Acto 3, Limbo) es una trampa: no tiene colisión; al tocarla se desvanece
+ *              mientras Aidan cae. Un leve brillo espectral la delata al jugador atento.
  */
 const MOVER_TRAP = Object.freeze({
-  fragileMs: 500,        // tiempo de pie encima antes de romperse
-  standGraceMs: 250,     // si se baja más que esto, la cuenta se reinicia
-  phantomFadeMs: 450,    // la plataforma fantasma se desvanece en este tiempo
+  fragileMs: 350,        // desde el primer toque hasta que se rompe
+  phantomFadeMs: 300,
   respawnMs: 3000,
 });
 
-/** Orbes: valor y cuántos suelta cada enemigo al ser derrotado. */
+/**
+ * Orbes: cuántos suelta cada enemigo. Cada orbe cuenta 1 (vida cada GameState.LIFE_EVERY).
+ * En cuanto Aidan pasa cerca, el orbe le persigue hasta recogerse (ignora el terreno).
+ */
 const ORBS = Object.freeze({
-  value: 250,
-  drop: { slime: 4, alien: 6, skeleton: 8 },
-  lifeMs: 9000,          // los orbes soltados desaparecen (parpadean los últimos 2 s)
-  magnetRange: 95,
-  magnetSpeed: 420,
+  drop: { slime: 3, alien: 4, skeleton: 5 },
+  lifeMs: 9000,          // los soltados desaparecen si nadie se acerca (parpadean al final)
+  magnetRange: 130,
+  homingSpeed: 520,      // velocidad inicial de persecución
+  homingAccel: 1800,     // px/s² extra: siempre acaba alcanzando a Aidan
+  pickupRange: 30,
 });
 
 /** Fuego fantasma (ataque a distancia con recarga, ver Player.PLAYER_TUNING.specialCooldownMs). */
@@ -161,13 +165,13 @@ export default class LevelScene extends Phaser.Scene {
         plat.period = p.ms ?? 2000;
         plat.prevX = x;
         plat.trap = p.trap ?? def.moverTrap ?? 'fragile';
-        plat.stand = 0;
-        plat.stoodAt = -1e9;
+        plat.touchedAt = null;
         plat.broken = false;
         if (plat.trap === 'phantom') {
           // Aspecto espectral para que se lea como "no fiable".
-          plat.setTint(0xcbb2ff).setAlpha(0.85);
-          this.tweens.add({ targets: plat, alpha: 0.6, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.InOut' });
+          // Casi idéntica a una normal: solo un leve parpadeo espectral la delata.
+          plat.setTint(0xe6dcff).setAlpha(0.95);
+          this.tweens.add({ targets: plat, alpha: 0.8, yoyo: true, repeat: -1, duration: 1100, ease: 'Sine.InOut' });
         } else if (this.textures.exists('fx_crack')) {
           plat.crack = this.add.tileSprite(x, y, w, 16, 'fx_crack', 0).setOrigin(0).setDepth(3.5).setVisible(false);
         }
@@ -218,12 +222,9 @@ export default class LevelScene extends Phaser.Scene {
   updateMoverTrap(m, delta, tx, ty) {
     if (m.crack) m.crack.setPosition(m.x, m.y);
     if (m.broken) return;
-    const standing = this.levelClock - m.stoodAt < 50;
-    if (standing) m.stand += delta;
-    else if (this.levelClock - m.stoodAt > MOVER_TRAP.standGraceMs) m.stand = 0;
-
+    void delta;
     if (m.trap === 'phantom') {
-      if (m.stand > 0 && !m.fading) {
+      if (m.touchedAt !== null && !m.fading) {
         m.fading = true;
         this.tweens.killTweensOf(m);
         AudioManager.sfx(this, 'sfx_ui_select', { volume: 0.4, rate: 0.6 });
@@ -231,8 +232,9 @@ export default class LevelScene extends Phaser.Scene {
       }
       return;
     }
-    // Frágil: grietas progresivas y rotura a los 0.5 s de estar encima.
-    const ratio = Math.min(1, m.stand / MOVER_TRAP.fragileMs);
+    // Frágil: grietas progresivas y rotura 0.35 s después del primer toque.
+    if (m.touchedAt === null) return;
+    const ratio = Math.min(1, (this.levelClock - m.touchedAt) / MOVER_TRAP.fragileMs);
     if (m.crack) {
       m.crack.setVisible(ratio > 0);
       if (ratio > 0) m.crack.setFrame(Math.min(3, Math.floor(ratio * 4)));
@@ -259,8 +261,7 @@ export default class LevelScene extends Phaser.Scene {
       if (!m.active) return;
       m.broken = false;
       m.fading = false;
-      m.stand = 0;
-      m.stoodAt = -1e9;
+      m.touchedAt = null;
       m.clearTint();
       // Reaparece en la posición que le toca en su recorrido.
       const w = (Math.PI * 2) / m.period;
@@ -268,10 +269,10 @@ export default class LevelScene extends Phaser.Scene {
       m.body.enable = true;
       m.body.reset(m.originX0 + m.dx * k, m.originY0 + m.dy * k);
       m.setAlpha(0);
-      const targetAlpha = m.trap === 'phantom' ? 0.85 : 1;
-      if (m.trap === 'phantom') m.setTint(0xcbb2ff);
+      const targetAlpha = m.trap === 'phantom' ? 0.95 : 1;
+      if (m.trap === 'phantom') m.setTint(0xe6dcff);
       this.tweens.add({ targets: m, alpha: targetAlpha, duration: 300, onComplete: () => {
-        if (m.trap === 'phantom') this.tweens.add({ targets: m, alpha: 0.6, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.InOut' });
+        if (m.trap === 'phantom') this.tweens.add({ targets: m, alpha: 0.8, yoyo: true, repeat: -1, duration: 1100, ease: 'Sine.InOut' });
       } });
     });
   }
@@ -301,6 +302,7 @@ export default class LevelScene extends Phaser.Scene {
     orb.body.setCircle(8, orb.width / 2 - 8, orb.height / 2 - 8);
     orb.placed = false;
     orb.collected = false;
+    orb.homing = false;
     if (this.anims.exists('orb-spin')) orb.play({ key: 'orb-spin', startFrame: Phaser.Math.Between(0, 5) });
     if (dropped) {
       orb.body.setAllowGravity(true).setBounce(0.45).setDrag(60, 0);
@@ -329,12 +331,12 @@ export default class LevelScene extends Phaser.Scene {
       fx.play('orb-pickup');
       fx.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => fx.destroy());
     }
-    this.awardScore(ORBS.value);
+    this.awardOrbs(1);
   }
 
-  /** Suma puntos y aplica las vidas ganadas (cura o corazón extra). */
-  awardScore(points) {
-    const lives = GameState.addScore(points);
+  /** Suma orbes y aplica las vidas ganadas (cura o corazón extra). */
+  awardOrbs(n) {
+    const lives = GameState.addOrbs(n);
     for (let i = 0; i < lives; i += 1) {
       const kind = this.player.heal();
       if (kind) {
@@ -350,16 +352,22 @@ export default class LevelScene extends Phaser.Scene {
     const p = this.player;
     for (const orb of this.orbs.getChildren()) {
       if (!orb.active || orb.collected) continue;
-      if (orb.placed) orb.y = orb.baseY + Math.sin((this.levelClock + orb.x) / 300) * 4;
-      // Imán suave cerca de Aidan.
       const dx = p.x - orb.x;
       const dy = (p.y - 38) - orb.y;
-      const d = Math.hypot(dx, dy);
-      if (d < ORBS.magnetRange && !p.dead) {
+      const d = Math.hypot(dx, dy) || 1;
+      if (!orb.homing && d < ORBS.magnetRange && !p.dead) {
+        orb.homing = true; // a partir de aquí persigue a Aidan hasta recogerse
+        orb.homingSpeed = ORBS.homingSpeed;
         orb.body.setAllowGravity(false);
-        orb.body.setVelocity((dx / d) * ORBS.magnetSpeed, (dy / d) * ORBS.magnetSpeed);
-        if (orb.placed) orb.baseY = orb.y;
+        orb.setAlpha(1);
       }
+      if (orb.homing) {
+        orb.homingSpeed += ORBS.homingAccel * (this.game.loop.delta / 1000);
+        orb.body.setVelocity((dx / d) * orb.homingSpeed, (dy / d) * orb.homingSpeed);
+        if (d < ORBS.pickupRange) this.collectOrb(orb);
+        continue;
+      }
+      if (orb.placed) orb.y = orb.baseY + Math.sin((this.levelClock + orb.x) / 300) * 4;
       if (orb.expireAt !== Infinity) {
         const left = orb.expireAt - this.levelClock;
         if (left < 2000) orb.setAlpha(Math.floor(left / 120) % 2 ? 0.3 : 1);
@@ -524,9 +532,13 @@ export default class LevelScene extends Phaser.Scene {
     const p = this.player;
     this.physics.add.collider(p, this.solids);
     this.physics.add.collider(p, this.oneWay);
+    // Las fantasma no colisionan (proceso = false): solo se detecta el contacto.
     this.physics.add.collider(p, this.movers, (pl, plat) => {
-      if (pl.body.touching.down && plat.body.touching.up) plat.stoodAt = this.levelClock;
-    });
+      if (pl.body.touching.down && plat.body.touching.up && plat.touchedAt === null) plat.touchedAt = this.levelClock;
+    }, (_pl, plat) => plat.trap !== 'phantom');
+    this.physics.add.overlap(p, this.movers, (_pl, plat) => {
+      if (plat.trap === 'phantom' && plat.touchedAt === null) plat.touchedAt = this.levelClock;
+    }, (_pl, plat) => plat.trap === 'phantom');
     this.physics.add.collider(p, this.crumbles, (_pl, plat) => this.startCrumble(plat));
     this.physics.add.collider(this.enemies, this.solids);
     this.physics.add.collider(this.enemies, this.oneWay);
@@ -567,8 +579,10 @@ export default class LevelScene extends Phaser.Scene {
 
     this.physics.add.overlap(p, this.checkpoints, (_pl, cp) => this.activateCheckpoint(cp));
 
-    this.physics.add.collider(this.orbs, this.solids);
-    this.physics.add.collider(this.orbs, this.oneWay);
+    // Los orbes soltados rebotan en el suelo, salvo cuando ya persiguen a Aidan.
+    const orbBlocks = (orb) => !orb.homing && !orb.placed;
+    this.physics.add.collider(this.orbs, this.solids, null, orbBlocks);
+    this.physics.add.collider(this.orbs, this.oneWay, null, orbBlocks);
     this.physics.add.overlap(p, this.orbs, (_pl, orb) => this.collectOrb(orb));
     this.physics.add.overlap(p, this.lava, (pl, f) => { if (f.harmful) pl.takeHit(f.x); });
 
@@ -706,8 +720,7 @@ export default class LevelScene extends Phaser.Scene {
 
     const seconds = (this.time.now - this.startTime) / 1000;
     const timeBonus = Math.max(0, Math.round((300 - seconds) * 5));
-    // Vidas ganadas al completar: se guardan para el siguiente tramo.
-    if (GameState.addScore(1000 + Math.min(3, this.player.hearts) * 300 + timeBonus) > 0) GameState.grantBonusHeart();
+    GameState.addScore(1000 + Math.min(3, this.player.hearts) * 300 + timeBonus);
 
     this.cameras.main.fadeOut(900, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
@@ -720,6 +733,7 @@ export default class LevelScene extends Phaser.Scene {
   gameOver() {
     if (this.finished) return;
     this.finished = true;
+    GameState.resetOrbs(); // al perder todas las vidas los orbes vuelven a 0
     this.time.delayedCall(500, () => {
       this.scene.stop(SCENES.HUD);
       this.scene.start(SCENES.GAME_OVER, { retryScene: SCENES.LEVEL, retryData: { levelId: this.levelId } });

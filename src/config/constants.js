@@ -56,11 +56,15 @@ export const RULES = Object.freeze({
  * corazones de Aidan (3) son iguales en todas. 'normal' = valores del documento.
  */
 export const DIFFICULTIES = Object.freeze({
+  // bossSpeedMult / bossRestMult: velocidad de los orbes del jefe y respiro entre patrones.
   easy: { id: 'easy', label: 'Fácil', hitMult: 0.5, bossHealthMult: 0.65, checkpoints: true,
+    bossSpeedMult: 1.0, bossRestMult: 1.05,
     desc: 'Enemigos más frágiles · con puntos de control' },
   normal: { id: 'normal', label: 'Intermedio', hitMult: 1, bossHealthMult: 1, checkpoints: true,
+    bossSpeedMult: 1.25, bossRestMult: 0.85,
     desc: 'Experiencia original · con puntos de control' },
   hard: { id: 'hard', label: 'Difícil', hitMult: 1.5, bossHealthMult: 1.25, checkpoints: false,
+    bossSpeedMult: 1.45, bossRestMult: 0.72,
     desc: 'Enemigos más resistentes · sin puntos de control' },
 });
 

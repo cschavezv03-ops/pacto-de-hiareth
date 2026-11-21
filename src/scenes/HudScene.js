@@ -289,10 +289,14 @@ export default class HudScene extends Phaser.Scene {
 
   update() {
     this.updateKillCounter();
-    const s = GameState.score;
-    if (s !== this.lastScore) {
-      this.lastScore = s;
-      this.scoreText.setText(s.toLocaleString('es'));
+    // El contador del HUD son los ORBES (la puntuación se ve en el menú y el final).
+    const o = GameState.orbs;
+    if (o !== this.lastScore) {
+      if (o > this.lastScore && this.lastScore >= 0) {
+        this.tweens.add({ targets: this.scoreText, scale: { from: 1.25, to: 1 }, duration: 160 });
+      }
+      this.lastScore = o;
+      this.scoreText.setText(`${o}`);
       this.lifeBar.width = 96 * Phaser.Math.Clamp(GameState.lifeProgress, 0, 1);
     }
   }
