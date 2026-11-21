@@ -244,6 +244,7 @@ export default class LevelScene extends Phaser.Scene {
         minX: minT * TILE,
         maxX: maxT * TILE,
         hitboxes: this.enemyHitboxes,
+        ambush: Boolean(e.ambush),
       };
       const enemy = e.type === 'alien' ? new Alien(this, spec, this.alienShots) : new Enemy(this, spec);
       enemy.setDepth(8);

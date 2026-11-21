@@ -4,7 +4,8 @@
  *  ground:    tramos de suelo [inicio, fin) — los huecos entre tramos son fosos.
  *  platforms: { x, h, w, type }  h = altura en tiles sobre el suelo (top de la plataforma)
  *             type: 'static' | 'moving' (dx/dy en tiles, ms) | 'crumble'
- *  enemies:   { type, x, zone: [min, max], h? }  h = sobre plataforma (tiles sobre suelo)
+ *  enemies:   { type, x, zone: [min, max], h?, ambush? }  h = sobre plataforma (tiles sobre suelo)
+ *             ambush: esqueleto que espera como montón de huesos y se levanta al acercarse Aidan
  *  hazards:   { type: 'spikes', x, w }  |  { type: 'icicle', x }  (estalactita que cae)
  *  goal:      { x, texture, label }  — al tocarlo termina el nivel
  *  checkpoints: [x, ...] — puntos de control sobre suelo firme, fuera de zonas de patrulla
@@ -130,13 +131,19 @@ export const LEVEL_DATA = {
       { x: 182, h: 3, w: 5 },
     ],
     enemies: [
-      { type: 'skeleton', x: 12, zone: [7, 24] },
+      { type: 'skeleton', x: 11, zone: [7, 15] },
+      { type: 'skeleton', x: 21, zone: [20, 22], ambush: true }, // 6 tiles libres tras él antes del foso
       { type: 'skeleton', x: 44, zone: [35, 52] },
+      { type: 'skeleton', x: 48, zone: [46, 51], h: 6 }, // la ruta alta también está vigilada
       { type: 'skeleton', x: 70, zone: [64, 78] },
       { type: 'skeleton', x: 96, zone: [87, 104] },
-      { type: 'skeleton', x: 126, zone: [116, 138] },
+      { type: 'skeleton', x: 101, zone: [99, 105], h: 6 },
+      { type: 'skeleton', x: 121, zone: [116, 126] },
+      { type: 'skeleton', x: 132, zone: [131, 133], ambush: true },
+      { type: 'skeleton', x: 131, zone: [130, 134], h: 7 },
       { type: 'skeleton', x: 156, zone: [147, 163] },
-      { type: 'skeleton', x: 186, zone: [176, 194] },
+      { type: 'skeleton', x: 186, zone: [176, 193] },
+      { type: 'skeleton', x: 196, zone: [195.5, 196.5], ambush: true }, // guardián de la casa
     ],
     hazards: [
       { type: 'spikes', x: 36, w: 2 },

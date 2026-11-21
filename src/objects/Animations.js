@@ -73,6 +73,19 @@ export function createAnimations(scene) {
   strip(scene, 'skeleton-windup', 'skeleton_windup', 14, 0);
   strip(scene, 'alien-charge', 'alien_charge', 12, 0);
   strip(scene, 'crescent-spin', 'fx_crescent', 14);
+  strip(scene, 'aidan-crouch', 'aidan_crouch', 16, 0); // termina en el último frame (agachado)
+  strip(scene, 'skeleton-sweep', 'skeleton_sweep', 14, 0);
+  strip(scene, 'skeleton-charge', 'skeleton_charge', 14);
+  // Esqueleto emboscado: se levanta reproduciendo su muerte al revés (sprite original).
+  if (!scene.anims.exists('skeleton-rise') && scene.textures.exists('skeleton_death')) {
+    const n = scene.textures.get('skeleton_death').frameTotal - 1;
+    scene.anims.create({
+      key: 'skeleton-rise',
+      frames: Array.from({ length: n }, (_, i) => ({ key: 'skeleton_death', frame: n - 1 - i })),
+      frameRate: 11,
+      repeat: 0,
+    });
+  }
 
   // Props animados (si el PNG trae varios frames)
   strip(scene, 'goal_portal-anim', 'goal_portal', 8);

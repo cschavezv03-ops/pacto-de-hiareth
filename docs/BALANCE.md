@@ -97,6 +97,12 @@ Notas:
 - El HUD dibuja la recarga bajo la placa de corazones y `TouchControls.setCooldown('special', ratio)` la dibuja en el botón `✦`.
 - Con 3 de daño, en Intermedio hacen falta 2 impactos para un slime (4), 2 para un alien (6) y 3 para un esqueleto (8).
 
+## 2.1 Agacharse
+
+- `S` / `↓` (o botón `▼`) mientras Aidan está en el suelo y no ataca. No se desplaza agachado (puede girarse) y saltar lo levanta.
+- Hitbox de pie 38×76 px → agachado 40×44 px (los pies no se mueven). Sirve para esquivar el **tajo alto** del esqueleto y los proyectiles altos.
+- Animación propia `aidan/Crouch.png` (derivada del sprite original con `tools/gen_anim_sprites2.py`).
+
 ## 3. Enemigos (`ENEMY_TYPES`)
 
 | Parámetro | Slime | Alien | Esqueleto |
@@ -264,7 +270,7 @@ La puntuación **no depende de matar enemigos**. Así no premia ni delata la rut
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Acto 1 — Tierra, mar y cielo | 190 | 6080 | 11 slimes (incluye guardián en x = 179) | 4 | 15 estáticas | 0 | `goal_sign` (x = 184) |
 | Acto 2 — Vuela alto | 200 | 6400 | 7 aliens (incluye guardián en x = 186) | 5 | 12 estáticas + 3 móviles | 3 pinchos | `goal_portal` (x = 193) |
-| Acto 3 — Limbo | 205 | 6560 | 7 esqueletos | 6 | 12 estáticas + 5 móviles | 2 pinchos | `goal_house` (x = 198) |
+| Acto 3 — Limbo | 205 | 6560 | 13 esqueletos (3 emboscados, 3 en plataformas) | 6 | 12 estáticas + 5 móviles | 2 pinchos | `goal_house` (x = 198) |
 | Acto 4 — Don't Try… (IF) | 175 | 5600 | 0 | 6 | 6 estáticas + 6 quebradizas + 2 móviles | 5 pinchos + 6 estalactitas | `goal_camp` (x = 168) |
 
 Los **fosos** son los huecos entre los tramos de `ground`; no hay suelo en esos intervalos y el mundo no colisiona por abajo. Un foso resta 1 corazón y devuelve a Aidan al último suelo seguro.
@@ -285,6 +291,19 @@ Parallax por nivel (de la capa más lejana a la más cercana):
 - Jefe: 3 capas con desplazamiento continuo.
 
 Plataformas móviles: movimiento senoidal con período de 1700–2200 ms y desplazamiento de 2–3 tiles en horizontal. Plataformas quebradizas del Acto 4: aviso de 550 ms, desaparecen 300 ms y reaparecen a los 2600 ms en su posición original.
+
+## 3.1 Repertorio del esqueleto (Acto 3)
+
+Tras las pruebas, el Acto 3 se pasaba demasiado rápido frente al Acto 2. Los esqueletos siguen siendo **cuerpo a cuerpo** (el documento reserva los ataques a distancia al alien) y cada ataque tiene un aviso distinto y una forma clara de esquivarlo sin matar:
+
+| Ataque | Aviso | Zona de daño | Cómo esquivarlo |
+| --- | --- | --- | --- |
+| Tajo alto | Ojos rojos (260 ms) + preparación | 80×32 px a la altura de la cabeza | **Agacharse** (o alejarse) |
+| Barrido bajo (45 %) | Brillo amarillo (320 ms) | 92×24 px a ras de suelo | **Saltar** |
+| Embestida | Tiembla 450 ms | Contacto, 290 px/s durante ≤ 650 ms | Saltar por encima; nunca sale de su zona |
+| Emboscada | Montón de huesos que tiembla y se levanta (animación de muerte al revés) cuando Aidan está a < 170 px | Ninguna mientras está oculto | Pasar de largo o esperar a que termine de levantarse |
+
+Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al borde de un foso), de modo que siempre se pueden saltar. Golpear al esqueleto interrumpe su ataque.
 
 ## 7. Decisiones y desviaciones técnicas
 
@@ -312,3 +331,4 @@ Plataformas móviles: movimiento senoidal con período de 1700–2200 ms y despl
 - **Reloj propio de Aidan**: la invulnerabilidad, el coyote time y el buffer de salto usan un reloj que solo avanza durante el juego activo, para que la pausa no consuma la invulnerabilidad.
 - **Latch de pulsaciones** en `InputManager`: una pulsación más corta que un frame no se pierde.
 - **Contador de enemigos derrotados opcional**: las Instrucciones (§6) prohíben mostrar el contador. El equipo pidió poder verlo; se implementó como opción «Enemigos derrotados» en Opciones, **apagada por defecto**, para conservar la sorpresa del Acto 4 (ruta pacifista) a quien no la active.
+- **Agacharse y repertorio del esqueleto**: pedidos por el equipo tras las pruebas. Agacharse no figuraba en las Instrucciones; los nuevos ataques del esqueleto son cuerpo a cuerpo para respetar «solo el alien utiliza ataques a distancia». La ruta pacifista sigue siendo viable (todos los ataques se esquivan) y el Acto 4 sigue apareciendo solo con `enemiesKilled === 0`.

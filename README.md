@@ -50,6 +50,7 @@ node tests/rules.e2e.mjs http://localhost:5173
 | --- | --- | --- | --- | --- |
 | Moverse a la izquierda / derecha | `A` / `D` o `←` / `→` | Botones `◀` / `▶` | `WASD` o flechas (vuelo libre en 4 direcciones) | Cruceta `▲ ◀ ▶ ▼` |
 | Saltar | `Espacio` (también `W` / `↑`) | Botón `⤒` | — | — |
+| Agacharse | `S` / `↓` (mantener) | Botón `▼` | — | — |
 | Atacar / disparar | `J` o clic izquierdo | Botón `🔥` | `J` (también `Espacio` o clic izquierdo); un disparo por pulsación | Botón `🔥` |
 | Fuego fantasma (especial de nivel) | `K` o clic derecho | Botón `✦` | — | — |
 | Media luna de fuego (especial del jefe) | — | — | `K` o clic derecho | Botón `☾` |

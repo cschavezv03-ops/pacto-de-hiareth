@@ -320,6 +320,77 @@ await step('kill counter: hidden by default, visible only when enabled in option
   return { hidden, ...r };
 });
 
+await step('act 3: crouch dodges the high slash, sweep hits a crouched Aidan, charge stays in zone, ambush rises', async () => {
+  await page.evaluate(() => { window.__GameState.newGame('normal'); window.game.events.emit('story:goto', { type: 'level', id: 'act3' }); });
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForTimeout(300);
+  const strike = (kind, crouch) => page.evaluate(([kind, crouch]) => new Promise((resolve) => {
+    const s = window.__level;
+    const e = s.enemies.getChildren().find((x) => x.alive && x.action !== 'hidden' && !x.cfg.flying && x.y > 400);
+    const p = s.player;
+    const cfg = e.cfg;
+    const prevChance = cfg.sweepChance;
+    cfg.sweepChance = kind === 'sweep' ? 1 : 0;
+    e.minX = e.maxX = e.x;
+    e.nextAction = 0;
+    e.nextCharge = 1e12;
+    e.action = null;
+    p.invulnerableUntil = 0;
+    p.body.reset(e.x + 55, e.y); // dentro del margen de 60 px de su zona
+    p.controls.update = () => {};
+    p.controls.isDown = (a) => (a === 'down' ? crouch : false);
+    p.controls.justPressed = () => false;
+    p.controls.justReleased = () => false;
+    p.controls.axisX = () => 0;
+    const h0 = p.hearts;
+    e.attackedKinds = [];
+    const t = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (e.action === 'swing' && !e.attackedKinds.length) e.attackedKinds.push(e.anims.currentAnim?.key); } });
+    s.time.delayedCall(1300, () => {
+      t.remove();
+      cfg.sweepChance = prevChance;
+      resolve({ kind, crouch, crouching: p.crouching, bodyH: Math.round(p.body.height), h0, h1: p.hearts, attacked: e.attackedKinds });
+    });
+  }), [kind, crouch]);
+  const highCrouched = await strike('high', true);
+  const highStanding = await strike('high', false);
+  const sweepCrouched = await strike('sweep', true);
+  assert.ok(highCrouched.attacked.length && highStanding.attacked.length && sweepCrouched.attacked.length, 'los tres ataques se lanzaron');
+  assert.equal(highCrouched.crouching, true);
+  assert.equal(highCrouched.bodyH, 44);
+  assert.equal(highCrouched.h1, highCrouched.h0, 'agachado esquiva el tajo alto');
+  assert.ok(highStanding.h1 < highStanding.h0, 'de pie recibe el tajo alto');
+  assert.ok(sweepCrouched.h1 < sweepCrouched.h0, 'el barrido golpea aunque esté agachado (hay que saltar)');
+
+  const charge = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const e = s.enemies.getChildren().find((x) => x.alive && x.action !== 'hidden' && (x.maxX - x.minX) > 300);
+    const p = s.player;
+    p.invulnerableUntil = p.clock + 1e6;
+    e.action = null; e.nextAction = 0; e.nextCharge = 0;
+    e.body.reset((e.minX + e.maxX) / 2 - 60, e.y);
+    p.body.reset(e.x + 230, e.y);
+    const seen = new Set(); let maxX = -1; let minX = 1e9;
+    const t = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (e.action) seen.add(e.action); maxX = Math.max(maxX, e.x); minX = Math.min(minX, e.x); } });
+    s.time.delayedCall(1600, () => { t.remove(); resolve({ actions: [...seen], inZone: minX >= e.minX - 3 && maxX <= e.maxX + 3 }); });
+  }));
+  assert.ok(charge.actions.includes('chargeWindup') && charge.actions.includes('charge'), JSON.stringify(charge));
+  assert.ok(charge.inZone);
+
+  const ambush = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const e = s.enemies.getChildren().find((x) => x.action === 'hidden');
+    const before = { action: e.action, body: e.body.enable };
+    s.player.invulnerableUntil = s.player.clock + 1e6;
+    s.player.body.reset(e.x - 120, e.y);
+    s.time.delayedCall(1400, () => resolve({ before, after: { action: e.action, body: e.body.enable, alive: e.alive } }));
+  }));
+  assert.equal(ambush.before.action, 'hidden');
+  assert.equal(ambush.before.body, false, 'oculto no hace daño ni se puede golpear');
+  assert.equal(ambush.after.body, true);
+  assert.notEqual(ambush.after.action, 'hidden');
+  return { highCrouched, highStanding, sweepCrouched, charge, ambush };
+});
+
 await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -> skipped', async () => {
   const pac = await page.evaluate(async () => {
     const GS = window.__GameState;

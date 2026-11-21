@@ -27,6 +27,9 @@ export const PLAYER_TUNING = Object.freeze({
   // Fuego fantasma (ataque a distancia con recarga; pedido del equipo tras las pruebas)
   specialCooldownMs: 6500,
   specialSpawnFrame: 4,   // frame de Attack2 en el que sale la llamarada
+  // Agacharse (S / ↓ / botón ▼): hitbox más baja para esquivar ataques altos.
+  standBody: { w: 38, h: 76, ox: 106, oy: 91 },
+  crouchBody: { w: 40, h: 44, ox: 105, oy: 123 },
   knockbackX: 200,
   knockbackY: -260,
 });
@@ -52,8 +55,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.setScale(PLAYER_TUNING.scale);
     this.setOrigin(0.5, 167 / 250); // origen en los pies
     // Hitbox en coordenadas del frame (250x250): cuerpo ~40x78, pies en y=167.
-    this.body.setSize(38, 76);
-    this.body.setOffset(106, 91);
+    this.body.setSize(PLAYER_TUNING.standBody.w, PLAYER_TUNING.standBody.h);
+    this.body.setOffset(PLAYER_TUNING.standBody.ox, PLAYER_TUNING.standBody.oy);
+    this.crouching = false;
     this.body.setMaxVelocity(PLAYER_TUNING.runSpeed * 2, PLAYER_TUNING.maxFall);
     this.setCollideWorldBounds(true);
     this.body.onWorldBounds = false;
@@ -106,9 +110,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.onGround && body.velocity.y >= 0) this.lastGroundTime = time;
     if (input.justPressed('jump')) this.lastJumpPress = time;
 
+    // --- Agacharse: solo en el suelo y sin atacar; no se desplaza mientras tanto ---
+    const wantCrouch = input.isDown('down') && this.onGround && !this.attacking;
+    if (wantCrouch !== this.crouching) this.setCrouch(wantCrouch);
+
     // --- Movimiento horizontal con aceleración ---
     // §5.3: durante la invulnerabilidad Aidan puede seguir moviéndose y atacando.
-    const dir = input.axisX();
+    const dir = this.crouching ? 0 : input.axisX();
+    if (this.crouching && input.axisX() !== 0) this.facing = input.axisX(); // puede girarse
     let target = dir * T.runSpeed;
     if (this.attacking && this.onGround) target *= T.attackMoveMult;
     const accel = (dir !== 0 ? T.groundAccel : T.groundDecel) * (this.onGround ? 1 : T.airAccelMult);
@@ -123,6 +132,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const canCoyote = time - this.lastGroundTime <= T.coyoteMs;
     const buffered = time - this.lastJumpPress <= T.bufferMs;
     if (buffered && canCoyote && !this.attacking) {
+      if (this.crouching) this.setCrouch(false); // saltar levanta a Aidan
       body.setVelocityY(JUMP_VELOCITY);
       this.lastJumpPress = -Infinity;
       this.lastGroundTime = -Infinity;
@@ -137,11 +147,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     body.setGravityY(g - WORLD_GRAVITY);
 
     // --- Ataque (solo desde el suelo; un único botón) ---
-    if (input.justPressed('attack') && !this.attacking && this.onGround) {
+    if (input.justPressed('attack') && !this.attacking && this.onGround && !this.crouching) {
       this.startAttack();
     }
     // --- Fuego fantasma: a distancia, con recarga, desde el suelo ---
-    if (input.justPressed('special') && !this.attacking && this.onGround && this.specialReady) {
+    if (input.justPressed('special') && !this.attacking && this.onGround && !this.crouching && this.specialReady) {
       this.startSpecial();
     }
 
@@ -150,6 +160,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
 
     // Parpadeo de invulnerabilidad.
     this.setAlpha(this.isInvulnerable ? (Math.floor(time / 70) % 2 ? 0.35 : 1) : 1);
+  }
+
+  /** Cambia entre la hitbox de pie y la de agachado (los pies no se mueven). */
+  setCrouch(on) {
+    this.crouching = on;
+    const b = on ? PLAYER_TUNING.crouchBody : PLAYER_TUNING.standBody;
+    this.body.setSize(b.w, b.h, false);
+    this.body.setOffset(b.ox, b.oy);
   }
 
   get specialReady() {
@@ -217,6 +235,11 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       return;
     }
     let key;
+    if (this.crouching) {
+      key = this.scene.anims.exists('aidan-crouch') ? 'aidan-crouch' : 'aidan-idle';
+      if (cur !== key) this.play(key, true);
+      return; // 'aidan-crouch' se queda en su último frame
+    }
     if (!this.onGround) key = this.body.velocity.y < 0 ? 'aidan-jump' : 'aidan-fall';
     else key = Math.abs(this.body.velocity.x) > 20 ? 'aidan-run' : 'aidan-idle';
     if (cur !== key) this.play(key, true);
@@ -246,6 +269,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   die() {
+    if (this.crouching) this.setCrouch(false);
     this.dead = true;
     this.attacking = false;
     this.attackZone.body.enable = false;

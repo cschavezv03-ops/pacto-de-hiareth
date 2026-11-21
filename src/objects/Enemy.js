@@ -50,6 +50,18 @@ export const ENEMY_TYPES = {
     // Tajo con la rama (anti-speedrun): aviso rojo, luego zona de daño frente a él.
     // Aviso total ≈0.54 s (tinte rojo + preparación) y 1.6-2.2 s de calma: se salta por encima.
     swing: { range: 95, windupMs: 250, reach: 74, height: 70, activeFrames: [4, 5], cooldownMs: [1600, 2200] },
+    // Repertorio ampliado (Acto 3 era demasiado simple). Todo cuerpo a cuerpo: el documento
+    // reserva los ataques a distancia al alien. Cada ataque se esquiva de una forma:
+    //  - Tajo alto (ojos rojos): a la altura de la cabeza -> AGACHARSE.
+    //  - Barrido bajo (brillo amarillo): a ras de suelo -> SALTAR.
+    //  - Embestida (tiembla): carga corta dentro de su zona -> saltar por encima.
+    strikes: {
+      high: { anim: 'attack', frames: [4, 5], yOff: -66, h: 32, reach: 80, windupMs: 260, tint: 0xff4d4d },
+      sweep: { anim: 'skeleton-sweep', frames: [2, 3], yOff: -12, h: 24, reach: 92, windupMs: 320, tint: 0xfff0a0 },
+    },
+    sweepChance: 0.45,
+    charge: { minRange: 150, maxRange: 290, windupMs: 450, speed: 290, maxMs: 650, cooldownMs: [2600, 3400] },
+    ambushRange: 170,          // los emboscados se levantan cuando Aidan se acerca
     anims: { idle: 'skeleton-idle', move: 'skeleton-walk', hurt: 'skeleton-hurt', death: 'skeleton-death', attack: 'skeleton-attack' },
     flying: false,
   },
@@ -105,7 +117,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.pauseUntil = 0;
     this.alive = true;
     this.spawnTime = levelNow(scene);
-    this.action = null;         // null | 'windup' | 'leap' | 'swing'
+    this.action = null;         // null | 'windup' | 'leap' | 'swing' | 'chargeWindup' | 'charge' | 'hidden' | 'rising'
+    this.strike = null;
+    this.nextCharge = 0;
     this.actionUntil = 0;
     this.nextAction = levelNow(scene) + Phaser.Math.Between(600, 1400);
 
@@ -125,6 +139,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     this.play(cfg.anims.move);
     this.on(Phaser.Animations.Events.ANIMATION_COMPLETE, this.onAnimComplete, this);
+
+    // Emboscada: espera como un montón de huesos (último frame de su muerte), sin cuerpo.
+    if (spec.ambush && scene.textures.exists(`${spec.type}_death`)) {
+      this.action = 'hidden';
+      this.body.enable = false;
+      this.anims.stop();
+      this.setTexture(`${spec.type}_death`, scene.textures.get(`${spec.type}_death`).frameTotal - 2);
+    }
   }
 
   /** IA sencilla: patrulla, pausa ocasional y (esqueleto) aproximación en zona. */
@@ -201,6 +223,19 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     const dy = Math.abs(player.y - this.y);
     const inZone = player.x >= this.minX - 60 && player.x <= this.maxX + 60;
 
+    if (this.action === 'hidden') {
+      if (Math.abs(dx) < (cfg.ambushRange ?? 170) && dy < 120) {
+        this.action = 'rising';
+        this.play('skeleton-rise', true);
+        this.scene.cameras.main.shake(120, 0.003);
+      }
+      return true;
+    }
+    if (this.action === 'rising') return true; // termina en onAnimComplete
+
+    if (this.action === null && cfg.strikes) return this.startSkeletonAction(time, player, dx, dy, inZone);
+    if (this.action === 'chargeWindup' || this.action === 'charge') return this.updateCharge(time);
+
     if (this.action === null) {
       const a = cfg.leap ?? cfg.swing;
       if (!a || time < this.nextAction || !inZone || dy > 80 || Math.abs(dx) > a.range) return false;
@@ -226,8 +261,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
         body.setVelocity(vx, cfg.leap.vy);
         this.actionUntil = time + 180; // margen antes de comprobar el aterrizaje
       } else {
-        this.action = 'swing'; // el daño lo activan los frames 4-5 del ataque (≈0.29 s después)
-        this.play(cfg.anims.attack, true);
+        this.action = 'swing'; // el daño lo activan los frames activos del golpe elegido
+        const st = this.strike ?? cfg.strikes?.high;
+        const key = st?.anim === 'attack' || !st ? cfg.anims.attack : st.anim;
+        this.play(key, true);
+        if (st?.anim === 'skeleton-sweep') this.anims.setProgress(1 / 6); // ya mostró la preparación
       }
       return true;
     }
@@ -247,10 +285,77 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
     if (this.action === 'swing') {
       body.setVelocityX(0);
-      if (!this.anims.isPlaying || this.anims.currentAnim?.key !== cfg.anims.attack) this.endAction(time, cfg.swing.cooldownMs);
+      const key = this.anims.currentAnim?.key;
+      if (!this.anims.isPlaying || (key !== cfg.anims.attack && key !== 'skeleton-sweep')) this.endAction(time, cfg.swing.cooldownMs);
       return true;
     }
     return false;
+  }
+
+  /** Esqueleto: elige tajo alto / barrido bajo (cerca) o embestida (media distancia). */
+  startSkeletonAction(time, player, dx, dy, inZone) {
+    const cfg = this.cfg;
+    if (time < this.nextAction || !inZone || dy > 80) return false;
+    const adx = Math.abs(dx);
+    const ch = cfg.charge;
+    if (adx < cfg.swing.range) {
+      const canSweep = this.scene.anims.exists('skeleton-sweep');
+      this.strike = canSweep && Math.random() < cfg.sweepChance ? cfg.strikes.sweep : cfg.strikes.high;
+      this.action = 'windup';
+      this.actionUntil = time + this.strike.windupMs;
+      this.dir = Math.sign(dx) || this.dir;
+      this.setFlipX(this.dir < 0);
+      this.body.setVelocityX(0);
+      this.telegraph(this.strike.windupMs, this.strike.tint);
+      if (this.strike === cfg.strikes.sweep) {
+        this.anims.stop();
+        this.setTexture('skeleton_sweep', 0); // pose de preparación con brillo amarillo
+      } else {
+        this.play(this.scene.anims.exists('skeleton-windup') ? 'skeleton-windup' : cfg.anims.idle, true);
+      }
+      return true;
+    }
+    if (ch && adx > ch.minRange && adx < ch.maxRange && time >= this.nextCharge) {
+      // Solo embiste si hay recorrido dentro de su zona hacia Aidan.
+      const dir = Math.sign(dx);
+      if ((dir > 0 && this.x >= this.maxX - 20) || (dir < 0 && this.x <= this.minX + 20)) return false;
+      this.dir = dir;
+      this.setFlipX(dir < 0);
+      this.action = 'chargeWindup';
+      this.actionUntil = time + ch.windupMs;
+      this.body.setVelocityX(0);
+      if (this.scene.anims.exists('skeleton-charge')) { this.play('skeleton-charge', true); this.anims.pause(); }
+      this.setTint(0xffb0b0);
+      this.shakeTween = this.scene.tweens.add({ targets: this, x: this.x + 2, yoyo: true, repeat: -1, duration: 40 });
+      return true;
+    }
+    return false;
+  }
+
+  updateCharge(time) {
+    const ch = this.cfg.charge;
+    const body = this.body;
+    if (this.action === 'chargeWindup') {
+      body.setVelocityX(0);
+      if (time < this.actionUntil) return true;
+      this.shakeTween?.stop();
+      this.shakeTween = null;
+      this.clearTint();
+      this.action = 'charge';
+      this.actionUntil = time + ch.maxMs;
+      if (this.anims.currentAnim?.key === 'skeleton-charge') this.anims.resume();
+      return true;
+    }
+    // Embistiendo: se detiene al llegar al borde de su zona o al agotar el tiempo.
+    body.setVelocityX(this.dir * ch.speed);
+    const atEdge = (this.dir > 0 && this.x >= this.maxX) || (this.dir < 0 && this.x <= this.minX);
+    if (time >= this.actionUntil || atEdge) {
+      body.setVelocityX(0);
+      this.nextCharge = time + Phaser.Math.Between(...ch.cooldownMs);
+      this.endAction(time, [700, 1100]);
+      this.play(this.cfg.anims.idle, true);
+    }
+    return true;
   }
 
   /** Muestra un frame concreto de la animación de salto del slime (si existe el sprite). */
@@ -269,6 +374,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   endAction(time, [min, max]) {
     this.action = null;
+    this.strike = null;
+    this.shakeTween?.stop();
+    this.shakeTween = null;
     this.nextAction = time + Phaser.Math.Between(min, max);
     if (this.swingZone) this.swingZone.body.enable = false;
   }
@@ -286,13 +394,21 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   onAttackFrame(anim, frame) {
-    if (!this.swingZone || anim.key !== this.cfg.anims.attack) return;
-    const [a, b] = this.cfg.swing.activeFrames;
+    if (!this.swingZone) return;
+    const isHigh = anim.key === this.cfg.anims.attack;
+    const isSweep = anim.key === 'skeleton-sweep';
+    if (!isHigh && !isSweep) return;
+    const st = this.cfg.strikes ? (isSweep ? this.cfg.strikes.sweep : this.cfg.strikes.high) : null;
+    const [a, b] = st?.frames ?? this.cfg.swing.activeFrames;
     const i = frame.index - 1;
     const active = this.alive && this.action === 'swing' && i >= a && i <= b;
     this.swingZone.body.enable = active;
     if (active) {
-      this.swingZone.setPosition(this.x + this.dir * (this.cfg.swing.reach / 2 + 14), this.y - 40);
+      const reach = st?.reach ?? this.cfg.swing.reach;
+      const h = st?.h ?? this.cfg.swing.height;
+      this.swingZone.setSize(reach, h);
+      this.swingZone.body.setSize(reach, h);
+      this.swingZone.setPosition(this.x + this.dir * (reach / 2 + 12), this.y + (st?.yOff ?? -40));
       this.swingZone.body.reset(this.swingZone.x, this.swingZone.y);
     }
   }
@@ -351,6 +467,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   onAnimComplete(anim) {
+    if (anim.key === 'skeleton-rise' && this.action === 'rising') {
+      this.action = null;
+      this.body.enable = true;
+      this.nextAction = levelNow(this.scene) + 500;
+      this.play(this.cfg.anims.idle, true);
+      return;
+    }
     if (anim.key === this.cfg.anims.death) {
       this.scene.tweens.add({ targets: this, alpha: 0, duration: 400, onComplete: () => this.destroy() });
     }

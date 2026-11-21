@@ -12,6 +12,7 @@ const LAYOUTS = {
   platformer: {
     left: [
       { action: 'left', label: '◀' },
+      { action: 'down', label: '▼', title: 'Agacharse' },
       { action: 'right', label: '▶' },
     ],
     right: [

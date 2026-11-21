@@ -25,6 +25,9 @@ const ANIM_KEYS = {
   'skeleton/windup.png': 'skeleton_windup',
   'alien/charge.png': 'alien_charge',
   'fx/crescent.png': 'fx_crescent',
+  'aidan/Crouch.png': 'aidan_crouch',
+  'skeleton/sweep.png': 'skeleton_sweep',
+  'skeleton/charge.png': 'skeleton_charge',
 };
 
 /** Carga todos los assets con barra de progreso y crea las animaciones globales. */
@@ -73,8 +76,7 @@ export default class PreloadScene extends Phaser.Scene {
 
     // Animaciones nuevas (Fuego fantasma, salto del slime, avisos de enemigos...).
     // anim_sprites.json describe cada archivo; si falta, se usan respaldos procedurales.
-    this.load.json('anim_meta', 'assets/sprites/anim_sprites.json');
-    this.load.once('filecomplete-json-anim_meta', (_key, _type, meta) => {
+    const queueAnimSheets = (_key, _type, meta) => {
       const entries = Array.isArray(meta) ? meta : Object.entries(meta?.files ?? meta ?? {})
         .map(([file, info]) => ({ file, ...info }));
       entries.forEach((info) => {
@@ -85,7 +87,11 @@ export default class PreloadScene extends Phaser.Scene {
           frameWidth: info.frameWidth, frameHeight: info.frameHeight,
         });
       });
-    });
+    };
+    this.load.json('anim_meta', 'assets/sprites/anim_sprites.json');
+    this.load.once('filecomplete-json-anim_meta', queueAnimSheets);
+    this.load.json('anim_meta2', 'assets/sprites/anim_sprites2.json');
+    this.load.once('filecomplete-json-anim_meta2', queueAnimSheets);
 
     MUSIC.forEach(({ key, url }) => this.load.audio(key, url));
     SFX.forEach(({ key, url }) => this.load.audio(key, url));
