@@ -24,6 +24,9 @@ export const PLAYER_TUNING = Object.freeze({
   attackActiveTo: 5,
   attackReach: 66,
   attackHeight: 64,
+  // Fuego fantasma (ataque a distancia con recarga; pedido del equipo tras las pruebas)
+  specialCooldownMs: 6500,
+  specialSpawnFrame: 4,   // frame de Attack2 en el que sale la llamarada
   knockbackX: 200,
   knockbackY: -260,
 });
@@ -65,6 +68,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // Reloj propio: solo avanza mientras la escena se actualiza, así la pausa
     // no consume la invulnerabilidad ni las ventanas de coyote/buffer.
     this.clock = 0;
+    this.specialReadyAt = 0; // listo desde el inicio del nivel
+    this.casting = false;
     this.dead = false;
     this.lastGroundTime = -Infinity;
     this.lastJumpPress = -Infinity;
@@ -135,12 +140,34 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (input.justPressed('attack') && !this.attacking && this.onGround) {
       this.startAttack();
     }
+    // --- Fuego fantasma: a distancia, con recarga, desde el suelo ---
+    if (input.justPressed('special') && !this.attacking && this.onGround && this.specialReady) {
+      this.startSpecial();
+    }
 
     this.positionAttackZone();
     this.updateAnimation(time);
 
     // Parpadeo de invulnerabilidad.
     this.setAlpha(this.isInvulnerable ? (Math.floor(time / 70) % 2 ? 0.35 : 1) : 1);
+  }
+
+  get specialReady() {
+    return this.clock >= this.specialReadyAt;
+  }
+
+  /** 0 = recién usado, 1 = listo. */
+  get specialRatio() {
+    const left = this.specialReadyAt - this.clock;
+    return left <= 0 ? 1 : 1 - left / PLAYER_TUNING.specialCooldownMs;
+  }
+
+  startSpecial() {
+    this.attacking = true;
+    this.casting = true;
+    this.specialReadyAt = this.clock + PLAYER_TUNING.specialCooldownMs;
+    this.play('aidan-attack2', true);
+    AudioManager.sfx(this.scene, 'sfx_player_shot', { volume: 0.9 });
   }
 
   startAttack() {
@@ -159,6 +186,14 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onAnimFrame(anim, frame) {
     if (!anim.key.startsWith('aidan-attack')) return;
     const i = frame.index - 1;
+    if (this.casting) {
+      // El lanzamiento no golpea cuerpo a cuerpo: emite la llamarada en su frame.
+      this.attackZone.body.enable = false;
+      if (i === PLAYER_TUNING.specialSpawnFrame) {
+        this.scene.events.emit('player:special', this.x + this.facing * 40, this.y - 46, this.facing);
+      }
+      return;
+    }
     const active = i >= PLAYER_TUNING.attackActiveFrom && i <= PLAYER_TUNING.attackActiveTo;
     this.attackZone.body.enable = active;
   }
@@ -166,6 +201,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   onAnimComplete(anim) {
     if (anim.key.startsWith('aidan-attack')) {
       this.attacking = false;
+      this.casting = false;
       this.attackZone.body.enable = false;
     } else if (anim.key === 'aidan-death') {
       this.scene.events.emit('player:dead');

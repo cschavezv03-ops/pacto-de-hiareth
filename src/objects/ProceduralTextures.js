@@ -113,6 +113,7 @@ export function generateProceduralTextures(scene) {
   ice.destroy();
 
   generateFallbackProps(scene);
+  generateGhostFire(scene);
 
   // Metas de respaldo (solo si no se cargaron los PNG de public/assets/props).
   if (scene.textures.exists('goal_portal')) return;
@@ -202,4 +203,33 @@ function generateFallbackProps(scene) {
     const tex = scene.textures.get('prop_checkpoint');
     for (let f = 0; f < 5; f += 1) tex.add(f, 0, f * fw, 0, fw, fh);
   }
+}
+
+/**
+ * Fuego fantasma de Aidan: llama violeta con núcleo rojo, coherente con el fuego
+ * morado de su bastón en los sprites. 3 frames (la llama ondea), mira a la derecha.
+ */
+function generateGhostFire(scene) {
+  if (scene.textures.exists('fx_ghostfire')) return;
+  const fw = 40;
+  const fh = 32;
+  const g = scene.make.graphics({ x: 0, y: 0 }, false);
+  for (let f = 0; f < 3; f += 1) {
+    const ox = f * fw;
+    const wob = [0, 2, -2][f];
+    // Cola (hacia la izquierda) en capas
+    g.fillStyle(0x3a0f5c, 0.55).fillTriangle(ox + 2, 16 + wob, ox + 24, 6, ox + 24, 26);
+    g.fillStyle(0x6a1fb0, 0.85).fillTriangle(ox + 8, 16 - wob, ox + 26, 8, ox + 26, 24);
+    // Cabeza
+    g.fillStyle(0x6a1fb0).fillCircle(ox + 27, 16, 10);
+    g.fillStyle(0xb05cff).fillCircle(ox + 28, 15, 7);
+    g.fillStyle(0xe2b8ff).fillCircle(ox + 30, 13, 3);
+    // "Ojo" rojo del fuego fantasma
+    g.fillStyle(0xff2a4a).fillCircle(ox + 31, 17, 2.4);
+    g.fillStyle(0xffd6dc).fillRect(ox + 31, 16, 1, 1);
+  }
+  g.generateTexture('fx_ghostfire', fw * 3, fh);
+  g.destroy();
+  const tex = scene.textures.get('fx_ghostfire');
+  for (let f = 0; f < 3; f += 1) tex.add(f, 0, f * fw, 0, fw, fh);
 }

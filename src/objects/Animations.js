@@ -64,6 +64,16 @@ export function createAnimations(scene) {
   // Morrigannus
   strip(scene, 'boss-idle', 'boss_idle', 8);
 
+  // Fuego fantasma (procedural, 3 frames)
+  if (!scene.anims.exists('ghostfire-burn') && scene.textures.exists('fx_ghostfire')) {
+    scene.anims.create({
+      key: 'ghostfire-burn',
+      frames: scene.anims.generateFrameNumbers('fx_ghostfire', { start: 0, end: 2 }),
+      frameRate: 14,
+      repeat: -1,
+    });
+  }
+
   // Props animados (si el PNG trae varios frames)
   strip(scene, 'goal_portal-anim', 'goal_portal', 8);
   strip(scene, 'goal_camp-anim', 'goal_camp', 8);

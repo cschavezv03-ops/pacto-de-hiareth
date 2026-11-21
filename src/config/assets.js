@@ -18,6 +18,7 @@ export const SPRITESHEETS = [
   { key: 'aidan_death', url: `${A}/sprites/aidan/Death.png`, frameWidth: 250, frameHeight: 250 },
   { key: 'aidan_fly', url: `${A}/sprites/aidan/Vuelo_Idle.png`, frameWidth: 250, frameHeight: 250 },
   { key: 'aidan_fly_cast', url: `${A}/sprites/aidan/Vuelo_Ataque1_FuegoFantasma.png`, frameWidth: 250, frameHeight: 250 },
+  { key: 'aidan_fly_crescent', url: `${A}/sprites/aidan/Vuelo_Ataque2_MediaLunaDeFuego.png`, frameWidth: 250, frameHeight: 250 },
 
   // Slime: frames 64x64, 4 filas (direcciones). Ver SLIME_ROWS.
   { key: 'slime_idle', url: `${A}/sprites/slime/Slime3_Idle_with_shadow.png`, frameWidth: 64, frameHeight: 64 },

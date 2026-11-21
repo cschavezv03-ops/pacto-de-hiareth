@@ -1,19 +1,21 @@
 /**
  * Entrada unificada: teclado + ratón + controles táctiles.
  *
- * Acciones: left, right, up, down, jump, attack, pause.
+ * Acciones: left, right, up, down, jump, attack, special, dash, pause.
  *   input.isDown('left')       -> mantenido
  *   input.justPressed('jump')  -> flanco de bajada en este frame
  *   input.justReleased('jump') -> flanco de subida en este frame
  * Llamar input.update() al inicio de update() de la escena, antes de consultar.
  *
- * Modo 'platformer': A/D o flechas, Espacio salta, J o clic izquierdo ataca.
- * Modo 'boss':       WASD o flechas (4 direcciones), J (o Espacio/clic) dispara.
+ * Modo 'platformer': A/D o flechas, Espacio salta, J o clic izquierdo ataca,
+ *                    K o clic derecho lanza el Fuego fantasma (con recarga).
+ * Modo 'boss':       WASD o flechas (4 direcciones), J (o Espacio/clic) dispara,
+ *                    K o clic derecho = Media luna de fuego, Shift o L = esquiva (dash).
  */
 import Phaser from 'phaser';
 import { TouchControls } from '../ui/TouchControls.js';
 
-const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'attack', 'pause'];
+const ACTIONS = ['left', 'right', 'up', 'down', 'jump', 'attack', 'special', 'dash', 'pause'];
 
 export class InputManager {
   /**
@@ -32,18 +34,23 @@ export class InputManager {
       down: [kb.addKey(K.S), kb.addKey(K.DOWN)],
       jump: mode === 'platformer' ? [kb.addKey(K.SPACE), kb.addKey(K.W), kb.addKey(K.UP)] : [],
       attack: mode === 'platformer' ? [kb.addKey(K.J)] : [kb.addKey(K.J), kb.addKey(K.SPACE)],
+      special: [kb.addKey(K.K)],
+      dash: mode === 'boss' ? [kb.addKey(K.SHIFT), kb.addKey(K.L)] : [],
       pause: [kb.addKey(K.ESC), kb.addKey(K.P)],
     };
     // Evita que Espacio/flechas desplacen la página.
     kb.addCapture([K.SPACE, K.UP, K.DOWN, K.LEFT, K.RIGHT]);
 
     this.mouseAttack = false;
+    this.mouseSpecial = false;
     this.onPointerDown = (pointer) => {
-      // El clic izquierdo ataca, salvo que sea un toque sobre la UI táctil.
-      if (pointer.wasTouch || pointer.button !== 0) return;
+      // Clic izquierdo = ataque, clic derecho = especial (salvo toques sobre la UI táctil).
+      if (pointer.wasTouch) return;
       if (pointer.event?.target?.closest?.('.touch-ui')) return;
-      this.mouseAttack = true;
+      if (pointer.button === 0) this.mouseAttack = true;
+      else if (pointer.button === 2) this.mouseSpecial = true;
     };
+    scene.input.mouse?.disableContextMenu();
     scene.input.on('pointerdown', this.onPointerDown);
 
     this.touch = new TouchControls(scene, mode);
@@ -74,6 +81,10 @@ export class InputManager {
     if (this.mouseAttack) {
       this.curr.attack = true;
       this.mouseAttack = false;
+    }
+    if (this.mouseSpecial) {
+      this.curr.special = true;
+      this.mouseSpecial = false;
     }
   }
 

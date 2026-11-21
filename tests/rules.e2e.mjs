@@ -102,12 +102,64 @@ await step('game over restarts level, respawns enemies, keeps kills', async () =
   const after = await page.evaluate(async () => {
     const GameState = window.__GameState;
     const s = window.__level;
-    return { kills: GameState.enemiesKilled, enemies: s.enemies.getChildren().filter((e) => e.alive).length, hearts: s.player.hearts };
+    return { kills: GameState.enemiesKilled, enemies: s.enemies.getChildren().filter((e) => e.alive).length, expected: s.def.enemies.length, hearts: s.player.hearts };
   });
   assert.equal(after.kills, before);
-  assert.equal(after.enemies, 9);
+  assert.equal(after.enemies, after.expected);
   assert.equal(after.hearts, 3);
   return { before, ...after };
+});
+
+await step('ghost fire: ranged, 3 damage, cooldown, counts as direct kill', async () => {
+  const r = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const GS = window.__GameState;
+    const p = s.player;
+    const enemy = s.enemies.getChildren().find((e) => e.alive);
+    p.invulnerableUntil = p.clock + 99999;
+    enemy.minX = enemy.maxX = enemy.x;
+    enemy.nextAction = s.time.now + 99999; // que no salte durante la prueba
+    p.body.reset(enemy.x - 300, enemy.y);
+    p.facing = 1;
+    p.specialReadyAt = 0;
+    const hp0 = enemy.hp;
+    const kills0 = GS.enemiesKilled;
+    s.time.delayedCall(150, () => {
+      p.startSpecial();
+      const blocked = p.specialReady; // justo tras usarlo no debe estar listo
+      s.time.delayedCall(1300, () => resolve({
+        hp0, hp1: enemy.hp, blocked, ratio: p.specialRatio, kills0, kills1: GS.enemiesKilled,
+        alive: enemy.alive,
+      }));
+    });
+  }));
+  assert.equal(r.blocked, false);
+  assert.ok(r.ratio < 1);
+  assert.equal(r.hp1, Math.max(0, r.hp0 - 3));
+  if (!r.alive) assert.equal(r.kills1, r.kills0 + 1);
+  return r;
+});
+
+await step('slime telegraphs and leaps toward a nearby Aidan (stays in zone)', async () => {
+  const r = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const slime = s.enemies.getChildren().find((e) => e.alive && e.kind === 'slime' && !e.cfg.flying);
+    const p = s.player;
+    p.invulnerableUntil = p.clock + 99999;
+    slime.nextAction = 0;
+    p.body.reset(Math.min(slime.maxX, slime.x + 120), slime.y);
+    const seen = new Set();
+    let minY = slime.y;
+    const tick = s.time.addEvent({ delay: 16, loop: true, callback: () => {
+      if (slime.action) seen.add(slime.action);
+      minY = Math.min(minY, slime.y);
+    } });
+    s.time.delayedCall(1800, () => { tick.remove(); resolve({ actions: [...seen], rise: Math.round(slime.y - minY), inZone: slime.x >= slime.minX - 5 && slime.x <= slime.maxX + 5 }); });
+  }));
+  assert.ok(r.actions.includes('windup') && r.actions.includes('leap'), JSON.stringify(r));
+  assert.ok(r.rise > 30);
+  assert.ok(r.inZone);
+  return r;
 });
 
 await step('reaching the goal advances to the next VN (conventional route skips act 4 later)', async () => {
@@ -203,6 +255,41 @@ await step('crumbling platform respawns without errors (act 4)', async () => {
   return r;
 });
 
+await step('skeleton swing hurts Aidan standing in front; alien fires a 3-way spread', async () => {
+  await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act3' }));
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForTimeout(300);
+  const sk = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const e = s.enemies.getChildren()[0];
+    const p = s.player;
+    e.minX = e.maxX = e.x;
+    e.nextAction = 0;
+    p.invulnerableUntil = 0;
+    p.body.reset(e.x + 60, e.y);
+    p.controls.update = () => {}; // sin entrada
+    const h0 = p.hearts;
+    const seen = new Set();
+    const tick = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (e.action) seen.add(e.action); p.body.setVelocityX(0); } });
+    s.time.delayedCall(1500, () => { tick.remove(); resolve({ h0, h1: p.hearts, actions: [...seen] }); });
+  }));
+  assert.ok(sk.actions.includes('swing'), JSON.stringify(sk));
+  assert.ok(sk.h1 < sk.h0, 'el tajo resta un corazón');
+  await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act2' }));
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 6000 });
+  const al = await page.evaluate(() => {
+    const s = window.__level;
+    const a = s.enemies.getChildren()[0];
+    s.player.body.reset(a.x - 200, s.player.y);
+    a.shotCount = 2; // el siguiente es el 3.º
+    const before = s.alienShots.countActive(true);
+    a.shoot(s.player);
+    return { spawned: s.alienShots.countActive(true) - before };
+  });
+  assert.equal(al.spawned, 3);
+  return { sk, al };
+});
+
 await step('boss: player shot damages boss; boss scene restarts on death', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'boss' }));
   await page.waitForFunction(() => window.__boss?.player, null, { timeout: 6000 });
@@ -277,10 +364,11 @@ await step('checkpoint: activating it and dying respawns there; enemies reset', 
   const r = await page.evaluate(() => ({
     x: Math.round(window.__level.player.x),
     enemies: window.__level.enemies.getChildren().filter((e) => e.alive).length,
+    expected: window.__level.def.enemies.length,
     lit: window.__level.checkpoints.getChildren()[0].anims.currentAnim?.key,
   }));
   assert.ok(Math.abs(r.x - cpX) < 40, `reaparece en el checkpoint (${r.x} vs ${cpX})`);
-  assert.equal(r.enemies, 9);
+  assert.equal(r.enemies, r.expected);
   return { cpX, ...r };
 });
 

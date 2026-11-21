@@ -15,13 +15,18 @@ const LAYOUTS = {
       { action: 'right', label: '▶' },
     ],
     right: [
+      { action: 'special', label: '✦', title: 'Fuego fantasma' },
       { action: 'attack', label: '🔥', title: 'Atacar' },
       { action: 'jump', label: '⤒', title: 'Saltar' },
     ],
   },
   boss: {
     dpad: true,
-    right: [{ action: 'attack', label: '🔥', title: 'Disparar' }],
+    right: [
+      { action: 'dash', label: '»', title: 'Esquivar' },
+      { action: 'special', label: '☾', title: 'Media luna de fuego' },
+      { action: 'attack', label: '🔥', title: 'Disparar' },
+    ],
   },
 };
 
@@ -80,6 +85,18 @@ export class TouchControls {
     btn.addEventListener('pointerleave', up);
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
     return btn;
+  }
+
+  /**
+   * Muestra la recarga de una acción en su botón (0 = vacío, 1 = listo).
+   * Se pinta con un conic-gradient para que sea legible en móvil.
+   */
+  setCooldown(action, ratio) {
+    const btn = this.root?.querySelector(`.tb-${action}`);
+    if (!btn) return;
+    const pct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+    btn.style.setProperty('--cd', `${pct}%`);
+    btn.classList.toggle('cooling', pct < 100);
   }
 
   destroy() {

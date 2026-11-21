@@ -43,6 +43,7 @@ export const LEVEL_DATA = {
     ],
     enemies: [
       { type: 'slime', x: 14, zone: [9, 20] },
+      { type: 'slime', x: 29, zone: [25, 33] },
       { type: 'slime', x: 44, zone: [39, 55] },
       { type: 'slime', x: 56, zone: [54, 58], h: 6 },
       { type: 'slime', x: 72, zone: [67, 82] },
@@ -50,7 +51,8 @@ export const LEVEL_DATA = {
       { type: 'slime', x: 110, zone: [102, 116] },
       { type: 'slime', x: 138, zone: [133, 147] },
       { type: 'slime', x: 152, zone: [150, 156], h: 6 },
-      { type: 'slime', x: 168, zone: [161, 176] },
+      { type: 'slime', x: 168, zone: [161, 172] },
+      { type: 'slime', x: 179, zone: [176, 182] }, // guardián antes de la meta
     ],
     hazards: [],
     goal: { x: 184, texture: 'goal_sign' },
@@ -88,7 +90,8 @@ export const LEVEL_DATA = {
       { type: 'alien', x: 74, zone: [66, 84] },
       { type: 'alien', x: 104, zone: [96, 114] },
       { type: 'alien', x: 134, zone: [125, 146] },
-      { type: 'alien', x: 166, zone: [158, 178] },
+      { type: 'alien', x: 166, zone: [158, 176] },
+      { type: 'alien', x: 186, zone: [181, 191] }, // guardián del portal
     ],
     hazards: [
       { type: 'spikes', x: 52, w: 2 },

@@ -23,6 +23,7 @@ export default class HudScene extends Phaser.Scene {
 
   create() {
     this.buildPlate();
+    this.buildSpecialGauge();
     this.buildBossBar();
     muteButton(this, GAME_WIDTH - 16, 14);
 
@@ -39,9 +40,11 @@ export default class HudScene extends Phaser.Scene {
     watch('bossHealth', (v) => this.drawBoss(v));
     watch('levelTitle', (v) => this.announce(v));
     watch('toast', (v) => this.toast(v?.text));
+    watch('special', (v) => this.drawSpecial(v));
 
     this.drawHearts(this.registry.get('hearts') ?? RULES.PLAYER_HEARTS, true);
     this.drawBoss(this.registry.get('bossHealth'));
+    this.drawSpecial(this.registry.get('special'));
     const title = this.registry.get('levelTitle');
     if (title && this.mode === 'level') this.announce(title);
     this.lastScore = -1;
@@ -94,6 +97,47 @@ export default class HudScene extends Phaser.Scene {
     if (n === 1) {
       this.tweens.add({ targets: this.hearts[0], scale: 1.12, yoyo: true, repeat: -1, duration: 380, ease: 'Sine.InOut' });
     }
+  }
+
+  // ------------------------------------------------------------------ especial
+  /** Medidor de recarga del ataque especial (Fuego fantasma / Media luna). */
+  buildSpecialGauge() {
+    const x = 14;
+    const y = 96;
+    const c = this.add.container(x, y).setVisible(false);
+    const g = this.add.graphics();
+    g.fillStyle(0x0d0918, 0.72).fillRoundedRect(0, 0, 236, 34, 8);
+    g.lineStyle(2, 0xb05cff, 0.8).strokeRoundedRect(0, 0, 236, 34, 8);
+    const icon = this.add.image(22, 17, 'fx_ghostfire', 0).setScale(0.8);
+    const barBg = this.add.rectangle(44, 17, 130, 10, 0x231633).setOrigin(0, 0.5).setStrokeStyle(1, 0x6a4a8a);
+    this.specialFill = this.add.rectangle(45, 17, 0, 8, 0xb05cff).setOrigin(0, 0.5);
+    this.specialKey = this.add.text(222, 17, 'K', {
+      fontFamily: FONT_UI, fontSize: '15px', color: '#f4ecff', backgroundColor: '#3a2654', padding: { x: 6, y: 2 },
+    }).setOrigin(1, 0.5);
+    this.specialLabel = this.add.text(180, 17, '', {
+      fontFamily: FONT_UI, fontSize: '12px', color: COLORS.dim,
+    }).setOrigin(0, 0.5);
+    c.add([g, icon, barBg, this.specialFill, this.specialLabel, this.specialKey]);
+    this.specialGauge = c;
+    this.specialIcon = icon;
+    this.specialWasReady = false;
+  }
+
+  drawSpecial(info) {
+    if (!info) {
+      this.specialGauge.setVisible(false);
+      return;
+    }
+    this.specialGauge.setVisible(true);
+    this.specialFill.width = 128 * Phaser.Math.Clamp(info.ratio, 0, 1);
+    this.specialFill.setFillStyle(info.ready ? 0xe2b8ff : 0x7a3cc0);
+    this.specialLabel.setText(info.ready ? 'listo' : '');
+    this.specialIcon.setAlpha(info.ready ? 1 : 0.45);
+    if (info.ready && !this.specialWasReady) {
+      // Destello al completarse la recarga.
+      this.tweens.add({ targets: this.specialIcon, scale: { from: 1.5, to: 0.8 }, duration: 320, ease: 'Back.Out' });
+    }
+    this.specialWasReady = info.ready;
   }
 
   // ------------------------------------------------------------------ jefe

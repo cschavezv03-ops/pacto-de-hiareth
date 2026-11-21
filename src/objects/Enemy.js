@@ -17,6 +17,8 @@ export const ENEMY_TYPES = {
     speed: 55,
     anims: { idle: 'slime-idle', move: 'slime-walk', hurt: 'slime-hurt', death: 'slime-death' },
     flying: false,
+    // Salto hacia Aidan (anti-speedrun): aviso visible y luego un brinco esquivable.
+    leap: { range: 190, windupMs: 420, vy: -430, maxVx: 210, cooldownMs: [1900, 2600] },
   },
   alien: {
     hits: RULES.ENEMY_HITS.alien,
@@ -30,6 +32,9 @@ export const ENEMY_TYPES = {
     shootIntervalMs: 2600,     // temporizador fijo
     projectileSpeed: 150,      // lento y esquivable
     projectileLifeMs: 6000,
+    spreadEvery: 3,            // cada 3.er disparo: abanico de 3 si Aidan está cerca
+    spreadRange: 460,
+    spreadAngle: 0.28,         // rad entre proyectiles
   },
   skeleton: {
     hits: RULES.ENEMY_HITS.skeleton,
@@ -40,6 +45,8 @@ export const ENEMY_TYPES = {
     speed: 50,
     chaseSpeed: 95,
     aggroRange: 230,           // se acerca a Aidan solo dentro de su zona
+    // Tajo con la rama (anti-speedrun): aviso rojo, luego zona de daño frente a él.
+    swing: { range: 95, windupMs: 250, reach: 74, height: 70, activeFrames: [4, 5], cooldownMs: [1300, 1800] },
     anims: { idle: 'skeleton-idle', move: 'skeleton-walk', hurt: 'skeleton-hurt', death: 'skeleton-death', attack: 'skeleton-attack' },
     flying: false,
   },
@@ -87,6 +94,21 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.pauseUntil = 0;
     this.alive = true;
     this.spawnTime = scene.time.now;
+    this.action = null;         // null | 'windup' | 'leap' | 'swing'
+    this.actionUntil = 0;
+    this.nextAction = scene.time.now + Phaser.Math.Between(600, 1400);
+
+    // Zona de daño del tajo del esqueleto (overlap con Aidan en LevelScene).
+    if (cfg.swing && spec.hitboxes) {
+      this.swingZone = scene.add.zone(spec.x, spec.y, cfg.swing.reach, cfg.swing.height);
+      scene.physics.add.existing(this.swingZone);
+      this.swingZone.body.setAllowGravity(false);
+      this.swingZone.body.enable = false;
+      this.swingZone.owner = this;
+      spec.hitboxes.add(this.swingZone);
+      this.swingZone.body.setAllowGravity(false);
+      this.on(Phaser.Animations.Events.ANIMATION_UPDATE, this.onAttackFrame, this);
+    }
 
     this.play(cfg.anims.move);
     this.on(Phaser.Animations.Events.ANIMATION_COMPLETE, this.onAnimComplete, this);
@@ -106,6 +128,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.state = 'patrol';
       this.play(cfg.anims.move, true);
     }
+    if (this.updateAction(time, player)) return;
 
     let speed = cfg.speed;
     const px = player?.x ?? -9999;
@@ -145,14 +168,100 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   }
 
   /**
+   * Acciones ofensivas sencillas (slime: salto, esqueleto: tajo). Siempre con aviso
+   * previo, y sin salir nunca de su zona. Devuelve true si controla el movimiento.
+   */
+  updateAction(time, player) {
+    const cfg = this.cfg;
+    const body = this.body;
+    if (!player || player.dead || cfg.flying) return false;
+    const dx = player.x - this.x;
+    const dy = Math.abs(player.y - this.y);
+    const inZone = player.x >= this.minX - 60 && player.x <= this.maxX + 60;
+
+    if (this.action === null) {
+      const a = cfg.leap ?? cfg.swing;
+      if (!a || time < this.nextAction || !inZone || dy > 80 || Math.abs(dx) > a.range) return false;
+      if (cfg.leap && !(body.blocked.down || body.touching.down)) return false;
+      this.action = 'windup';
+      this.actionUntil = time + a.windupMs;
+      this.dir = Math.sign(dx) || this.dir;
+      this.setFlipX(this.dir < 0);
+      body.setVelocityX(0);
+      this.telegraph(a.windupMs, cfg.leap ? 0xffb347 : 0xff4d4d);
+      if (cfg.swing) this.play(cfg.anims.idle, true);
+      return true;
+    }
+
+    if (this.action === 'windup') {
+      body.setVelocityX(0);
+      if (time < this.actionUntil) return true;
+      if (cfg.leap) {
+        this.action = 'leap';
+        const vx = Phaser.Math.Clamp(dx * 1.6, -cfg.leap.maxVx, cfg.leap.maxVx);
+        body.setVelocity(vx, cfg.leap.vy);
+        this.actionUntil = time + 180; // margen antes de comprobar el aterrizaje
+      } else {
+        this.action = 'swing'; // el daño lo activan los frames 4-5 del ataque (≈0.29 s después)
+        this.play(cfg.anims.attack, true);
+      }
+      return true;
+    }
+
+    if (this.action === 'leap') {
+      // No sale de su zona aunque esté en el aire.
+      if ((this.x <= this.minX && body.velocity.x < 0) || (this.x >= this.maxX && body.velocity.x > 0)) body.setVelocityX(0);
+      if (time > this.actionUntil && (body.blocked.down || body.touching.down)) this.endAction(time, cfg.leap.cooldownMs);
+      return true;
+    }
+
+    if (this.action === 'swing') {
+      body.setVelocityX(0);
+      if (!this.anims.isPlaying || this.anims.currentAnim?.key !== cfg.anims.attack) this.endAction(time, cfg.swing.cooldownMs);
+      return true;
+    }
+    return false;
+  }
+
+  endAction(time, [min, max]) {
+    this.action = null;
+    this.nextAction = time + Phaser.Math.Between(min, max);
+    if (this.swingZone) this.swingZone.body.enable = false;
+  }
+
+  /** Aviso visual: parpadeo de color + "agacharse" (squash) antes de atacar. */
+  telegraph(ms, color) {
+    const sx = this.scaleX;
+    const sy = this.scaleY;
+    this.setTint(color);
+    this.scene.tweens.add({
+      targets: this, scaleX: sx * 1.12, scaleY: sy * 0.86, duration: ms * 0.8, yoyo: false, ease: 'Sine.Out',
+      onComplete: () => { if (this.active) this.setScale(sx, sy); },
+    });
+    this.scene.time.delayedCall(ms, () => { if (this.alive) this.clearTint(); });
+  }
+
+  onAttackFrame(anim, frame) {
+    if (!this.swingZone || anim.key !== this.cfg.anims.attack) return;
+    const [a, b] = this.cfg.swing.activeFrames;
+    const i = frame.index - 1;
+    const active = this.alive && this.action === 'swing' && i >= a && i <= b;
+    this.swingZone.body.enable = active;
+    if (active) {
+      this.swingZone.setPosition(this.x + this.dir * (this.cfg.swing.reach / 2 + 14), this.y - 40);
+      this.swingZone.body.reset(this.swingZone.x, this.swingZone.y);
+    }
+  }
+
+  /**
    * Golpe de Aidan. Devuelve true si este golpe mató al enemigo.
    * @param {number} attackId identificador del golpe (un impacto por golpe)
    * @param {number} fromX posición de Aidan
    */
-  hit(attackId, fromX) {
+  hit(attackId, fromX, damage = 1) {
     if (!this.alive || attackId === this.lastHitAttackId) return false;
     this.lastHitAttackId = attackId;
-    this.hp -= 1;
+    this.hp -= damage;
     const away = Math.sign(this.x - fromX) || 1;
     this.setTintFill(0xffffff);
     this.scene.time.delayedCall(70, () => this.alive && this.clearTint());
@@ -163,6 +272,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
     AudioManager.sfx(this.scene, 'sfx_enemy_hit');
     this.state = 'hurt';
+    if (this.action) this.endAction(this.scene.time.now, [700, 1100]); // golpearle interrumpe su ataque
     this.stunUntil = this.scene.time.now + 260;
     this.body.setVelocityX(away * 140);
     this.play(this.cfg.anims.hurt, true);
@@ -178,6 +288,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.alive = false;
     this.body.enable = false;
     this.clearTint();
+    if (this.swingZone) this.swingZone.body.enable = false;
+    this.action = null;
     if (byPlayer) {
       AudioManager.sfx(this.scene, 'sfx_enemy_die');
       this.scene.events.emit('enemy:killed', this);
@@ -187,6 +299,11 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     } else {
       this.onAnimComplete({ key: this.cfg.anims.death });
     }
+  }
+
+  preDestroy() {
+    this.swingZone?.destroy();
+    super.preDestroy?.();
   }
 
   onAnimComplete(anim) {
@@ -203,6 +320,7 @@ export class Alien extends Enemy {
     this.projectiles = projectiles;
     // Desfase aleatorio para que no disparen todos a la vez.
     this.nextShot = scene.time.now + Phaser.Math.Between(800, this.cfg.shootIntervalMs);
+    this.shotCount = 0;
   }
 
   update(time, player) {
@@ -217,17 +335,25 @@ export class Alien extends Enemy {
 
   shoot(player) {
     const muzzleY = this.y - this.displayHeight * 0.55;
+    // Trayectoria fija hacia la posición actual de Aidan; no corrige el rumbo.
+    const angle = Phaser.Math.Angle.Between(this.x, muzzleY, player.x, player.y - 36);
+    this.shotCount += 1;
+    const near = Math.abs(player.x - this.x) < this.cfg.spreadRange;
+    const spread = near && this.shotCount % this.cfg.spreadEvery === 0;
+    const offsets = spread ? [-this.cfg.spreadAngle, 0, this.cfg.spreadAngle] : [0];
+    for (const off of offsets) this.fireOrb(muzzleY, angle + off);
+    this.setFlipX(player.x < this.x);
+    if (this.cfg.anims.attack) this.play(this.cfg.anims.attack, true);
+  }
+
+  fireOrb(muzzleY, angle) {
     const orb = this.projectiles.get(this.x, muzzleY, 'orb_alien');
     if (!orb) return;
     orb.enableBody(true, this.x, muzzleY, true, true);
     orb.body.setAllowGravity(false);
     orb.body.setCircle(6, 6, 6);
-    // Trayectoria fija hacia la posición actual de Aidan; no corrige el rumbo.
-    const angle = Phaser.Math.Angle.Between(this.x, muzzleY, player.x, player.y - 36);
     this.scene.physics.velocityFromRotation(angle, this.cfg.projectileSpeed, orb.body.velocity);
     orb.expireAt = this.scene.time.now + this.cfg.projectileLifeMs;
-    this.setFlipX(player.x < this.x);
-    if (this.cfg.anims.attack) this.play(this.cfg.anims.attack, true);
     AudioManager.sfx(this.scene, 'sfx_alien_shot', { volume: 0.5 });
   }
 }

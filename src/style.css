@@ -76,6 +76,11 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+.touch-btn.cooling {
+  background: conic-gradient(rgba(176, 92, 255, 0.55) var(--cd, 0%), rgba(20, 14, 36, 0.75) 0);
+  color: rgba(244, 236, 255, 0.55);
+}
+
 .touch-btn.active {
   background: rgba(255, 154, 60, 0.55);
   transform: scale(0.94);

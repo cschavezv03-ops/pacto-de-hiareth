@@ -10,6 +10,13 @@ import { Enemy, Alien } from '../objects/Enemy.js';
 import { TILE } from '../objects/ProceduralTextures.js';
 
 const GROUND_ROWS = 2;
+
+/** Fuego fantasma (ataque a distancia con recarga, ver Player.PLAYER_TUNING.specialCooldownMs). */
+const GHOST_FIRE = Object.freeze({
+  speed: 470,   // px/s
+  range: 560,   // px antes de disiparse (algo más de media pantalla)
+  damage: 3,    // equivale a 3 golpes cuerpo a cuerpo
+});
 const GROUND_Y = GAME_HEIGHT - GROUND_ROWS * TILE; // borde superior del suelo
 const PIT_Y = GAME_HEIGHT + 60;                    // por debajo = cayó al foso
 
@@ -29,6 +36,7 @@ export default class LevelScene extends Phaser.Scene {
     this.finished = false;
     this.startTime = 0;
     this.levelClock = 0;
+    this.lastSpecialRatio = -1;
     // Punto de control desde el que se empieza (-1 = inicio). En Difícil siempre -1.
     this.checkpointIndex = GameState.checkpointFor(this.levelId);
   }
@@ -55,6 +63,7 @@ export default class LevelScene extends Phaser.Scene {
     this.cameras.main.setDeadzone(120, 80);
 
     this.buildHazards();
+    this.buildGhostFire();
     this.buildEnemies();
     this.buildGoal();
     this.buildCheckpoints();
@@ -170,8 +179,50 @@ export default class LevelScene extends Phaser.Scene {
     }
   }
 
+  /** Pool del Fuego fantasma (máximo 3 en pantalla; la recarga ya limita el uso). */
+  buildGhostFire() {
+    this.ghostFires = this.physics.add.group({ allowGravity: false, maxSize: 3, defaultKey: 'fx_ghostfire' });
+    this.ghostFireShot = 0;
+    this.events.on('player:special', (x, y, dir) => this.spawnGhostFire(x, y, dir));
+  }
+
+  spawnGhostFire(x, y, dir) {
+    const fire = this.ghostFires.get(x, y, 'fx_ghostfire');
+    if (!fire) return;
+    this.ghostFireShot += 1;
+    fire.shotId = this.ghostFireShot;
+    fire.enableBody(true, x, y, true, true);
+    fire.body.setAllowGravity(false);
+    fire.setDepth(9).setFlipX(dir < 0).setScale(1.3).setAlpha(1);
+    fire.body.setCircle(12, fire.width / 2 - 12, fire.height / 2 - 12);
+    fire.body.setVelocity(dir * GHOST_FIRE.speed, 0);
+    fire.startX = x;
+    if (this.anims.exists('ghostfire-burn')) fire.play('ghostfire-burn');
+    // Estela de chispas violetas que sigue a la llamarada.
+    fire.trail = this.add.particles(0, 0, 'fx_pixel', {
+      follow: fire, lifespan: 380, speed: { min: 10, max: 50 }, scale: { start: 1.1, end: 0 },
+      tint: [0xb05cff, 0x6a1fb0, 0xff3b5c], frequency: 22, alpha: { start: 0.9, end: 0 },
+    }).setDepth(8);
+  }
+
+  explodeGhostFire(fire) {
+    if (!fire.active) return;
+    const burst = this.add.particles(fire.x, fire.y, 'fx_pixel', {
+      speed: { min: 60, max: 220 }, lifespan: 420, scale: { start: 1.6, end: 0 },
+      tint: [0xb05cff, 0xff3b5c, 0xffd6ff], quantity: 22, emitting: false,
+    }).setDepth(9);
+    burst.explode(22);
+    this.time.delayedCall(500, () => burst.destroy());
+    this.cameras.main.shake(90, 0.004);
+    AudioManager.sfx(this, 'sfx_enemy_hit', { volume: 0.9 });
+    fire.trail?.destroy();
+    fire.trail = null;
+    fire.disableBody(true, true);
+  }
+
   buildEnemies() {
     this.enemies = this.add.group({ runChildUpdate: false });
+    this.enemyHitboxes = this.physics.add.group({ allowGravity: false });
     this.alienShots = this.physics.add.group({ allowGravity: false, maxSize: 30, defaultKey: 'orb_alien' });
     for (const e of this.def.enemies) {
       const baseY = GROUND_Y - (e.h ?? 0) * TILE;
@@ -187,6 +238,7 @@ export default class LevelScene extends Phaser.Scene {
         y: e.type === 'alien' ? baseY - 10 : baseY,
         minX: minT * TILE,
         maxX: maxT * TILE,
+        hitboxes: this.enemyHitboxes,
       };
       const enemy = e.type === 'alien' ? new Alien(this, spec, this.alienShots) : new Enemy(this, spec);
       enemy.setDepth(8);
@@ -260,6 +312,20 @@ export default class LevelScene extends Phaser.Scene {
     this.physics.add.overlap(p, this.hazards, (pl, hz) => pl.takeHit(hz.x + hz.width / 2));
     this.physics.add.overlap(p, this.icicles, (pl, ic) => {
       if (ic.falling && pl.takeHit(ic.x)) ic.disableBody(true, true);
+    });
+
+    // Tajo del esqueleto (zona activa solo en los frames del golpe).
+    this.physics.add.overlap(p, this.enemyHitboxes, (pl, zone) => {
+      if (zone.body.enable && zone.owner?.alive) pl.takeHit(zone.owner.x);
+    });
+
+    // Fuego fantasma: atraviesa el aire, impacta al primer enemigo y explota.
+    this.physics.add.overlap(this.ghostFires, this.enemies, (a, b) => {
+      const fire = this.ghostFires.contains(a) ? a : b;
+      const enemy = fire === a ? b : a;
+      if (!fire.active || !enemy.alive) return;
+      enemy.hit(`fire-${fire.shotId}`, fire.x, GHOST_FIRE.damage);
+      this.explodeGhostFire(fire);
     });
 
     // Golpe melee de Aidan.
@@ -344,6 +410,24 @@ export default class LevelScene extends Phaser.Scene {
       if (ic.active && ic.y > GROUND_Y) ic.disableBody(true, true);
     }
 
+    // Fuego fantasma: alcance máximo
+    for (const fire of this.ghostFires.getChildren()) {
+      if (fire.active && Math.abs(fire.x - fire.startX) > GHOST_FIRE.range) {
+        fire.trail?.destroy();
+        fire.trail = null;
+        this.tweens.add({ targets: fire, alpha: 0, duration: 120, onComplete: () => fire.disableBody(true, true) });
+        fire.body.setVelocity(0, 0);
+        fire.startX = fire.x + 1e9; // evitar repetir el fade
+      }
+    }
+    // Recarga del especial para el HUD y el botón táctil.
+    const ratio = Math.round(this.player.specialRatio * 50) / 50; // 2 % de resolución
+    if (ratio !== this.lastSpecialRatio) {
+      this.lastSpecialRatio = ratio;
+      this.registry.set('special', { ratio, ready: ratio >= 1, label: 'Fuego fantasma' });
+      this.input2.touch.setCooldown('special', ratio);
+    }
+
     // Foso
     if (!this.player.dead && this.player.y > PIT_Y) this.player.fellIntoPit();
 
@@ -417,6 +501,8 @@ export default class LevelScene extends Phaser.Scene {
     this.events.off('player:hearts');
     this.events.off('player:dead');
     this.events.off('enemy:killed');
+    this.events.off('player:special');
+    this.registry.set('special', null);
     if (import.meta.env.DEV && window.__level === this) window.__level = null;
   }
 }
