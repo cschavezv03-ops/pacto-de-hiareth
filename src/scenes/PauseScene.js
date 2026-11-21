@@ -26,7 +26,7 @@ export default class PauseScene extends Phaser.Scene {
     const restartLabel = this.from === SCENES.BOSS ? 'Reiniciar combate' : 'Reintentar';
     this.list = menuList(this, W / 2, H / 2 - 50, [
       { label: 'Continuar', onSelect: () => this.resume() },
-      { label: 'Audio', onSelect: () => this.openAudio() },
+      { label: 'Opciones', onSelect: () => this.openAudio() },
       { label: restartLabel, onSelect: () => this.restart() },
       { label: 'Menú principal', onSelect: () => this.toMenu() },
     ], { fontSize: 24, spacing: 48 });

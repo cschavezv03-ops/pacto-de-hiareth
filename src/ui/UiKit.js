@@ -4,6 +4,7 @@
  * panel de audio con volumen de música y efectos.
  */
 import { AudioManager } from '../managers/AudioManager.js';
+import { SaveManager } from '../managers/SaveManager.js';
 
 export const FONT_TITLE = 'Georgia, "Times New Roman", serif';
 export const FONT_UI = '"Trebuchet MS", system-ui, sans-serif';
@@ -139,8 +140,8 @@ export function audioPanel(scene, onClose) {
   const H = scene.scale.gameSize.height;
   const c = scene.add.container(0, 0).setDepth(2000).setScrollFactor(0);
   const shade = scene.add.rectangle(0, 0, W, H, 0x000000, 0.55).setOrigin(0).setInteractive();
-  const g = panel(scene, W / 2, H / 2, 520, 300, 0.97);
-  const title = scene.add.text(W / 2, H / 2 - 112, 'Audio', {
+  const g = panel(scene, W / 2, H / 2, 560, 360, 0.97);
+  const title = scene.add.text(W / 2, H / 2 - 142, 'Opciones', {
     fontFamily: FONT_TITLE, fontSize: '34px', color: COLORS.ink,
   }).setOrigin(0.5);
   c.add([shade, g, title]);
@@ -149,10 +150,15 @@ export function audioPanel(scene, onClose) {
     { label: 'Música', get: () => AudioManager.musicVolume, set: (v) => AudioManager.setMusicVolume(v) },
     { label: 'Efectos', get: () => AudioManager.sfxVolume, set: (v) => { AudioManager.setSfxVolume(v); AudioManager.sfx(scene, 'sfx_ui_select'); } },
     { label: 'Silencio', toggle: true, get: () => AudioManager.muted, set: () => AudioManager.toggleMute() },
+    {
+      label: 'Enemigos derrotados', toggle: true, onText: 'Visible', offText: 'Oculto',
+      get: () => SaveManager.getSettings().showKills,
+      set: () => SaveManager.setSettings({ showKills: !SaveManager.getSettings().showKills }),
+    },
   ];
   let sel = 0;
   const views = rows.map((row, i) => {
-    const y = H / 2 - 44 + i * 58;
+    const y = H / 2 - 74 + i * 56;
     const name = scene.add.text(W / 2 - 210, y, row.label, {
       fontFamily: FONT_UI, fontSize: '22px', color: COLORS.ink,
     }).setOrigin(0, 0.5);
@@ -171,13 +177,17 @@ export function audioPanel(scene, onClose) {
     plus.on('pointerup', () => { sel = i; adjust(1); });
     if (row.toggle) {
       barBg.setVisible(false); bar.setVisible(false); minus.setVisible(false); plus.setVisible(false);
-      value.setX(W / 2 + 60).setInteractive({ useHandCursor: true }).on('pointerup', () => { sel = i; adjust(1); });
+      value.setX(W / 2 + 90).setInteractive({ useHandCursor: true }).on('pointerup', () => { sel = i; adjust(1); });
     }
     c.add([name, barBg, bar, value, minus, plus]);
     return { name, bar, value };
   });
 
-  const close = scene.add.text(W / 2, H / 2 + 118, 'Cerrar', {
+  const hint = scene.add.text(W / 2, H / 2 + 112, 'Mostrar el contador revela si sigues sin derrotar a nadie.', {
+    fontFamily: FONT_UI, fontSize: '14px', color: COLORS.dim,
+  }).setOrigin(0.5);
+  c.add(hint);
+  const close = scene.add.text(W / 2, H / 2 + 148, 'Cerrar', {
     fontFamily: FONT_UI, fontSize: '22px', color: COLORS.accent, stroke: '#000', strokeThickness: 3,
   }).setOrigin(0.5).setInteractive({ useHandCursor: true });
   close.on('pointerup', () => finish());
@@ -187,7 +197,7 @@ export function audioPanel(scene, onClose) {
     rows.forEach((row, i) => {
       const v = views[i];
       v.name.setColor(i === sel ? COLORS.accent : COLORS.ink);
-      if (row.toggle) v.value.setText(row.get() ? 'Activado' : 'Desactivado');
+      if (row.toggle) v.value.setText(row.get() ? (row.onText ?? 'Activado') : (row.offText ?? 'Desactivado'));
       else {
         const val = row.get();
         v.bar.width = 196 * val;

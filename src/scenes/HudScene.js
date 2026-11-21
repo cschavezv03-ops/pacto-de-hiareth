@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, RULES } from '../config/constants.js';
 import { GameState } from '../managers/GameState.js';
+import { SaveManager } from '../managers/SaveManager.js';
 import { FONT_UI, FONT_TITLE, COLORS, muteButton } from '../ui/UiKit.js';
 
 /**
@@ -24,6 +25,7 @@ export default class HudScene extends Phaser.Scene {
   create() {
     this.buildPlate();
     this.buildSpecialGauge();
+    this.buildKillCounter();
     this.buildBossBar();
     muteButton(this, GAME_WIDTH - 16, 14);
 
@@ -157,6 +159,33 @@ export default class HudScene extends Phaser.Scene {
     this.specialWasReady = info.ready;
   }
 
+  // ------------------------------------------------------------------ contador opcional
+  /**
+   * Contador de enemigos derrotados. SOLO visible si el jugador lo activa en Opciones
+   * (apagado por defecto para no revelar la ruta, como pide el documento).
+   */
+  buildKillCounter() {
+    this.killText = this.add.text(14, 136, '', {
+      fontFamily: FONT_UI, fontSize: '14px', color: COLORS.ink,
+      backgroundColor: '#0d0918b8', padding: { x: 10, y: 5 },
+    }).setVisible(false);
+    this.lastKills = -1;
+  }
+
+  updateKillCounter() {
+    const show = SaveManager.getSettings().showKills;
+    this.killText.setVisible(show);
+    if (!show) return;
+    // Debajo del medidor del especial si está visible; si no, bajo la placa.
+    this.killText.setY(this.specialGauge.visible ? 136 : 98);
+    const k = GameState.enemiesKilled;
+    if (k !== this.lastKills) {
+      this.lastKills = k;
+      this.killText.setText(`Enemigos derrotados: ${k}`);
+      if (k > 0) this.tweens.add({ targets: this.killText, scale: { from: 1.15, to: 1 }, duration: 200 });
+    }
+  }
+
   // ------------------------------------------------------------------ jefe
   buildBossBar() {
     const barW = 400; // deja libre la placa del HUD a la izquierda
@@ -235,6 +264,7 @@ export default class HudScene extends Phaser.Scene {
   }
 
   update() {
+    this.updateKillCounter();
     const s = GameState.score;
     if (s !== this.lastScore) {
       this.lastScore = s;

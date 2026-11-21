@@ -71,3 +71,9 @@ test('la puntuación máxima y el nivel alcanzado se guardan', () => {
   assert.ok(save.highScore >= 1234);
   assert.ok(save.maxStoryIndex >= 2);
 });
+
+test('el contador de enemigos derrotados está oculto por defecto (no revela la ruta)', () => {
+  assert.equal(SaveManager.getSettings().showKills, false);
+  SaveManager.setSettings({ showKills: true });
+  assert.equal(SaveManager.getSettings().showKills, true);
+});

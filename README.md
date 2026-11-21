@@ -51,12 +51,17 @@ node tests/rules.e2e.mjs http://localhost:5173
 | Moverse a la izquierda / derecha | `A` / `D` o `←` / `→` | Botones `◀` / `▶` | `WASD` o flechas (vuelo libre en 4 direcciones) | Cruceta `▲ ◀ ▶ ▼` |
 | Saltar | `Espacio` (también `W` / `↑`) | Botón `⤒` | — | — |
 | Atacar / disparar | `J` o clic izquierdo | Botón `🔥` | `J` (también `Espacio` o clic izquierdo); un disparo por pulsación | Botón `🔥` |
+| Fuego fantasma (especial de nivel) | `K` o clic derecho | Botón `✦` | — | — |
+| Media luna de fuego (especial del jefe) | — | — | `K` o clic derecho | Botón `☾` |
+| Esquivar (dash, solo jefe) | — | — | `Shift` o `L` | Botón `»` |
 | Pausa | `Esc` o `P` | Botón `❚❚` en la esquina | `Esc` o `P` | Botón `❚❚` |
 | Silenciar / activar sonido | `M` o botón `🔊` / `🔇` | Botón `🔊` / `🔇` | `M` o botón `🔊` / `🔇` | Botón `🔊` / `🔇` |
 
 Notas:
 
 - El ataque cuerpo a cuerpo solo se ejecuta **desde el suelo**; en el jefe se dispara en cualquier momento.
+- El **Fuego fantasma** de los niveles también exige estar en el suelo: lanza un proyectil violeta de 3 de daño con 560 px de alcance y **6.5 s de recarga**. La recarga se ve bajo la placa de corazones y en el botón `✦`.
+- La **Media luna de fuego** y el **dash** son exclusivos del jefe. La media luna atraviesa y borra balas enemigas; el dash concede invulnerabilidad breve y tiene su propia recarga. El HUD muestra ambas recargas (medidor y símbolo `»`).
 - El salto es **simple** (sin doble salto). Soltar `Espacio` durante la subida acorta el salto.
 - En móvil los controles son una **capa HTML** sobre el canvas: se muestran solos en dispositivos táctiles y no dependen del escalado del juego.
 - El botón de mute es único y compartido por menú, niveles, pausa, HUD y Visual Novel.
@@ -76,11 +81,12 @@ src/
 │   ├── GameState.js            # estado global y secuencia de la historia; decide la ruta y el final
 │   ├── SaveManager.js          # persistencia en localStorage con respaldo en memoria
 │   ├── AudioManager.js         # música, SFX y mute globales, con notificación a los iconos
-│   ├── InputManager.js         # entrada unificada de teclado, ratón y táctil (modos platformer y boss)
+│   ├── InputManager.js         # entrada unificada (teclado, ratón y táctil); acciones attack, special y dash
 │   └── StoryRouter.js          # traduce `story:goto` a la escena correcta y detiene las escenas activas
 ├── objects/
-│   ├── Player.js               # Aidan: movimiento, salto con coyote/buffer, ataque melee, daño y muerte
-│   ├── Enemy.js                # enemigos genéricos (slime, alien, esqueleto) con patrulla por zona
+│   ├── Player.js               # Aidan: movimiento, salto, ataque melee, Fuego fantasma, daño y muerte
+│   ├── Enemy.js                # enemigos (slime, alien, esqueleto): patrulla por zona, salto, tajo y abanico
+│   ├── BossPatterns.js         # repertorio determinista de patrones del jefe por fase
 │   ├── Animations.js           # animaciones globales creadas una vez a partir de los spritesheets
 │   └── ProceduralTextures.js   # texturas generadas por código: terreno, plataformas, orbes, corazones y metas
 ├── scenes/
@@ -89,20 +95,21 @@ src/
 │   ├── MenuScene.js            # título, Nueva partida / Continuar / Controles, mejor puntuación y mute
 │   ├── VNScene.js              # escena VN PROVISIONAL (placeholder) que Frank debe reemplazar
 │   ├── LevelScene.js           # nivel de plataformas genérico construido desde LEVEL_DATA
-│   ├── BossScene.js            # combate Bullet Hell contra Morrigannus
-│   ├── HudScene.js             # HUD superpuesto: corazones, puntos, título del acto y barra del jefe
+│   ├── BossScene.js            # combate Bullet Hell contra Morrigannus: 3 fases, dash y media luna
+│   ├── HudScene.js             # HUD superpuesto: corazones, puntos, título del acto, barra del jefe y recargas
 │   ├── PauseScene.js           # pausa superpuesta: continuar, silenciar, reiniciar nivel o volver al menú
-│   └── GameOverScene.js        # derrota: reintentar el nivel o volver al menú
+│   ├── GameOverScene.js        # derrota: reintentar el nivel o volver al menú
+│   └── BossDefeatScene.js      # tarjeta de derrota del jefe: progreso por fases, mejor avance y reintento
 └── ui/
     ├── UiKit.js                # panel, lista de menús navegable y botón de mute reutilizables
-    └── TouchControls.js        # botones táctiles en HTML para plataformas y para el jefe
+    └── TouchControls.js        # botones táctiles HTML; incluye ✦ (especial), ☾ (media luna) y » (dash)
 ```
 
 ## Dificultad, checkpoints y audio
 
 - Al pulsar **Nueva partida** se elige **Fácil**, **Intermedio** (valores originales) o **Difícil**. Solo cambia cuántos golpes aguantan los enemigos y el jefe; en Difícil no hay puntos de control.
 - Cada nivel tiene braseros de **punto de control**: al morir se reaparece en el último encendido.
-- **Audio**: desde el menú principal o la pausa se ajusta el volumen de música y efectos y el silencio. El icono de altavoz (arriba a la derecha) silencia con un clic; la tecla `M` también.
+- **Opciones** (menú principal o pausa): volumen de música y efectos, silencio y la opción **«Enemigos derrotados»** (apagada por defecto) que muestra un contador en el HUD para quien quiera saber si va por la ruta sin muertes. El icono de altavoz (arriba a la derecha) silencia con un clic; la tecla `M` también.
 
 ## Flujo de escenas
 
@@ -117,7 +124,8 @@ Menú
                          └─ VN (casa abandonada / refugio)
                              ├─ [solo ruta pacifista] Acto 4 (sin enemigos) → VN del campamento
                              └─ VN previa al jefe (páramo de cristal)
-                                 └─ Jefe: Morrigannus (Bullet Hell)
+                                 └─ Jefe: Morrigannus (Bullet Hell, 3 fases)
+                                     ├─ [derrota] BossDefeat → reintento del jefe (J / Enter)
                                      └─ Final (convencional o IF)
 ```
 
@@ -140,15 +148,25 @@ Clave: **`pactoHiareth.save.v1`**. Todos los accesos están protegidos con `try/
 
 «Continuar» solo aparece si hay una partida guardada con un paso intermedio (`storyIndex > 0` y distinto del último). La partida se guarda al iniciarla, al avanzar la historia y al registrar muertes; la mejor puntuación se actualiza en cada suma de puntos.
 
+El jefe usa además una clave independiente, **`pactoHiareth.bossBest.v1`**: guarda la mayor fracción de vida quitada a Morrigannus (0..1) entre todos los intentos. La escriben `BossScene` al cambiar de fase, al vencer y al perder; `BossDefeatScene` la muestra como marca en la barra de progreso y como «Tu mejor avance». No forma parte de `pactoHiareth.save.v1` y no modifica la partida en curso.
+
 ## Herramientas de assets
 
-Ambas herramientas ya se ejecutaron y su salida está incluida en `public/assets`; solo hay que volver a lanzarlas si se reemplazan los originales.
+Todas las herramientas ya se ejecutaron y su salida está incluida en `public/assets`; solo hay que volver a lanzarlas si se reemplazan los originales.
 
 - **`tools/gen_sfx.py`** genera los efectos de sonido del juego (12 archivos WAV mono, 16 bits, 22050 Hz) usando únicamente la biblioteca estándar de Python: salto, ataque, golpe y muerte de enemigo, daño y muerte de Aidan, disparos de alien, de Aidan y del jefe, impacto al jefe, nivel superado y selección de menú. Escribe en `public/assets/sfx/`.
 
   ```bash
   python3 tools/gen_sfx.py
   ```
+
+- **`tools/gen_anim_sprites.py`** deriva las animaciones nuevas de los sprites originales, sin arte externo y con muestreo NEAREST: `aidan/Cast_GhostFire.png` (8 frames de 250×250; la llamarada sale en el frame 4), `fx/ghostfire.png` (6 frames de 48×32), `fx/ghostfire_burst.png` (7 de 64×64), `slime/Slime3_Leap.png` (8 de 64×64), `skeleton/windup.png` (4 de 256×256), `alien/charge.png` (4 de 256×256) y `fx/crescent.png` (4 de 96×96). Escribe también `public/assets/sprites/anim_sprites.json` (manifiesto con fuentes, línea base y notas) y `tools/anim_preview.png` para revisión. `PreloadScene` lee el manifiesto y carga las tiras automáticamente; si falta alguna, el juego usa animaciones o texturas de respaldo.
+
+  ```bash
+  tools/.venv/bin/python tools/gen_anim_sprites.py
+  ```
+
+  Requiere Pillow y NumPy.
 
 - **`tools/slice_sheets.py`** recorta los JPG originales de alien, esqueleto y jefe (`El pacto de hiareth utils/Sprites/Characters`) y produce tiras PNG horizontales con transparencia en `public/assets/sprites/`: frames de 256×256 para alien y esqueleto (walk, attack, idle, hurt, death) y 8 frames de 352×608 para el idle de Morrigannus. Mide el color de fondo, aplica un matte por distancia de color, elimina halos y conserva interiores. También escribe `slice_report.json` y `tools/slice_preview.png`.
 
@@ -177,32 +195,35 @@ tools/.venv/bin/python tools/gen_props.py
 
 ### Fortalezas
 
-- Flujo completo y jugable de principio a fin: menú, precarga, cuatro actos, jefe, pausa, Game Over, final y reinicio.
+- Flujo completo y jugable de principio a fin: menú, precarga, cuatro actos, jefe de tres fases, tarjeta de derrota del jefe, pausa, Game Over, final y reinicio.
 - Separación clara de responsabilidades: configuración, managers, objetos, escenas y UI, con un contrato de integración explícito para la Visual Novel.
 - Física y combate ajustados con reglas verificables: 3 corazones, 1 s de invulnerabilidad, resistencia por enemigo, un impacto por golpe y patrulla limitada a una zona.
+- Enemigos con ataques telegrafiados (salto del slime, tajo del esqueleto y abanico del alien) y jefe con avisos previos a cada patrón: todos se pueden esquivar **sin matar**, así que la ruta pacifista sigue siendo viable.
 - Dos rutas narrativas reales: la pacifista añade el Acto 4 y un final distinto, sin revelar al jugador qué ruta sigue.
 - Rendimiento cuidado: texturas procedurales, pools de proyectiles precalentados, capas de parallax fusionadas en el Acto 4 y objetivo de 60 FPS.
-- Controles equivalentes en teclado, ratón y táctil, con mute único y persistencia de la configuración de audio.
+- Controles equivalentes en teclado, ratón y táctil, incluidos el especial (`K` / clic derecho / `✦`), la media luna (`☾`) y el dash (`Shift` / `L` / `»`), con mute único y persistencia de la configuración de audio.
 - Documentación de balance e integración, más pruebas unitarias y E2E automatizadas.
 
 ### Limitaciones
 
 - **La Visual Novel es un placeholder** hasta integrar el trabajo de Frank: `src/scenes/VNScene.js` muestra el título y una descripción de cada tramo, sin diálogos ni retratos.
+- **La duración real del jefe debe validarse jugando**: el objetivo es 3–4 min, pero depende de la puntería, del uso de la media luna y del dash. La vida base (4200) y los multiplicadores por dificultad son una hipótesis de balance, no un límite.
 - Los checkpoints y la dificultad se añadieron tras las pruebas manuales del equipo (ver docs/BALANCE.md §1.1); en Difícil no hay checkpoints.
 - **Los sprites de alien, esqueleto y jefe provienen de JPG** y presentan leves artefactos en los bordes tras el recorte con transparencia.
-- El jefe tiene una sola animación (idle) y un único patrón combinado de abanico y círculo, sin fases.
+- Las siete animaciones nuevas se derivaron de los sprites originales con `tools/gen_anim_sprites.py`; no hay arte externo, pero su lectura depende de la calidad de las fuentes recortadas.
 - El Acto 4 depende de plataformas móviles y quebradizas: un error de salto obliga a repetir el tramo desde el último suelo seguro.
 
 ### Mejoras futuras
 
 - Integrar la Visual Novel definitiva manteniendo la clave `SCENES.VN` y el contrato de `init`/`advanceStory`.
 - Repintar o reexportar los sprites de alien, esqueleto y jefe desde fuentes con canal alfa para eliminar los artefactos de borde.
-- Ampliar patrones del jefe (fases, láseres, lluvia) y variedad de enemigos sin alterar las reglas confirmadas.
+- Ajustar la curva del jefe con datos de partidas reales (vida, recargas y densidad de balas) y valorar patrones nuevos sin romper los avisos previos.
+- Revisar el equilibrio del Fuego fantasma y de los ataques anti-speedrun con partidas de prueba, manteniendo siempre la posibilidad de esquivar sin matar.
 - Guardado de la posición exacta dentro del nivel y ajustes de accesibilidad (remap de teclas, tamaño de texto, reducción de parpadeo).
 
 ## Regla interna del equipo (no visible al jugador)
 
-> Esta sección es documentación para el equipo. El juego **nunca** muestra al jugador el contador de enemigos ni la ruta que está siguiendo.
+> Esta sección es documentación para el equipo. Por defecto el juego **no** muestra el contador de enemigos ni la ruta. El contador solo aparece si el jugador activa «Enemigos derrotados» en Opciones (decisión aprobada por el equipo; así el Acto 4 sigue siendo una sorpresa para quien no la active).
 
 `GameState.enemiesKilled` solo aumenta cuando Aidan derrota **directamente** a un enemigo (`GameState.registerKill()` desde el evento `enemy:killed` del gameplay). Esquivar, huir, recibir daño, dejar enemigos atrás, que un enemigo caiga a un foso o que desaparezca por una causa ambiental **no** incrementa el contador. El contador se conserva entre escenas, niveles y reinicios por Game Over, y solo `GameState.newGame()` lo devuelve a cero. El jefe no cuenta: es obligatorio y contarlo haría imposible la ruta pacifista. `enemiesKilled === 0` mantiene la ruta pacifista; cualquier valor mayor activa la convencional y omite el Acto 4.
 

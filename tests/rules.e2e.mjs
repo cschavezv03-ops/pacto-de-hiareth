@@ -290,6 +290,34 @@ await step('skeleton swing hurts Aidan standing in front; alien fires a 3-way sp
   return { sk, al };
 });
 
+await step('kill counter: hidden by default, visible only when enabled in options', async () => {
+  await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act1' }));
+  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.game.scene.isActive('Hud'), null, { timeout: 6000 });
+  await page.waitForTimeout(300);
+  const hidden = await page.evaluate(() => window.game.scene.getScene('Hud').killText.visible);
+  // Activar con el panel real: pausa -> Opciones -> fila 4 -> alternar
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => window.game.scene.isActive('Pause'), null, { timeout: 3000 });
+  await page.waitForTimeout(150);
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('Enter'); // Opciones
+  await page.waitForTimeout(200);
+  for (let i = 0; i < 3; i += 1) await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('ArrowRight'); // alterna 'Enemigos derrotados'
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+  await page.keyboard.press('ArrowUp'); await page.keyboard.press('Enter'); // Continuar
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    const hud = window.game.scene.getScene('Hud');
+    return { visible: hud.killText.visible, text: hud.killText.text, kills: window.__GameState.enemiesKilled };
+  });
+  // Dejarlo apagado para no afectar a otras pruebas
+  await page.evaluate(() => { const d = JSON.parse(localStorage.getItem('pactoHiareth.save.v1')); d.settings.showKills = false; localStorage.setItem('pactoHiareth.save.v1', JSON.stringify(d)); });
+  assert.equal(hidden, false, 'oculto por defecto');
+  assert.equal(r.visible, true, 'visible tras activarlo en Opciones');
+  assert.ok(r.text.endsWith(String(r.kills)));
+  return { hidden, ...r };
+});
+
 await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -> skipped', async () => {
   const pac = await page.evaluate(async () => {
     const GS = window.__GameState;

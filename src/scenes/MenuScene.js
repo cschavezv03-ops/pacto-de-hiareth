@@ -58,7 +58,7 @@ export default class MenuScene extends Phaser.Scene {
       const d = GameState.difficultyOfSave?.() ?? '';
       options.unshift({ label: `Continuar${d ? ` (${d})` : ''}`, onSelect: () => this.startGame(true) });
     }
-    options.push({ label: 'Audio', onSelect: () => this.openAudio() });
+    options.push({ label: 'Opciones', onSelect: () => this.openAudio() });
     options.push({ label: 'Controles', onSelect: () => this.toggleHelp() });
     this.list = menuList(this, GAME_WIDTH / 2, 292 - ((options.length - 1) * 48) / 2, options, { spacing: 48 });
   }

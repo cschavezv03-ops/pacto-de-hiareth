@@ -21,6 +21,7 @@ Definidas en `src/config/constants.js` y congeladas con `Object.freeze`. No reno
 | `SCENES.HUD` | `Hud` | Sebas | `{ mode: 'level' \| 'boss' }` |
 | `SCENES.PAUSE` | `Pause` | Sebas | `{ from }` |
 | `SCENES.GAME_OVER` | `GameOver` | Sebas | `{ retryScene, retryData }` |
+| `SCENES.BOSS_DEFEAT` | `BossDefeat` | Sebas | `{ progress, best }` |
 | `SCENES.ENDING` | `Ending` | — | Reservada; el desenlace se sirve por `SCENES.VN` |
 
 Importa siempre las claves desde `constants.js`; no escribas cadenas sueltas.
@@ -64,7 +65,7 @@ const next = GameState.advanceStory();       // devuelve el siguiente paso ya re
 this.game.events.emit('story:goto', next);   // lo ejecuta StoryRouter
 ```
 
-`StoryRouter` escucha `story:goto`, detiene las escenas gestionadas (`VN`, `LEVEL`, `BOSS`, `HUD`, `PAUSE`, `GAME_OVER`, `MENU`, `ENDING`) y arranca la que corresponda:
+`StoryRouter` escucha `story:goto`, detiene las escenas gestionadas (`VN`, `LEVEL`, `BOSS`, `HUD`, `PAUSE`, `GAME_OVER`, `BOSS_DEFEAT`, `MENU`, `ENDING`) y arranca la que corresponda:
 
 | `step.type` | Acción del router |
 | --- | --- |
@@ -72,6 +73,8 @@ this.game.events.emit('story:goto', next);   // lo ejecuta StoryRouter
 | `level` | `start(SCENES.LEVEL, { levelId: step.id })` |
 | `boss` | `start(SCENES.BOSS, {})` |
 | `ending` | `stopMusic()` y `start(SCENES.VN, { sceneId: step.id, isEnding: true })` |
+
+`BossDefeat` **no es un paso de `STORY`**: lo arranca `BossScene` al quedarse Aidan sin corazones, con `{ progress, best }` (ambos normalizados 0..1). El router lo incluye entre las escenas gestionadas para detenerlo al reintentar, volver al menú o avanzar la historia. La VN no debe arrancarlo.
 
 Reglas:
 
@@ -120,7 +123,7 @@ Módulo puro (`src/managers/GameState.js`), sin dependencias de Phaser. La secue
 
 1. `enemiesKilled` **solo** lo incrementa el gameplay, mediante `registerKill()` al recibir el evento `enemy:killed`. La VN nunca lo toca.
 2. El contador persiste entre escenas, niveles y Game Over; solo `newGame()` lo reinicia.
-3. La ruta **nunca** se muestra al jugador: ni contador, ni mensajes, ni iconos, ni cambios de color, ni pistas en el HUD o en los diálogos.
+3. Por defecto la ruta **no** se muestra al jugador: ni mensajes, ni iconos, ni pistas en el HUD o en los diálogos. Única excepción aprobada por el equipo: la opción «Enemigos derrotados» (`SaveManager.getSettings().showKills`, apagada por defecto) muestra el contador en el HUD. La VN no debe mostrar la ruta aunque esa opción esté activa.
 4. La VN puede consultar `isPacifist()` para adaptar detalles internos, pero el desenlace ya viene decidido en `sceneId`.
 5. No guardar estado propio en `localStorage` desde la VN: usa `GameState` y `SaveManager`.
 
@@ -168,6 +171,16 @@ Reglas:
 | `hearts` | `number` | `LevelScene` (al crear y al cambiar la vida) y `BossScene` |
 | `bossHealth` | `{ current, max, name } \| null` | `BossScene`; `null` fuera del combate |
 | `levelTitle` | `string \| null` | `LevelScene`; se muestra unos segundos al empezar |
+| `special` | `{ ratio, ready, label, icon?, dash? } \| null` | `LevelScene` (Fuego fantasma) y `BossScene` (Media luna y dash); `null` al salir |
+| `toast` | `{ text, t? } \| null` | `LevelScene`; aviso breve como «Punto de control» |
+
+El objeto `special` es el contrato del medidor de recarga:
+
+- `ratio`: 0..1 (0 = recién usado, 1 = listo). `ready`: atajo de `ratio >= 1`. `label`: texto descriptivo («Fuego fantasma» o «Media luna»).
+- `icon`: opcional; `'crescent'` hace que el HUD use `fx_crescent` (con respaldo `boss-fire-crescent`). Sin `icon`, usa `fx_ghostfire`.
+- `dash`: opcional, 0..1; solo el jefe lo envía y el HUD dibuja el indicador `»` junto al medidor.
+- `HudScene` dibuja el medidor bajo la placa de corazones (a la izquierda) y lo oculta cuando la clave es `null`. `LevelScene` actualiza con resolución del 2 % y `BossScene` a 10 Hz (`COOLDOWN_UI_MS`).
+- El gameplay también llama a `TouchControls.setCooldown(action, ratio)` para pintar la misma recarga en los botones `✦` / `☾` / `»`.
 
 La puntuación **no** va por registry: `HudScene` lee `GameState.score` en cada frame. El HUD no muestra información de rutas ni de enemigos derrotados.
 
@@ -186,9 +199,12 @@ La VN no debe escribir estas claves ni lanzar `HudScene`. Si en el futuro la VN 
 - Es una **capa HTML** sobre el canvas (clase `touch-ui`), no objetos de Phaser: se ve nítida y no sufre el escalado.
 - Solo se crea en dispositivos táctiles (`ontouchstart` o `maxTouchPoints > 0`).
 - La crea `InputManager`; la VN no debe instanciarla.
-- Modo `platformer`: `◀ ▶` a la izquierda; `🔥` y `⤒` a la derecha; `❚❚` de pausa en la esquina.
-- Modo `boss`: cruceta de cuatro direcciones y `🔥` para disparar; `❚❚` de pausa.
-- Los botones escriben en `TouchControls.state` y `InputManager` los mezcla con teclado y ratón.
+- Modo `platformer`: `◀` / `▶` a la izquierda; `✦` (Fuego fantasma), `🔥` (atacar) y `⤒` (saltar) a la derecha; `❚❚` de pausa en la esquina.
+- Modo `boss`: cruceta de cuatro direcciones y `»` (dash), `☾` (Media luna de fuego) y `🔥` (disparar); `❚❚` de pausa.
+- Los botones escriben en `TouchControls.state` y `InputManager` los mezcla con teclado y ratón. `InputManager` expone las acciones `special` y `dash` además de `attack`:
+  - `special`: `K` o clic derecho en ambos modos; en niveles lanza el Fuego fantasma y en el jefe la Media luna.
+  - `dash`: solo en el jefe, con `Shift` o `L`.
+- `TouchControls.setCooldown(action, ratio)` pinta la recarga de `special` o `dash` en su botón: `ratio` va de 0 (vacío) a 1 (listo) y se dibuja con un `conic-gradient` (`--cd`) y la clase `cooling`. Lo llaman `LevelScene` y `BossScene`.
 - Si la VN añade botones propios, usa HTML con la clase `touch-ui` para que el clic no se interprete como ataque, o detén la propagación del evento.
 
 ## 11. La escena VN actual es un placeholder
@@ -215,13 +231,18 @@ Se puede cambiar libremente todo lo demás: composición, retratos, cajas de di�
 | Colisiones | Subir a plataformas desde abajo, usar plataformas móviles | Las plataformas son atravesables desde abajo; Aidan viaja con la móvil |
 | Daño | Tocar un enemigo y un pincho | −1 corazón, parpadeo y 1 s sin recibir más daño |
 | Foso | Caer a un hueco del suelo | −1 corazón y reaparición en el último suelo seguro |
-| Enemigos | Golpear 4/6/8 veces slime/alien/esqueleto | Mueren en el número exacto; un mismo golpe no daña dos veces |
-| Rutas | Completar sin matar y repetir matando uno | Sin muertes: aparece el Acto 4 y el final IF. Con una muerte: se omite y va al final convencional |
-| Reinicio | Perder los 3 corazones | Game Over, «Reintentar» reconstruye el nivel con todos los enemigos y 3 corazones |
-| Proyectiles | Provocar disparos de un alien y alejarse | Trayectoria recta, sin corrección; desaparecen a los 6 s o al salir del escenario |
-| Jefe | Volar, disparar, recibir un orbe y ganar | Barra de vida baja; −1 corazón con invulnerabilidad; al vencer pasa a la VN del final |
+| Enemigos | Golpear 4/6/8 veces slime/alien/esqueleto en Intermedio | Mueren en el número exacto; un mismo golpe no daña dos veces |
+| Fuego fantasma | `K`, clic derecho o `✦` desde el suelo; esperar la recarga y volver a lanzar | Proyectil violeta, 3 de daño y 560 px de alcance; 6.5 s de recarga; medidor en el HUD y en el botón; si mata, cuenta como muerte directa |
+| Ataques enemigos | Acercarse a un slime, un esqueleto y un alien y esperar | Aviso naranja + salto, ojos rojos + tajo y carga cian + abanico; se esquivan sin matar y no abandonan su zona |
+| Rutas | Completar sin matar y repetir matando uno (cuerpo a cuerpo o con Fuego fantasma) | Sin muertes: aparece el Acto 4 y el final IF. Con una muerte: se omite y va al final convencional |
+| Reinicio | Perder los 3 corazones en un nivel | Game Over, «Reintentar» reconstruye el nivel con todos los enemigos y 3 corazones |
+| Proyectiles | Provocar disparos de un alien y alejarse; esperar el tercer disparo cerca | Trayectoria recta, sin corrección; cada tercer disparo es un abanico de 3; caducan a los 6 s o al salir del escenario |
+| Jefe: fases | Bajar la vida a 66 % y 33 % | Cambia a «II · Astas» y «III · Luna roja»; cada patrón avisa antes y las balas se disuelven en la transición |
+| Jefe: dash y media luna | `Shift`/`L` y `K`/clic derecho/`☾` | El dash es invulnerable 200 ms; la media luna borra balas y quita 80; ambas recargas se ven en el HUD |
+| Jefe: combate | Volar, disparar, recibir un orbe y ganar | Barra de vida baja; −1 corazón con invulnerabilidad; al vencer pasa a la VN del final |
+| Derrota del jefe | Perder los 3 corazones en el jefe | `BossDefeat` muestra la barra por fases y el mejor avance; `J`/`Enter` reintenta al instante |
 | Pausa y audio | `Esc`/`P` y `M` en nivel, jefe y VN | La pausa congela el juego; el mute afecta a música y SFX y persiste al recargar |
-| Táctil | Abrir en móvil o emular táctil | Aparecen los botones; se puede jugar y pausar sin teclado |
+| Táctil | Abrir en móvil o emular táctil | Aparecen `◀ ▶ ⤒ 🔥 ✦` en niveles y cruceta + `» ☾ 🔥` en el jefe; se puede jugar y pausar sin teclado |
 | Continuar | Avanzar, recargar y pulsar «Continuar» | Se retoma el paso guardado y se conserva la puntuación |
 
 Pruebas automatizadas equivalentes: `npm test`, `node tests/smoke.mjs <url>` y `node tests/rules.e2e.mjs <url>` (ver el README).
