@@ -290,6 +290,35 @@ await step('skeleton swing hurts Aidan standing in front; alien fires a 3-way sp
   return { sk, al };
 });
 
+await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -> skipped', async () => {
+  const pac = await page.evaluate(async () => {
+    const GS = window.__GameState;
+    GS.newGame('normal');
+    while (GS.currentStep().id !== 'act3') GS.advanceStory();
+    window.game.events.emit('story:goto', GS.currentStep());
+    return GS.enemiesKilled;
+  });
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  await page.evaluate(() => { const s = window.__level; s.player.invulnerableUntil = s.player.clock + 1e6; s.player.body.reset(s.goal.x - 10, s.goal.y - 4); });
+  await page.waitForFunction(() => window.game.scene.isActive('VisualNovel'), null, { timeout: 6000 });
+  await page.waitForTimeout(500);
+  await page.keyboard.press('Enter'); // after_act3 -> siguiente paso
+  await page.waitForFunction(() => window.__level?.levelId === 'act4' || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 6000 });
+  const pacNext = await page.evaluate(() => (window.game.scene.isActive('Level') ? window.__level.levelId : window.game.scene.getScene('VisualNovel').sceneId));
+  const conv = await page.evaluate(() => {
+    const GS = window.__GameState;
+    GS.newGame('normal');
+    while (GS.currentStep().id !== 'act3') GS.advanceStory();
+    GS.registerKill();
+    GS.advanceStory(); // after_act3
+    return GS.advanceStory().id;
+  });
+  assert.equal(pac, 0);
+  assert.equal(pacNext, 'act4', 'sin muertes aparece el Acto 4');
+  assert.equal(conv, 'before_boss', 'con una muerte se salta el Acto 4');
+  return { pacNext, conv };
+});
+
 await step('boss: player shot damages boss; boss scene restarts on death', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'boss' }));
   await page.waitForFunction(() => window.__boss?.player, null, { timeout: 6000 });

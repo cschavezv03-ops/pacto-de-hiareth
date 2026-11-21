@@ -207,6 +207,11 @@ export default class LevelScene extends Phaser.Scene {
 
   explodeGhostFire(fire) {
     if (!fire.active) return;
+    if (this.anims.exists('ghostfire-burst')) {
+      const fx = this.add.sprite(fire.x, fire.y, 'fx_ghostfire_burst', 0).setDepth(10).setScale(1.4);
+      fx.play('ghostfire-burst');
+      fx.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => fx.destroy());
+    }
     const burst = this.add.particles(fire.x, fire.y, 'fx_pixel', {
       speed: { min: 60, max: 220 }, lifespan: 420, scale: { start: 1.6, end: 0 },
       tint: [0xb05cff, 0xff3b5c, 0xffd6ff], quantity: 22, emitting: false,

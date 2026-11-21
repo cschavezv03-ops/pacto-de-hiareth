@@ -114,10 +114,11 @@ export default class HudScene extends Phaser.Scene {
     this.specialKey = this.add.text(222, 17, 'K', {
       fontFamily: FONT_UI, fontSize: '15px', color: '#f4ecff', backgroundColor: '#3a2654', padding: { x: 6, y: 2 },
     }).setOrigin(1, 0.5);
-    this.specialLabel = this.add.text(180, 17, '', {
-      fontFamily: FONT_UI, fontSize: '12px', color: COLORS.dim,
-    }).setOrigin(0, 0.5);
-    c.add([g, icon, barBg, this.specialFill, this.specialLabel, this.specialKey]);
+    // Indicador de dash (solo en el jefe): se ilumina cuando está disponible.
+    this.dashPip = this.add.text(188, 17, '»', {
+      fontFamily: FONT_UI, fontSize: '18px', color: '#f4ecff',
+    }).setOrigin(0.5).setVisible(false);
+    c.add([g, icon, barBg, this.specialFill, this.dashPip, this.specialKey]);
     this.specialGauge = c;
     this.specialIcon = icon;
     this.specialWasReady = false;
@@ -131,11 +132,27 @@ export default class HudScene extends Phaser.Scene {
     this.specialGauge.setVisible(true);
     this.specialFill.width = 128 * Phaser.Math.Clamp(info.ratio, 0, 1);
     this.specialFill.setFillStyle(info.ready ? 0xe2b8ff : 0x7a3cc0);
-    this.specialLabel.setText(info.ready ? 'listo' : '');
+    const iconKey = info.icon === 'crescent'
+      ? (this.textures.exists('fx_crescent') ? 'fx_crescent' : 'boss-fire-crescent')
+      : 'fx_ghostfire';
+    if (this.specialIcon.texture.key !== iconKey && this.textures.exists(iconKey)) {
+      this.specialIcon.setTexture(iconKey, 0);
+      const src = this.specialIcon.frame;
+      this.specialIcon.setScale(24 / Math.max(src.width, src.height));
+      this.specialIconScale = this.specialIcon.scale;
+    }
     this.specialIcon.setAlpha(info.ready ? 1 : 0.45);
+    // Brillo del medidor cuando está listo (sin texto: no se solapa con la tecla).
+    this.specialKey.setBackgroundColor(info.ready ? '#7a3cc0' : '#3a2654');
+    if (info.dash !== undefined) {
+      this.dashPip.setVisible(true).setAlpha(info.dash >= 1 ? 1 : 0.3).setColor(info.dash >= 1 ? '#ffd9a8' : '#bfb2d6');
+    } else {
+      this.dashPip.setVisible(false);
+    }
     if (info.ready && !this.specialWasReady) {
       // Destello al completarse la recarga.
-      this.tweens.add({ targets: this.specialIcon, scale: { from: 1.5, to: 0.8 }, duration: 320, ease: 'Back.Out' });
+      const base = this.specialIconScale ?? 0.8;
+      this.tweens.add({ targets: this.specialIcon, scale: { from: base * 1.8, to: base }, duration: 320, ease: 'Back.Out' });
     }
     this.specialWasReady = info.ready;
   }

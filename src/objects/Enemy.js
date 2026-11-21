@@ -18,7 +18,9 @@ export const ENEMY_TYPES = {
     anims: { idle: 'slime-idle', move: 'slime-walk', hurt: 'slime-hurt', death: 'slime-death' },
     flying: false,
     // Salto hacia Aidan (anti-speedrun): aviso visible y luego un brinco esquivable.
-    leap: { range: 190, windupMs: 420, vy: -430, maxVx: 210, cooldownMs: [1900, 2600] },
+    // Pensado para poder esquivarse sin matar (ruta pacifista): aviso de 0.45 s, se puede pasar
+    // por debajo durante el salto (≈100 px de alto) y hay 2.3-3 s de calma tras aterrizar.
+    leap: { range: 170, windupMs: 450, vy: -430, maxVx: 200, cooldownMs: [2300, 3000] },
   },
   alien: {
     hits: RULES.ENEMY_HITS.alien,
@@ -46,7 +48,8 @@ export const ENEMY_TYPES = {
     chaseSpeed: 95,
     aggroRange: 230,           // se acerca a Aidan solo dentro de su zona
     // Tajo con la rama (anti-speedrun): aviso rojo, luego zona de daño frente a él.
-    swing: { range: 95, windupMs: 250, reach: 74, height: 70, activeFrames: [4, 5], cooldownMs: [1300, 1800] },
+    // Aviso total ≈0.54 s (tinte rojo + preparación) y 1.6-2.2 s de calma: se salta por encima.
+    swing: { range: 95, windupMs: 250, reach: 74, height: 70, activeFrames: [4, 5], cooldownMs: [1600, 2200] },
     anims: { idle: 'skeleton-idle', move: 'skeleton-walk', hurt: 'skeleton-hurt', death: 'skeleton-death', attack: 'skeleton-attack' },
     flying: false,
   },
@@ -160,7 +163,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     const cur = this.anims.currentAnim?.key;
-    const busy = cur === cfg.anims.attack && this.anims.isPlaying;
+    const landing = time < (this.landingUntil ?? 0);
+    const busy = landing || ((cur === cfg.anims.attack || cur === 'alien-charge') && this.anims.isPlaying);
     if (!busy) {
       const want = speed === 0 ? cfg.anims.idle : cfg.anims.move;
       if (cur !== want) this.play(want, true);
@@ -189,12 +193,14 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.setFlipX(this.dir < 0);
       body.setVelocityX(0);
       this.telegraph(a.windupMs, cfg.leap ? 0xffb347 : 0xff4d4d);
-      if (cfg.swing) this.play(cfg.anims.idle, true);
+      if (cfg.swing) this.play(this.scene.anims.exists('skeleton-windup') ? 'skeleton-windup' : cfg.anims.idle, true);
+      if (cfg.leap) this.useLeapFrame(0);
       return true;
     }
 
     if (this.action === 'windup') {
       body.setVelocityX(0);
+      if (cfg.leap) this.useLeapFrame((this.actionUntil - time) < cfg.leap.windupMs / 2 ? 1 : 0);
       if (time < this.actionUntil) return true;
       if (cfg.leap) {
         this.action = 'leap';
@@ -209,9 +215,15 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
 
     if (this.action === 'leap') {
+      // Frames del salto ligados a la velocidad vertical (no a un temporizador).
+      const vy = body.velocity.y;
+      this.useLeapFrame(vy < -220 ? 2 : vy < -40 ? 3 : vy < 120 ? 4 : 5);
       // No sale de su zona aunque esté en el aire.
       if ((this.x <= this.minX && body.velocity.x < 0) || (this.x >= this.maxX && body.velocity.x > 0)) body.setVelocityX(0);
-      if (time > this.actionUntil && (body.blocked.down || body.touching.down)) this.endAction(time, cfg.leap.cooldownMs);
+      if (time > this.actionUntil && (body.blocked.down || body.touching.down)) {
+        this.endAction(time, cfg.leap.cooldownMs);
+        this.playLanding();
+      }
       return true;
     }
 
@@ -221,6 +233,20 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       return true;
     }
     return false;
+  }
+
+  /** Muestra un frame concreto de la animación de salto del slime (si existe el sprite). */
+  useLeapFrame(i) {
+    if (!this.scene.textures.exists('slime_leap')) return;
+    if (this.anims.isPlaying) this.anims.stop();
+    if (this.texture.key !== 'slime_leap' || this.frame.name !== i) this.setTexture('slime_leap', i);
+  }
+
+  playLanding() {
+    if (!this.scene.textures.exists('slime_leap')) return;
+    this.landingUntil = this.scene.time.now + 220;
+    this.setTexture('slime_leap', 6);
+    this.scene.time.delayedCall(110, () => { if (this.alive && this.texture.key === 'slime_leap') this.setTexture('slime_leap', 7); });
   }
 
   endAction(time, [min, max]) {
@@ -326,7 +352,15 @@ export class Alien extends Enemy {
   update(time, player) {
     super.update(time, player);
     if (!this.alive || !player || player.dead) return;
+    // Aviso del disparo triple: carga visible ~0.45 s antes.
+    const nextIsSpread = (this.shotCount + 1) % this.cfg.spreadEvery === 0
+      && Math.abs(player.x - this.x) < this.cfg.spreadRange;
+    if (nextIsSpread && !this.charging && time >= this.nextShot - 450 && this.scene.anims.exists('alien-charge')) {
+      this.charging = true;
+      this.play('alien-charge', true);
+    }
     if (time >= this.nextShot) {
+      this.charging = false;
       this.nextShot = time + this.cfg.shootIntervalMs; // intervalo fijo
       // Solo dispara si Aidan está en pantalla (evita balas "invisibles" desde lejos).
       if (this.scene.cameras.main.worldView.contains(this.x, this.y)) this.shoot(player);

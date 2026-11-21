@@ -16,6 +16,17 @@ const PROP_KEYS = {
   icon_sound_off: 'icon_sound_off',
 };
 
+/** Archivo (relativo a assets/sprites) -> clave de textura de las animaciones nuevas. */
+const ANIM_KEYS = {
+  'aidan/Cast_GhostFire.png': 'aidan_cast',
+  'fx/ghostfire.png': 'fx_ghostfire',
+  'fx/ghostfire_burst.png': 'fx_ghostfire_burst',
+  'slime/Slime3_Leap.png': 'slime_leap',
+  'skeleton/windup.png': 'skeleton_windup',
+  'alien/charge.png': 'alien_charge',
+  'fx/crescent.png': 'fx_crescent',
+};
+
 /** Carga todos los assets con barra de progreso y crea las animaciones globales. */
 export default class PreloadScene extends Phaser.Scene {
   constructor() {
@@ -55,6 +66,22 @@ export default class PreloadScene extends Phaser.Scene {
         const name = file.replace(/\.png$/, '');
         const key = PROP_KEYS[name] ?? name;
         this.load.spritesheet(key, `assets/props/${file}`, {
+          frameWidth: info.frameWidth, frameHeight: info.frameHeight,
+        });
+      });
+    });
+
+    // Animaciones nuevas (Fuego fantasma, salto del slime, avisos de enemigos...).
+    // anim_sprites.json describe cada archivo; si falta, se usan respaldos procedurales.
+    this.load.json('anim_meta', 'assets/sprites/anim_sprites.json');
+    this.load.once('filecomplete-json-anim_meta', (_key, _type, meta) => {
+      const entries = Array.isArray(meta) ? meta : Object.entries(meta?.files ?? meta ?? {})
+        .map(([file, info]) => ({ file, ...info }));
+      entries.forEach((info) => {
+        const file = (info.file ?? info.path ?? '').replace(/^.*sprites\//, '');
+        const key = ANIM_KEYS[file];
+        if (!key || !info.frameWidth) return;
+        this.load.spritesheet(key, `assets/sprites/${file}`, {
           frameWidth: info.frameWidth, frameHeight: info.frameHeight,
         });
       });

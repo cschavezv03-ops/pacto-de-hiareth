@@ -13,7 +13,7 @@
 import { SCENES } from '../config/constants.js';
 import { AudioManager } from './AudioManager.js';
 
-const MANAGED = [SCENES.VN, SCENES.LEVEL, SCENES.BOSS, SCENES.HUD, SCENES.PAUSE, SCENES.GAME_OVER, SCENES.MENU, SCENES.ENDING];
+const MANAGED = [SCENES.VN, SCENES.LEVEL, SCENES.BOSS, SCENES.HUD, SCENES.PAUSE, SCENES.GAME_OVER, SCENES.BOSS_DEFEAT, SCENES.MENU, SCENES.ENDING];
 
 export function goToStep(game, step) {
   const sm = game.scene;

@@ -166,7 +166,8 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.attacking = true;
     this.casting = true;
     this.specialReadyAt = this.clock + PLAYER_TUNING.specialCooldownMs;
-    this.play('aidan-attack2', true);
+    // Animación propia de lanzamiento si existe (tools/gen_anim_sprites.py); si no, Attack2.
+    this.play(this.scene.anims.exists('aidan-cast') ? 'aidan-cast' : 'aidan-attack2', true);
     AudioManager.sfx(this.scene, 'sfx_player_shot', { volume: 0.9 });
   }
 
@@ -184,7 +185,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   onAnimFrame(anim, frame) {
-    if (!anim.key.startsWith('aidan-attack')) return;
+    if (!anim.key.startsWith('aidan-attack') && anim.key !== 'aidan-cast') return;
     const i = frame.index - 1;
     if (this.casting) {
       // El lanzamiento no golpea cuerpo a cuerpo: emite la llamarada en su frame.
@@ -199,7 +200,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   onAnimComplete(anim) {
-    if (anim.key.startsWith('aidan-attack')) {
+    if (anim.key.startsWith('aidan-attack') || anim.key === 'aidan-cast') {
       this.attacking = false;
       this.casting = false;
       this.attackZone.body.enable = false;

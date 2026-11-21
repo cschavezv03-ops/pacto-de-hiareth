@@ -11,6 +11,7 @@ import BossScene from './scenes/BossScene.js';
 import HudScene from './scenes/HudScene.js';
 import PauseScene from './scenes/PauseScene.js';
 import GameOverScene from './scenes/GameOverScene.js';
+import BossDefeatScene from './scenes/BossDefeatScene.js';
 
 const config = {
   type: Phaser.AUTO,
@@ -32,7 +33,7 @@ const config = {
   },
   fps: { target: 60 },
   // El orden define el dibujo: HUD, Pausa y Game Over por encima del gameplay.
-  scene: [BootScene, PreloadScene, MenuScene, VNScene, LevelScene, BossScene, HudScene, PauseScene, GameOverScene],
+  scene: [BootScene, PreloadScene, MenuScene, VNScene, LevelScene, BossScene, HudScene, PauseScene, GameOverScene, BossDefeatScene],
 };
 
 const game = new Phaser.Game(config);

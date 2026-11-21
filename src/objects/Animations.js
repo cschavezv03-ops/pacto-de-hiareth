@@ -64,15 +64,15 @@ export function createAnimations(scene) {
   // Morrigannus
   strip(scene, 'boss-idle', 'boss_idle', 8);
 
-  // Fuego fantasma (procedural, 3 frames)
-  if (!scene.anims.exists('ghostfire-burn') && scene.textures.exists('fx_ghostfire')) {
-    scene.anims.create({
-      key: 'ghostfire-burn',
-      frames: scene.anims.generateFrameNumbers('fx_ghostfire', { start: 0, end: 2 }),
-      frameRate: 14,
-      repeat: -1,
-    });
-  }
+  // Fuego fantasma y animaciones nuevas (sprites de tools/gen_anim_sprites.py;
+  // si no están, fx_ghostfire es procedural y el resto usa animaciones existentes).
+  strip(scene, 'ghostfire-burn', 'fx_ghostfire', 14);
+  strip(scene, 'ghostfire-burst', 'fx_ghostfire_burst', 20, 0);
+  strip(scene, 'aidan-cast', 'aidan_cast', 18, 0);
+  strip(scene, 'slime-leap', 'slime_leap', 12, 0);
+  strip(scene, 'skeleton-windup', 'skeleton_windup', 14, 0);
+  strip(scene, 'alien-charge', 'alien_charge', 12, 0);
+  strip(scene, 'crescent-spin', 'fx_crescent', 14);
 
   // Props animados (si el PNG trae varios frames)
   strip(scene, 'goal_portal-anim', 'goal_portal', 8);
