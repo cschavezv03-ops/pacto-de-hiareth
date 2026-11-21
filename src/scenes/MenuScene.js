@@ -3,7 +3,7 @@ import { SCENES, GAME_WIDTH, GAME_HEIGHT, DIFFICULTIES } from '../config/constan
 import { GameState } from '../managers/GameState.js';
 import { SaveManager } from '../managers/SaveManager.js';
 import { AudioManager } from '../managers/AudioManager.js';
-import { FONT_TITLE, FONT_UI, COLORS, menuList, muteButton, panel, audioPanel } from '../ui/UiKit.js';
+import { FONT_TITLE, FONT_UI, COLORS, menuList, muteButton, panel, audioPanel, oncePerKeyEvent } from '../ui/UiKit.js';
 
 export default class MenuScene extends Phaser.Scene {
   constructor() {
@@ -97,27 +97,36 @@ export default class MenuScene extends Phaser.Scene {
     if (this.helpPanel) {
       this.helpPanel.destroy(true);
       this.helpPanel = null;
+      this.input.keyboard.off('keydown', this.helpKeys);
+      this.list?.setEnabled(true);
       return;
     }
+    // Con la ayuda abierta el menú de debajo no responde; Esc/Enter la cierran.
+    this.list?.setEnabled(false);
+    this.helpKeys = oncePerKeyEvent((e) => {
+      if (e.code === 'Escape' || e.code === 'Enter' || e.code === 'Space') this.time.delayedCall(0, () => this.helpPanel && this.toggleHelp());
+    });
+    this.time.delayedCall(0, () => this.input.keyboard.on('keydown', this.helpKeys));
     const W = GAME_WIDTH;
     const H = GAME_HEIGHT;
     const c = this.add.container(0, 0).setDepth(500);
     const bg = this.add.rectangle(0, 0, W, H, 0x000000, 0.6).setOrigin(0).setInteractive();
-    const g = panel(this, W / 2, H / 2, 640, 360, 0.95);
-    const text = this.add.text(W / 2, H / 2 - 10, [
+    const g = panel(this, W / 2, H / 2, 680, 420, 0.95);
+    const text = this.add.text(W / 2, H / 2 - 14, [
       'PLATAFORMAS',
       'Mover: A / D o ← / →     Saltar: Espacio',
       'Atacar: J o clic izquierdo',
+      'Fuego fantasma: K o clic derecho (se recarga)',
       '',
       'COMBATE FINAL',
       'Volar: W A S D     Disparar: J (una vez por pulsación)',
+      'Media luna de fuego: K     Esquivar (dash): Shift o L',
       '',
-      'Pausa: Esc o P     Silenciar: M',
-      'Móvil: botones táctiles en pantalla',
+      'Pausa: Esc o P     Silenciar: M     Móvil: botones en pantalla',
     ].join('\n'), {
-      fontFamily: FONT_UI, fontSize: '20px', color: COLORS.ink, align: 'center', lineSpacing: 6,
+      fontFamily: FONT_UI, fontSize: '19px', color: COLORS.ink, align: 'center', lineSpacing: 5,
     }).setOrigin(0.5);
-    const close = this.add.text(W / 2, H / 2 + 150, 'Cerrar', {
+    const close = this.add.text(W / 2, H / 2 + 180, 'Cerrar', {
       fontFamily: FONT_UI, fontSize: '22px', color: COLORS.accent,
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
     close.on('pointerup', () => this.toggleHelp());

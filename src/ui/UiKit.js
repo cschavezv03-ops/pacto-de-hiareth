@@ -183,11 +183,11 @@ export function audioPanel(scene, onClose) {
     return { name, bar, value };
   });
 
-  const hint = scene.add.text(W / 2, H / 2 + 112, 'Mostrar el contador revela si sigues sin derrotar a nadie.', {
+  const hint = scene.add.text(W / 2, H / 2 + 132, 'Mostrar el contador revela si sigues sin derrotar a nadie.', {
     fontFamily: FONT_UI, fontSize: '14px', color: COLORS.dim,
   }).setOrigin(0.5);
   c.add(hint);
-  const close = scene.add.text(W / 2, H / 2 + 148, 'Cerrar', {
+  const close = scene.add.text(W / 2, H / 2 + 162, 'Cerrar', {
     fontFamily: FONT_UI, fontSize: '22px', color: COLORS.accent, stroke: '#000', strokeThickness: 3,
   }).setOrigin(0.5).setInteractive({ useHandCursor: true });
   close.on('pointerup', () => finish());

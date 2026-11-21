@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT } from '../config/constants.js';
 import { AudioManager } from '../managers/AudioManager.js';
+import { GameState } from '../managers/GameState.js';
 import { FONT_TITLE, FONT_UI, COLORS, menuList } from '../ui/UiKit.js';
 
 /**
@@ -26,7 +27,12 @@ export default class GameOverScene extends Phaser.Scene {
       fontFamily: FONT_TITLE, fontSize: '56px', color: '#ff5470', stroke: '#000', strokeThickness: 6,
     }).setOrigin(0.5).setAlpha(0);
     this.tweens.add({ targets: title, alpha: 1, y: title.y + 10, duration: 700 });
-    this.add.text(W / 2, H / 2 - 30, 'El nivel se reiniciará desde el principio.', {
+    const fromCheckpoint = this.retryScene === SCENES.LEVEL
+      && GameState.checkpointFor(this.retryData.levelId) >= 0;
+    const msg = this.retryScene === SCENES.BOSS ? 'El combate se reiniciará.'
+      : fromCheckpoint ? 'Reaparecerás en el último punto de control.'
+        : 'El nivel se reiniciará desde el principio.';
+    this.add.text(W / 2, H / 2 - 30, msg, {
       fontFamily: FONT_UI, fontSize: '18px', color: COLORS.dim,
     }).setOrigin(0.5);
 

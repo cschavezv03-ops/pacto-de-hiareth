@@ -390,7 +390,7 @@ export default class LevelScene extends Phaser.Scene {
     this.updateSafeSpot();
 
     for (const e of this.enemies.getChildren()) {
-      e.update(time, this.player);
+      e.update(this.levelClock, this.player); // reloj que no avanza en pausa
       // Caída ambiental: desaparece SIN contar como muerte causada por Aidan.
       if (e.alive && e.y > PIT_Y) e.kill(false);
     }
@@ -399,7 +399,7 @@ export default class LevelScene extends Phaser.Scene {
     const view = this.cameras.main.worldView;
     for (const orb of this.alienShots.getChildren()) {
       if (!orb.active) continue;
-      if (time > orb.expireAt || orb.x < 0 || orb.x > this.worldW || orb.y < -50 || orb.y > GAME_HEIGHT + 50
+      if (this.levelClock > orb.expireAt || orb.x < 0 || orb.x > this.worldW || orb.y < -50 || orb.y > GAME_HEIGHT + 50
           || orb.x < view.x - 200 || orb.x > view.right + 200) {
         orb.disableBody(true, true);
       }
@@ -493,8 +493,8 @@ export default class LevelScene extends Phaser.Scene {
   showHint() {
     const isTouch = this.sys.game.device.input.touch;
     const msg = isTouch
-      ? 'Usa los botones: ◀ ▶ moverse · ⤒ saltar · 🔥 atacar'
-      : 'A/D o ←/→ moverse · Espacio saltar · J o clic atacar · Esc pausa';
+      ? 'Botones: ◀ ▶ moverse · ⤒ saltar · 🔥 atacar · ✦ fuego fantasma'
+      : 'A/D moverse · Espacio saltar · J/clic atacar · K/clic der. fuego fantasma · Esc pausa';
     const t = this.add.text(GAME_WIDTH / 2, 214, msg, {
       fontFamily: '"Trebuchet MS", sans-serif', fontSize: '18px', color: '#ffffff',
       backgroundColor: '#140e24cc', padding: { x: 12, y: 6 },

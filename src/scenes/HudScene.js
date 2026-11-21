@@ -27,7 +27,9 @@ export default class HudScene extends Phaser.Scene {
     this.buildSpecialGauge();
     this.buildKillCounter();
     this.buildBossBar();
-    muteButton(this, GAME_WIDTH - 16, 14);
+    // En pantallas táctiles el botón de pausa ocupa esa esquina (el silencio está en
+    // Pausa → Opciones), así que el icono de sonido solo se muestra con ratón/teclado.
+    if (!this.sys.game.device.input.touch) muteButton(this, GAME_WIDTH - 16, 14);
 
     const watch = (key, fn) => {
       const handler = (_p, v) => fn(v);
@@ -123,6 +125,7 @@ export default class HudScene extends Phaser.Scene {
     c.add([g, icon, barBg, this.specialFill, this.dashPip, this.specialKey]);
     this.specialGauge = c;
     this.specialIcon = icon;
+    this.specialIconScale = icon.scale; // la instancia de la escena se reutiliza
     this.specialWasReady = false;
   }
 

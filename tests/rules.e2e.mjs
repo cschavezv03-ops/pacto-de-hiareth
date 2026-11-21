@@ -259,6 +259,8 @@ await step('skeleton swing hurts Aidan standing in front; alien fires a 3-way sp
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act3' }));
   await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
   await page.waitForTimeout(300);
+  const zonesAtSpawn = await page.evaluate(() => window.__level.enemyHitboxes.getChildren().filter((z) => z.body.enable).length);
+  assert.equal(zonesAtSpawn, 0, 'ninguna zona de tajo activa al aparecer (sin daño invisible)');
   const sk = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level;
     const e = s.enemies.getChildren()[0];

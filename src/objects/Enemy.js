@@ -56,6 +56,14 @@ export const ENEMY_TYPES = {
 };
 
 /**
+ * Reloj del nivel: solo avanza mientras la escena se actualiza (LevelScene.levelClock),
+ * así una pausa no consume avisos, aturdimientos ni cadencias de disparo.
+ */
+export function levelNow(scene) {
+  return scene.levelClock ?? scene.time.now;
+}
+
+/**
  * Enemigo genérico con patrulla dentro de una zona fija [minX, maxX].
  * Nunca abandona su zona, así que no persigue indefinidamente a Aidan.
  */
@@ -96,10 +104,10 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     this.lastHitAttackId = -1;
     this.pauseUntil = 0;
     this.alive = true;
-    this.spawnTime = scene.time.now;
+    this.spawnTime = levelNow(scene);
     this.action = null;         // null | 'windup' | 'leap' | 'swing'
     this.actionUntil = 0;
-    this.nextAction = scene.time.now + Phaser.Math.Between(600, 1400);
+    this.nextAction = levelNow(scene) + Phaser.Math.Between(600, 1400);
 
     // Zona de daño del tajo del esqueleto (overlap con Aidan en LevelScene).
     if (cfg.swing && spec.hitboxes) {
@@ -109,7 +117,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.swingZone.body.enable = false;
       this.swingZone.owner = this;
       spec.hitboxes.add(this.swingZone);
+      // Desactivar DESPUÉS de añadirla: el grupo vuelve a activar el cuerpo al incorporarlo.
       this.swingZone.body.setAllowGravity(false);
+      this.swingZone.body.enable = false;
       this.on(Phaser.Animations.Events.ANIMATION_UPDATE, this.onAttackFrame, this);
     }
 
@@ -123,6 +133,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     const cfg = this.cfg;
     const body = this.body;
 
+    this.clampToZone();
     if (time < this.stunUntil) {
       body.setVelocityX(body.velocity.x * 0.9);
       return;
@@ -169,6 +180,13 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       const want = speed === 0 ? cfg.anims.idle : cfg.anims.move;
       if (cur !== want) this.play(want, true);
     }
+  }
+
+  /** Nunca fuera de su zona: ni por el retroceso de un golpe ni durante un salto. */
+  clampToZone() {
+    if (this.cfg.flying || !this.body.enable) return;
+    if (this.x < this.minX) { this.x = this.minX; if (this.body.velocity.x < 0) this.body.setVelocityX(0); }
+    else if (this.x > this.maxX) { this.x = this.maxX; if (this.body.velocity.x > 0) this.body.setVelocityX(0); }
   }
 
   /**
@@ -244,7 +262,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
 
   playLanding() {
     if (!this.scene.textures.exists('slime_leap')) return;
-    this.landingUntil = this.scene.time.now + 220;
+    this.landingUntil = levelNow(this.scene) + 220;
     this.setTexture('slime_leap', 6);
     this.scene.time.delayedCall(110, () => { if (this.alive && this.texture.key === 'slime_leap') this.setTexture('slime_leap', 7); });
   }
@@ -298,8 +316,8 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     }
     AudioManager.sfx(this.scene, 'sfx_enemy_hit');
     this.state = 'hurt';
-    if (this.action) this.endAction(this.scene.time.now, [700, 1100]); // golpearle interrumpe su ataque
-    this.stunUntil = this.scene.time.now + 260;
+    if (this.action) this.endAction(levelNow(this.scene), [700, 1100]); // golpearle interrumpe su ataque
+    this.stunUntil = levelNow(this.scene) + 260;
     this.body.setVelocityX(away * 140);
     this.play(this.cfg.anims.hurt, true);
     return false;
@@ -345,7 +363,7 @@ export class Alien extends Enemy {
     super(scene, { ...spec, type: 'alien' });
     this.projectiles = projectiles;
     // Desfase aleatorio para que no disparen todos a la vez.
-    this.nextShot = scene.time.now + Phaser.Math.Between(800, this.cfg.shootIntervalMs);
+    this.nextShot = levelNow(scene) + Phaser.Math.Between(800, this.cfg.shootIntervalMs);
     this.shotCount = 0;
   }
 
@@ -387,7 +405,7 @@ export class Alien extends Enemy {
     orb.body.setAllowGravity(false);
     orb.body.setCircle(6, 6, 6);
     this.scene.physics.velocityFromRotation(angle, this.cfg.projectileSpeed, orb.body.velocity);
-    orb.expireAt = this.scene.time.now + this.cfg.projectileLifeMs;
+    orb.expireAt = levelNow(this.scene) + this.cfg.projectileLifeMs;
     AudioManager.sfx(this.scene, 'sfx_alien_shot', { volume: 0.5 });
   }
 }
