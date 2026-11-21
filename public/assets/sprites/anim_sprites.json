@@ -1,0 +1,112 @@
+{
+  "aidan/Cast_GhostFire.png": {
+    "frameWidth": 250,
+    "frameHeight": 250,
+    "frames": 8,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "aidan/Idle.png",
+        "aidan/Attack1.png",
+        "aidan/Attack2.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 167,
+    "notes": "Ground cast; release at frame 4, projectile centre y=120. Character pixels unscaled.",
+    "technical_checks_passed": true
+  },
+  "fx/ghostfire.png": {
+    "frameWidth": 48,
+    "frameHeight": 32,
+    "frames": 6,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "aidan/Attack1.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": null,
+    "notes": "Right-facing source ghost with registered head and waving tail.",
+    "technical_checks_passed": true
+  },
+  "fx/ghostfire_burst.png": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "frames": 7,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "aidan/Attack1.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": null,
+    "notes": "Seven expanding/fragmenting poses, hard alpha; final embers intentionally sparse.",
+    "technical_checks_passed": true
+  },
+  "slime/Slime3_Leap.png": {
+    "frameWidth": 64,
+    "frameHeight": 64,
+    "frames": 8,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "slime/Slime3_Idle_with_shadow.png",
+        "slime/Slime3_Walk_with_shadow.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 42,
+    "notes": "Right-facing row 3. Fixed ground shadow; takeoff 2, apex 3-4, landing 6.",
+    "technical_checks_passed": true
+  },
+  "skeleton/windup.png": {
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "skeleton/attack.png",
+        "aidan/Attack1.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 248,
+    "notes": "Attack source frames 0/1/2/2, red socket cores and restrained heat on branch.",
+    "technical_checks_passed": true
+  },
+  "alien/charge.png": {
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "alien/attack.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 248,
+    "notes": "Attack source frames 0/2/3/3; stepped cyan antenna and palm charge, three final motes.",
+    "technical_checks_passed": true
+  },
+  "fx/crescent.png": {
+    "frameWidth": 96,
+    "frameHeight": 96,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "aidan/Vuelo_Ataque2_MediaLunaDeFuego.png",
+        "aidan/Attack1.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": null,
+    "notes": "Source airborne crescent isolated by pixel mask; right edge red, registered arc.",
+    "technical_checks_passed": true
+  }
+}

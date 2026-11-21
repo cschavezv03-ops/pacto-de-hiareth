@@ -1,0 +1,50 @@
+{
+  "aidan/Crouch.png": {
+    "frameWidth": 250,
+    "frameHeight": 250,
+    "frames": 3,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "aidan/Idle.png",
+        "aidan/Attack1.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 167,
+    "notes": "Rigid source hood, bent sleeve and folded orange-trim robe; top >=121; fixed hem; one-pixel breath.",
+    "technical_checks_passed": true
+  },
+  "skeleton/sweep.png": {
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frames": 6,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "skeleton/attack.png",
+        "skeleton/windup.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 248,
+    "notes": "Low crouch, cream/gold warning 0-1, ground-level branch and arc 2-3, recovery 4-5. Articulated source bones, native branch grain.",
+    "technical_checks_passed": true
+  },
+  "skeleton/charge.png": {
+    "frameWidth": 256,
+    "frameHeight": 256,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "skeleton/walk.png",
+        "skeleton/attack.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 248,
+    "notes": "Four original walking strides; rigid forward torso lean, branch held ahead, rear source-bone chips and dust.",
+    "technical_checks_passed": true
+  }
+}

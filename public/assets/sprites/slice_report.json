@@ -1,0 +1,959 @@
+{
+  "alien/walk.png": {
+    "frames": 9,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8304,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      184,
+      174
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Aliens/Sprites_Aliens_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          469,
+          45,
+          717,
+          316
+        ],
+        "body_anchor_x": 133.0,
+        "opaque_pixels": 17499
+      },
+      {
+        "source_bbox": [
+          732,
+          39,
+          964,
+          316
+        ],
+        "body_anchor_x": 116.5,
+        "opaque_pixels": 17589
+      },
+      {
+        "source_bbox": [
+          978,
+          40,
+          1215,
+          316
+        ],
+        "body_anchor_x": 111.5,
+        "opaque_pixels": 17473
+      },
+      {
+        "source_bbox": [
+          1226,
+          28,
+          1464,
+          316
+        ],
+        "body_anchor_x": 116.0,
+        "opaque_pixels": 17691
+      },
+      {
+        "source_bbox": [
+          1478,
+          27,
+          1716,
+          316
+        ],
+        "body_anchor_x": 115.5,
+        "opaque_pixels": 17972
+      },
+      {
+        "source_bbox": [
+          1730,
+          35,
+          1969,
+          316
+        ],
+        "body_anchor_x": 116.5,
+        "opaque_pixels": 17607
+      },
+      {
+        "source_bbox": [
+          1983,
+          39,
+          2222,
+          316
+        ],
+        "body_anchor_x": 116.0,
+        "opaque_pixels": 17428
+      },
+      {
+        "source_bbox": [
+          2235,
+          34,
+          2473,
+          316
+        ],
+        "body_anchor_x": 116.5,
+        "opaque_pixels": 17834
+      },
+      {
+        "source_bbox": [
+          2486,
+          40,
+          2667,
+          316
+        ],
+        "body_anchor_x": 120.0,
+        "opaque_pixels": 17841
+      }
+    ]
+  },
+  "alien/attack.png": {
+    "frames": 9,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8304,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      184,
+      174
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Aliens/Sprites_Aliens_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          509,
+          361,
+          672,
+          625
+        ],
+        "body_anchor_x": 87.5,
+        "opaque_pixels": 16756
+      },
+      {
+        "source_bbox": [
+          751,
+          360,
+          912,
+          625
+        ],
+        "body_anchor_x": 86.5,
+        "opaque_pixels": 16925
+      },
+      {
+        "source_bbox": [
+          991,
+          360,
+          1153,
+          625
+        ],
+        "body_anchor_x": 87.0,
+        "opaque_pixels": 17005
+      },
+      {
+        "source_bbox": [
+          1237,
+          337,
+          1394,
+          625
+        ],
+        "body_anchor_x": 81.5,
+        "opaque_pixels": 17930
+      },
+      {
+        "source_bbox": [
+          1477,
+          336,
+          1699,
+          625
+        ],
+        "body_anchor_x": 88.5,
+        "opaque_pixels": 18126
+      },
+      {
+        "source_bbox": [
+          1741,
+          342,
+          1967,
+          625
+        ],
+        "body_anchor_x": 82.5,
+        "opaque_pixels": 17168
+      },
+      {
+        "source_bbox": [
+          1996,
+          360,
+          2157,
+          625
+        ],
+        "body_anchor_x": 91.5,
+        "opaque_pixels": 16698
+      },
+      {
+        "source_bbox": [
+          2223,
+          377,
+          2412,
+          625
+        ],
+        "body_anchor_x": 116.5,
+        "opaque_pixels": 16730
+      },
+      {
+        "source_bbox": [
+          2488,
+          383,
+          2672,
+          625
+        ],
+        "body_anchor_x": 114.5,
+        "opaque_pixels": 16205
+      }
+    ]
+  },
+  "alien/idle.png": {
+    "frames": 6,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8304,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      184,
+      174
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Aliens/Sprites_Aliens_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          515,
+          665,
+          683,
+          935
+        ],
+        "body_anchor_x": 81.5,
+        "opaque_pixels": 16721
+      },
+      {
+        "source_bbox": [
+          773,
+          663,
+          941,
+          935
+        ],
+        "body_anchor_x": 81.5,
+        "opaque_pixels": 16788
+      },
+      {
+        "source_bbox": [
+          1032,
+          664,
+          1194,
+          935
+        ],
+        "body_anchor_x": 80.5,
+        "opaque_pixels": 16733
+      },
+      {
+        "source_bbox": [
+          1284,
+          664,
+          1445,
+          935
+        ],
+        "body_anchor_x": 80.5,
+        "opaque_pixels": 16878
+      },
+      {
+        "source_bbox": [
+          1530,
+          653,
+          1698,
+          935
+        ],
+        "body_anchor_x": 86.5,
+        "opaque_pixels": 16710
+      },
+      {
+        "source_bbox": [
+          1781,
+          660,
+          1951,
+          935
+        ],
+        "body_anchor_x": 88.5,
+        "opaque_pixels": 16640
+      }
+    ]
+  },
+  "alien/hurt.png": {
+    "frames": 3,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8304,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      184,
+      174
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Aliens/Sprites_Aliens_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          538,
+          979,
+          655,
+          1222
+        ],
+        "body_anchor_x": 58.5,
+        "opaque_pixels": 13565
+      },
+      {
+        "source_bbox": [
+          792,
+          980,
+          924,
+          1222
+        ],
+        "body_anchor_x": 68.0,
+        "opaque_pixels": 14090
+      },
+      {
+        "source_bbox": [
+          1054,
+          973,
+          1194,
+          1222
+        ],
+        "body_anchor_x": 66.5,
+        "opaque_pixels": 15282
+      }
+    ]
+  },
+  "alien/death.png": {
+    "frames": 7,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8304,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      184,
+      174
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Aliens/Sprites_Aliens_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          538,
+          1243,
+          655,
+          1519
+        ],
+        "body_anchor_x": 58.5,
+        "opaque_pixels": 12546
+      },
+      {
+        "source_bbox": [
+          784,
+          1254,
+          944,
+          1520
+        ],
+        "body_anchor_x": 82.0,
+        "opaque_pixels": 13801
+      },
+      {
+        "source_bbox": [
+          1071,
+          1277,
+          1217,
+          1520
+        ],
+        "body_anchor_x": 73.0,
+        "opaque_pixels": 14111
+      },
+      {
+        "source_bbox": [
+          1336,
+          1306,
+          1515,
+          1509
+        ],
+        "body_anchor_x": 100.0,
+        "opaque_pixels": 14774
+      },
+      {
+        "source_bbox": [
+          1610,
+          1375,
+          1836,
+          1498
+        ],
+        "body_anchor_x": 138.5,
+        "opaque_pixels": 10921
+      },
+      {
+        "source_bbox": [
+          1933,
+          1363,
+          2180,
+          1503
+        ],
+        "body_anchor_x": 130.5,
+        "opaque_pixels": 8702
+      },
+      {
+        "source_bbox": [
+          2269,
+          1357,
+          2501,
+          1498
+        ],
+        "body_anchor_x": 116.0,
+        "opaque_pixels": 5750
+      }
+    ]
+  },
+  "skeleton/walk.png": {
+    "frames": 9,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8191,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      183,
+      171
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Skeletons/Sprites_Skeletons_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          487,
+          67,
+          655,
+          316
+        ],
+        "body_anchor_x": 103.5,
+        "opaque_pixels": 16253
+      },
+      {
+        "source_bbox": [
+          722,
+          67,
+          907,
+          316
+        ],
+        "body_anchor_x": 121.0,
+        "opaque_pixels": 16280
+      },
+      {
+        "source_bbox": [
+          985,
+          67,
+          1154,
+          316
+        ],
+        "body_anchor_x": 104.5,
+        "opaque_pixels": 16091
+      },
+      {
+        "source_bbox": [
+          1221,
+          61,
+          1406,
+          316
+        ],
+        "body_anchor_x": 120.5,
+        "opaque_pixels": 16648
+      },
+      {
+        "source_bbox": [
+          1484,
+          67,
+          1653,
+          316
+        ],
+        "body_anchor_x": 104.5,
+        "opaque_pixels": 16867
+      },
+      {
+        "source_bbox": [
+          1726,
+          67,
+          1905,
+          316
+        ],
+        "body_anchor_x": 114.5,
+        "opaque_pixels": 16226
+      },
+      {
+        "source_bbox": [
+          1983,
+          67,
+          2157,
+          316
+        ],
+        "body_anchor_x": 109.5,
+        "opaque_pixels": 16794
+      },
+      {
+        "source_bbox": [
+          2234,
+          67,
+          2410,
+          316
+        ],
+        "body_anchor_x": 111.0,
+        "opaque_pixels": 16384
+      },
+      {
+        "source_bbox": [
+          2487,
+          67,
+          2661,
+          316
+        ],
+        "body_anchor_x": 110.0,
+        "opaque_pixels": 16851
+      }
+    ]
+  },
+  "skeleton/attack.png": {
+    "frames": 9,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8191,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      183,
+      171
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Skeletons/Sprites_Skeletons_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          487,
+          383,
+          655,
+          625
+        ],
+        "body_anchor_x": 103.5,
+        "opaque_pixels": 15931
+      },
+      {
+        "source_bbox": [
+          733,
+          338,
+          912,
+          625
+        ],
+        "body_anchor_x": 109.5,
+        "opaque_pixels": 16770
+      },
+      {
+        "source_bbox": [
+          980,
+          343,
+          1149,
+          626
+        ],
+        "body_anchor_x": 101.5,
+        "opaque_pixels": 16321
+      },
+      {
+        "source_bbox": [
+          1203,
+          359,
+          1412,
+          625
+        ],
+        "body_anchor_x": 144.5,
+        "opaque_pixels": 16836
+      },
+      {
+        "source_bbox": [
+          1496,
+          349,
+          1721,
+          625
+        ],
+        "body_anchor_x": 127.0,
+        "opaque_pixels": 21496
+      },
+      {
+        "source_bbox": [
+          1760,
+          388,
+          1962,
+          625
+        ],
+        "body_anchor_x": 106.0,
+        "opaque_pixels": 18097
+      },
+      {
+        "source_bbox": [
+          2018,
+          394,
+          2209,
+          625
+        ],
+        "body_anchor_x": 100.0,
+        "opaque_pixels": 16336
+      },
+      {
+        "source_bbox": [
+          2247,
+          399,
+          2404,
+          625
+        ],
+        "body_anchor_x": 95.5,
+        "opaque_pixels": 13992
+      },
+      {
+        "source_bbox": [
+          2533,
+          394,
+          2662,
+          625
+        ],
+        "body_anchor_x": 64.5,
+        "opaque_pixels": 14893
+      }
+    ]
+  },
+  "skeleton/idle.png": {
+    "frames": 6,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8191,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      183,
+      171
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Skeletons/Sprites_Skeletons_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          510,
+          692,
+          682,
+          935
+        ],
+        "body_anchor_x": 83.5,
+        "opaque_pixels": 15289
+      },
+      {
+        "source_bbox": [
+          768,
+          659,
+          935,
+          936
+        ],
+        "body_anchor_x": 84.0,
+        "opaque_pixels": 15381
+      },
+      {
+        "source_bbox": [
+          1015,
+          682,
+          1182,
+          935
+        ],
+        "body_anchor_x": 94.5,
+        "opaque_pixels": 15170
+      },
+      {
+        "source_bbox": [
+          1273,
+          687,
+          1458,
+          935
+        ],
+        "body_anchor_x": 89.0,
+        "opaque_pixels": 15456
+      },
+      {
+        "source_bbox": [
+          1519,
+          665,
+          1703,
+          935
+        ],
+        "body_anchor_x": 92.0,
+        "opaque_pixels": 15863
+      },
+      {
+        "source_bbox": [
+          1777,
+          692,
+          1966,
+          935
+        ],
+        "body_anchor_x": 86.5,
+        "opaque_pixels": 15847
+      }
+    ]
+  },
+  "skeleton/hurt.png": {
+    "frames": 4,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8191,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      183,
+      171
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Skeletons/Sprites_Skeletons_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          510,
+          990,
+          667,
+          1222
+        ],
+        "body_anchor_x": 89.5,
+        "opaque_pixels": 14820
+      },
+      {
+        "source_bbox": [
+          773,
+          990,
+          964,
+          1222
+        ],
+        "body_anchor_x": 90.5,
+        "opaque_pixels": 15484
+      },
+      {
+        "source_bbox": [
+          1031,
+          990,
+          1204,
+          1222
+        ],
+        "body_anchor_x": 95.5,
+        "opaque_pixels": 15102
+      },
+      {
+        "source_bbox": [
+          1302,
+          990,
+          1446,
+          1222
+        ],
+        "body_anchor_x": 68.5,
+        "opaque_pixels": 14883
+      }
+    ]
+  },
+  "skeleton/death.png": {
+    "frames": 7,
+    "frame_size": [
+      256,
+      256
+    ],
+    "scale": 0.8191,
+    "baseline_y": 248,
+    "background_rgb": [
+      171,
+      183,
+      171
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Skeletons/Sprites_Skeletons_Full.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          539,
+          1266,
+          661,
+          1519
+        ],
+        "body_anchor_x": 60.5,
+        "opaque_pixels": 14714
+      },
+      {
+        "source_bbox": [
+          796,
+          1277,
+          929,
+          1519
+        ],
+        "body_anchor_x": 72.5,
+        "opaque_pixels": 14626
+      },
+      {
+        "source_bbox": [
+          1073,
+          1306,
+          1205,
+          1519
+        ],
+        "body_anchor_x": 70.5,
+        "opaque_pixels": 14277
+      },
+      {
+        "source_bbox": [
+          1329,
+          1323,
+          1514,
+          1515
+        ],
+        "body_anchor_x": 107.0,
+        "opaque_pixels": 15443
+      },
+      {
+        "source_bbox": [
+          1599,
+          1380,
+          1824,
+          1509
+        ],
+        "body_anchor_x": 146.5,
+        "opaque_pixels": 13005
+      },
+      {
+        "source_bbox": [
+          1942,
+          1301,
+          2163,
+          1515
+        ],
+        "body_anchor_x": 108.0,
+        "opaque_pixels": 9619
+      },
+      {
+        "source_bbox": [
+          2283,
+          1295,
+          2467,
+          1514
+        ],
+        "body_anchor_x": 91.5,
+        "opaque_pixels": 2740
+      }
+    ]
+  },
+  "boss/idle.png": {
+    "frames": 8,
+    "frame_size": [
+      352,
+      608
+    ],
+    "scale": 0.971,
+    "baseline_y": 600,
+    "background_rgb": [
+      21,
+      20,
+      25
+    ],
+    "source": "El pacto de hiareth utils/Sprites/Characters/Sprites_Morriganus/Morriganus_IDLE_SPRITE.jpg",
+    "frame_details": [
+      {
+        "source_bbox": [
+          16,
+          277,
+          345,
+          841
+        ],
+        "body_anchor_x": 166.0,
+        "opaque_pixels": 79779
+      },
+      {
+        "source_bbox": [
+          357,
+          314,
+          686,
+          838
+        ],
+        "body_anchor_x": 157.0,
+        "opaque_pixels": 82251
+      },
+      {
+        "source_bbox": [
+          700,
+          277,
+          1026,
+          838
+        ],
+        "body_anchor_x": 168.0,
+        "opaque_pixels": 80213
+      },
+      {
+        "source_bbox": [
+          1040,
+          277,
+          1379,
+          840
+        ],
+        "body_anchor_x": 169.0,
+        "opaque_pixels": 94012
+      },
+      {
+        "source_bbox": [
+          1384,
+          277,
+          1711,
+          841
+        ],
+        "body_anchor_x": 164.0,
+        "opaque_pixels": 81797
+      },
+      {
+        "source_bbox": [
+          1737,
+          253,
+          2041,
+          850
+        ],
+        "body_anchor_x": 155.0,
+        "opaque_pixels": 80059
+      },
+      {
+        "source_bbox": [
+          2066,
+          280,
+          2398,
+          841
+        ],
+        "body_anchor_x": 159.0,
+        "opaque_pixels": 88505
+      },
+      {
+        "source_bbox": [
+          2411,
+          277,
+          2738,
+          842
+        ],
+        "body_anchor_x": 162.0,
+        "opaque_pixels": 80146
+      }
+    ]
+  }
+}
