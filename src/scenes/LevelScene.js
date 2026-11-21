@@ -325,7 +325,11 @@ export default class LevelScene extends Phaser.Scene {
     if (orb.collected || !orb.active) return;
     orb.collected = true;
     orb.disableBody(true, true);
-    AudioManager.sfx(this, 'sfx_ui_select', { volume: 0.5, rate: 1.4 + Math.random() * 0.2 });
+    // Cadena de orbes: cada recogida seguida sube de tono (orb_pickup → 2 → 3).
+    const chained = this.levelClock - (this.lastOrbAt ?? -1e9) < 450;
+    this.orbChain = chained ? Math.min(2, (this.orbChain ?? 0) + 1) : 0;
+    this.lastOrbAt = this.levelClock;
+    AudioManager.sfx(this, ['sfx_orb_pickup', 'sfx_orb_pickup2', 'sfx_orb_pickup3'][this.orbChain], { volume: 0.8 });
     if (this.anims.exists('orb-pickup')) {
       const fx = this.add.sprite(orb.x, orb.y, 'fx_orb_pickup', 0).setDepth(8);
       fx.play('orb-pickup');
@@ -518,7 +522,7 @@ export default class LevelScene extends Phaser.Scene {
     for (const other of this.checkpoints.getChildren()) {
       if (other.index <= cp.index && other.anims.currentAnim?.key !== 'checkpoint-lit') other.play('checkpoint-lit');
     }
-    AudioManager.sfx(this, 'sfx_level_clear', { volume: 0.5 });
+    AudioManager.sfx(this, 'sfx_checkpoint', { volume: 0.9 });
     this.registry.set('toast', { text: 'Punto de control', t: this.time.now });
     const burst = this.add.particles(cp.x, cp.y - cp.displayHeight, 'fx_pixel', {
       speed: { min: 40, max: 140 }, angle: { min: 200, max: 340 }, lifespan: 600,
@@ -716,13 +720,15 @@ export default class LevelScene extends Phaser.Scene {
     this.player.body.setVelocity(0, 0);
     this.player.body.enable = false;
     this.player.play('aidan-idle', true);
+    AudioManager.fadeOutMusic(this, 400);
     AudioManager.sfx(this, 'sfx_level_clear');
 
     const seconds = (this.time.now - this.startTime) / 1000;
     const timeBonus = Math.max(0, Math.round((300 - seconds) * 5));
     GameState.addScore(1000 + Math.min(3, this.player.hearts) * 300 + timeBonus);
 
-    this.cameras.main.fadeOut(900, 0, 0, 0);
+    // Espera a que suene la fanfarria antes de cambiar de escena.
+    this.cameras.main.fadeOut(1800, 0, 0, 0);
     this.cameras.main.once('camerafadeoutcomplete', () => {
       this.scene.stop(SCENES.HUD);
       const next = GameState.advanceStory();

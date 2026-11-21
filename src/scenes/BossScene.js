@@ -69,7 +69,7 @@ export const BOSS_TUNING = Object.freeze({
   BOSS_FLASH_MS: 70,
   BOSS_FLASH_INTERVAL_MS: 360, // Máximo <3 hit-flashes/s; avisos usan tint normal.
   COOLDOWN_UI_MS: 100, // DOM/registry a 10 Hz, no en cada frame.
-  VICTORY_DELAY_MS: 2000,
+  VICTORY_DELAY_MS: 4200, // deja sonar la fanfarria de victoria (boss_defeat, 4.5 s)
   SCORE_BASE: 5000,
   SCORE_PER_HEART: 1000,
   TIME_BONUS_LIMIT_SECONDS: 240,
@@ -617,7 +617,8 @@ export default class BossScene extends Phaser.Scene {
     this.dissolveBullets(this.bossBullets);
     this.dissolveBullets(this.specialBullets);
     this.tweens.add({ targets: this.boss, alpha: 0, duration: 1200, ease: 'Sine.easeIn' });
-    AudioManager.sfx(this, 'sfx_level_clear');
+    AudioManager.fadeOutMusic(this, 500);
+    AudioManager.sfx(this, 'sfx_boss_defeat');
     this.saveBest();
     const timeBonus = Math.max(0, Math.floor(BOSS_TUNING.TIME_BONUS_LIMIT_SECONDS - this.elapsedMs / 1000))
       * BOSS_TUNING.SCORE_PER_SECOND;

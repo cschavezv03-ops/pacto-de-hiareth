@@ -61,11 +61,16 @@ export const MUSIC = [
   { key: 'music_act2', url: `${A}/music/Level2.ogg` },
   { key: 'music_act3', url: `${A}/music/Level3.ogg` },
   { key: 'music_act4', url: `${A}/music/Level4.ogg` },
-  { key: 'music_boss', url: `${A}/music/BOSSFIGTH.ogg` },
+  // Tema metal del combate final (tools/gen_music_boss.py). El original del equipo,
+  // BOSSFIGTH.ogg, se conserva en "El pacto de hiareth utils/Soundtrack/".
+  { key: 'music_boss', url: `${A}/music/BossMetal.ogg` },
+  { key: 'music_menu', url: `${A}/music/Menu.ogg` },   // tema del menú (tools/gen_music_menu.py)
 ];
 
 /** Efectos de sonido generados por tools/gen_sfx.py (WAV mono 22050 Hz). */
 export const SFX = [
   'jump', 'attack', 'enemy_hit', 'enemy_die', 'player_hurt', 'player_die',
   'alien_shot', 'player_shot', 'boss_shot', 'boss_hit', 'level_clear', 'ui_select',
+  // tools/gen_sfx2.py
+  'orb_pickup', 'orb_pickup2', 'orb_pickup3', 'checkpoint', 'boss_defeat',
 ].map((name) => ({ key: `sfx_${name}`, url: `${A}/sfx/${name}.wav` }));

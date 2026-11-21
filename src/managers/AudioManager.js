@@ -47,12 +47,29 @@ export const AudioManager = {
   /** Reproduce música en bucle; si ya suena la misma pista no la reinicia. */
   playMusic(scene, key, { volume } = {}) {
     if (!game || !scene.cache.audio.exists(key)) return;
+    // Los navegadores bloquean el audio hasta la primera interacción: reintentar entonces.
+    if (game.sound.locked) {
+      game.sound.once('unlocked', () => { if (scene.sys.isActive()) this.playMusic(scene, key, { volume }); });
+      return;
+    }
     if (currentKey === key && currentMusic?.isPlaying) return;
     this.stopMusic();
     const vol = volume ?? SaveManager.getAudio().musicVolume;
     currentMusic = game.sound.add(key, { loop: true, volume: vol });
     currentMusic.play();
     currentKey = key;
+  },
+
+  /** Baja la música hasta silenciarla (para que se oigan las fanfarrias). */
+  fadeOutMusic(scene, ms = 600) {
+    const m = currentMusic;
+    if (!m) return;
+    currentMusic = null;
+    currentKey = null;
+    let done = false;
+    const end = () => { if (done) return; done = true; m.stop(); m.destroy(); };
+    scene.tweens.add({ targets: m, volume: 0, duration: ms, onComplete: end });
+    setTimeout(end, ms + 100); // por si la escena se cierra antes de acabar el tween
   },
 
   stopMusic() {

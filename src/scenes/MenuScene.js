@@ -15,7 +15,7 @@ export default class MenuScene extends Phaser.Scene {
     this.starting = false;
     this.audioOpen = false;
     this.list = null;
-    AudioManager.stopMusic();
+    AudioManager.playMusic(this, 'music_menu');
     const W = GAME_WIDTH;
     const H = GAME_HEIGHT;
 

@@ -195,9 +195,13 @@ tools/.venv/bin/python tools/gen_props.py
 ## Créditos
 
 - **Equipo:** Frank — Visual Novel; Sebas — gameplay (plataformas, física, combate, enemigos, jefe y sistemas compartidos).
-- **Sprites y soundtrack:** proporcionados por el equipo.
+- **Sprites y soundtrack:** proporcionados por el equipo (temas de los Actos 1, 2 y 4).
+- **Música generada para el proyecto** (síntesis con NumPy + FFmpeg, regenerable):
+  - Menú: `tools/gen_music_menu.py` → `Menu.ogg` (si menor → re mayor, 75 BPM; leitmotiv Si–Re–Do♯–Fa♯–Mi).
+  - Acto 3 «Los nombres olvidados»: `tools/gen_music_level3.py` → `Level3.ogg` (el original del equipo era idéntico al del Acto 1).
+  - Jefe final, metal sinfónico: `tools/gen_music_boss.py` → `BossMetal.ogg` (do menor, 180 BPM). El tema original del jefe se conserva en `El pacto de hiareth utils/Soundtrack/BOSSFIGTH.ogg`.
 - **Motor:** [Phaser 3.90](https://phaser.io), licencia MIT.
-- **Efectos de sonido:** sintetizados por procedimiento con `tools/gen_sfx.py`.
+- **Efectos de sonido:** sintetizados por procedimiento con `tools/gen_sfx.py` y `tools/gen_sfx2.py` (orbes con tono ascendente en cadena, derrota de enemigo, checkpoint, fin de nivel y victoria sobre el jefe).
 
 ## Autoevaluación
 
