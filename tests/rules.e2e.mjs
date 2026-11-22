@@ -193,7 +193,7 @@ await step('alien projectiles: fixed trajectory, slow, disappear off-bounds', as
     const s = window.__level;
     const alien = s.enemies.getChildren()[0];
     s.player.invulnerableUntil = s.player.clock + 99999;
-    s.player.body.reset(alien.x - 250, s.player.y);
+    s.player.body.reset(96, 470); // islote inicial (el Acto 2 no tiene suelo)
     alien.shoot(s.player);
     const orb = s.alienShots.getChildren().find((o) => o.active);
     const v0 = { x: orb.body.velocity.x, y: orb.body.velocity.y };
@@ -209,6 +209,10 @@ await step('alien projectiles: fixed trajectory, slow, disappear off-bounds', as
 });
 
 await step('alien orb keeps its trajectory after hitting Aidan', async () => {
+  // De vuelta al islote inicial (el Acto 2 no tiene suelo) y esperar a que la cámara
+  // llegue: las balas fuera de vista se descartan.
+  await page.evaluate(() => { const s = window.__level; s.player.invulnerableUntil = s.player.clock + 1500; s.player.body.reset(96, 470); });
+  await page.waitForTimeout(1600);
   const r = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level;
     const p = s.player;
@@ -397,23 +401,38 @@ await step('act 3: crouch dodges the high slash, sweep hits a crouched Aidan, ch
 
 await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life, slime lava', async () => {
   const out = {};
-  // Plataforma frágil (Acto 2): se rompe tras ~0.5 s de pie encima.
+  // Plataformas del Acto 2: se rompen solas por ciclos y Aidan reaparece sobre la última pisada.
   await page.evaluate(() => { window.__GameState.newGame('normal'); window.game.events.emit('story:goto', { type: 'level', id: 'act2' }); });
   await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 6000 });
   await page.waitForTimeout(300);
-  out.fragile = await page.evaluate(() => new Promise((resolve) => {
-    const s = window.__level; const m = s.movers.getChildren()[0]; const p = s.player;
+  out.cycle = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level; const m = s.movers.getChildren()[1]; const p = s.player;
     p.invulnerableUntil = p.clock + 1e6;
-    p.controls.update = () => {}; p.controls.isDown = () => false; p.controls.justPressed = () => false; p.controls.justReleased = () => false; p.controls.axisX = () => 0;
-    p.body.reset(m.body.center.x, m.body.top - 4); // cae sobre ella y la plataforma lo arrastra
-    let landedAt = null;
-    const watch = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (landedAt === null && m.touchedAt !== null) landedAt = s.levelClock; } });
-    s.time.delayedCall(120, () => { const mid = m.broken; s.time.delayedCall(700, () => { watch.remove(); resolve({ brokenAt330: mid, brokenAt1130: m.broken, trap: m.trap, landed: m.touchedAt !== null || m.broken }); }); });
+    const seen = new Set();
+    let enabledWhileBroken = false;
+    const watch = s.time.addEvent({ delay: 30, loop: true, callback: () => {
+      seen.add(m.cycleState);
+      if (m.cycleState === 'broken' && m.body.enable) enabledWhileBroken = true;
+    } });
+    s.time.delayedCall(6600, () => {
+      watch.remove();
+      // Caída al vacío con una plataforma pisada: reaparece sobre ella, reparada.
+      s.safeMover = m;
+      p.body.reset(m.body.center.x, 700);
+      const h0 = p.hearts;
+      p.invulnerableUntil = 0;
+      s.time.delayedCall(250, () => resolve({
+        trap: m.trap, states: [...seen].sort(), enabledWhileBroken,
+        h0, h1: p.hearts, onMover: Math.abs(p.body.bottom - m.body.top) < 6, moverState: m.cycleState,
+      }));
+    });
   }));
-  assert.equal(out.fragile.trap, 'fragile');
-  assert.equal(out.fragile.landed, true, 'Aidan aterrizó sobre la plataforma');
-  assert.equal(out.fragile.brokenAt330, false, 'no se rompe al instante');
-  assert.equal(out.fragile.brokenAt1130, true, 'se rompe ~0.35 s después del primer toque');
+  assert.equal(out.cycle.trap, 'cycle');
+  assert.deepEqual(out.cycle.states, ['broken', 'solid', 'warn']);
+  assert.equal(out.cycle.enabledWhileBroken, false);
+  assert.equal(out.cycle.h1, out.cycle.h0 - 1, 'la caída cuesta 1 corazón');
+  assert.equal(out.cycle.onMover, true, 'reaparece sobre la última plataforma pisada');
+  assert.notEqual(out.cycle.moverState, 'broken');
 
   // Ataque en el aire golpea a un enemigo.
   out.air = await page.evaluate(() => new Promise((resolve) => {
@@ -682,6 +701,8 @@ await step('moving platforms move smoothly (no velocity spikes)', async () => {
   const r = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level;
     const m = s.movers.getChildren()[0];
+    s.restoreCycleMover?.(m, false);
+    m.trap = 'test'; // sin roturas durante la medición del movimiento
     const xs = [];
     const onStep = () => xs.push(m.body.x);
     s.physics.world.on('worldstep', onStep);

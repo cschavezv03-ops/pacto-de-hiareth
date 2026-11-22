@@ -97,3 +97,94 @@ test('no quedan plataformas estáticas que regalen el paso sobre fosos saltables
     }
   }
 });
+
+/**
+ * Acto 2 (sin suelo): simulación en el tiempo de las plataformas que se mueven y se
+ * rompen por ciclos, con la física real del salto de Aidan y márgenes conservadores
+ * (solo el 80 % del alcance horizontal, subidas de como mucho 3.5 tiles, aterrizar con
+ * al menos 0.25 s de plataforma firme por delante). Debe poder llegarse de islote en
+ * islote hasta la meta.
+ */
+import { MOVER_CYCLE } from '../src/levels/levels.js';
+
+const T_APEX = 0.38;
+const JUMP_H = 150;                       // px (PLAYER_TUNING.jumpHeight)
+const G_FALL = ((2 * JUMP_H) / T_APEX ** 2) * 1.7;
+const RUN = 250;                          // px/s
+const TILE_PX = 32;
+
+function jumpTime(dyTiles) {              // dy > 0 = subir
+  const dy = dyTiles * TILE_PX;
+  if (dy > JUMP_H) return null;
+  return T_APEX + Math.sqrt((2 * (JUMP_H - dy)) / G_FALL);
+}
+
+function cycleSim(def, { reachMult = 0.8, maxUp = 3.5 } = {}) {
+  const C = MOVER_CYCLE;
+  const total = C.solidMs + C.warnMs + C.brokenMs;
+  const movers = def.platforms.filter((p) => p.type === 'moving');
+  const surf = [
+    ...def.ground.map(([a, b]) => ({ island: true, span: () => ({ a, b, h: 0 }), ok: () => true })),
+    ...movers.map((p, i) => {
+      const off = p.cycleOffset ?? -i * C.stagger;
+      const w = (Math.PI * 2) / (p.ms ?? 2000);
+      return {
+        island: false,
+        span: (t) => {
+          const k = (1 - Math.cos(w * t + Math.PI * 2 * (p.phase ?? 0))) / 2;
+          const x = p.x + (p.dx ?? 0) * k;
+          return { a: x, b: x + p.w, h: p.h - (p.dy ?? 0) * k };
+        },
+        ok: (t) => ((((t + off) % total) + total) % total) < C.solidMs + C.warnMs,
+      };
+    }),
+  ];
+  const goalIdx = surf.findIndex((s) => s.island && s.span(0).a <= def.goal.x && s.span(0).b > def.goal.x);
+  const DT = 50;
+  const HORIZON = 240000;
+  const reachedAt = new Array(surf.length).fill(Infinity);
+  reachedAt[0] = 0;
+  let cur = new Set([0]);
+  for (let t = 0; t < HORIZON && reachedAt[goalIdx] === Infinity; t += DT) {
+    const next = new Set();
+    for (const i of cur) {
+      const from = surf[i];
+      if (!from.ok(t)) continue; // se rompió bajo los pies
+      if (from.ok(t + DT)) next.add(i);
+      const sa = from.span(t);
+      surf.forEach((to, j) => {
+        if (j === i) return;
+        const dy = to.span(t).h - sa.h;
+        if (dy > maxUp) return;
+        const T = jumpTime(dy);
+        if (T === null) return;
+        const land = t + T * 1000;
+        if (!to.ok(land) || !to.ok(land + 250)) return;
+        const sb = to.span(land);
+        const gap = Math.max(0, sb.a - sa.b, sa.a - sb.b) + 0.5; // pisar al menos medio tile
+        if (gap * TILE_PX <= RUN * T * reachMult) pending.push([Math.ceil(land / DT) * DT, j]);
+      });
+    }
+    // aterrizajes que ocurren en este paso
+    for (let k = pending.length - 1; k >= 0; k -= 1) {
+      if (pending[k][0] <= t + DT) { next.add(pending[k][1]); reachedAt[pending[k][1]] = Math.min(reachedAt[pending[k][1]], pending[k][0]); pending.splice(k, 1); }
+    }
+    // los islotes, una vez alcanzados, lo están para siempre
+    surf.forEach((s, j) => { if (s.island && reachedAt[j] <= t + DT) next.add(j); });
+    cur = next;
+  }
+  return { reachedGoal: reachedAt[goalIdx] < Infinity, goalAt: reachedAt[goalIdx], reachedAt };
+}
+let pending = [];
+
+test('act2: sin suelo, la meta se alcanza saltando entre plataformas que se rompen', () => {
+  const def = LEVEL_DATA.act2;
+  assert.equal(def.moverTrap, 'cycle');
+  assert.ok(def.ground.length <= 4 && def.ground.every(([a, b]) => b - a <= 12), 'solo islotes cortos');
+  assert.ok(def.platforms.every((p) => p.type === 'moving'), 'todas las plataformas se mueven');
+  pending = [];
+  const r = cycleSim(def);
+  assert.ok(r.reachedGoal, `meta inalcanzable; alcanzadas: ${r.reachedAt.map((x) => (x < Infinity ? 1 : 0)).join('')}`);
+  // Debe poder completarse en un tiempo razonable (no exige esperas absurdas).
+  assert.ok(r.goalAt < 120000, `demasiado lento: ${r.goalAt} ms`);
+});

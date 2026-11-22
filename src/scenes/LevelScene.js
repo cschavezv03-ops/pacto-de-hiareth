@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT, RULES } from '../config/constants.js';
 import { BACKGROUNDS } from '../config/assets.js';
-import { LEVEL_DATA } from '../levels/levels.js';
+import { LEVEL_DATA, MOVER_CYCLE } from '../levels/levels.js';
 import { GameState } from '../managers/GameState.js';
 import { AudioManager } from '../managers/AudioManager.js';
 import { InputManager } from '../managers/InputManager.js';
@@ -17,12 +17,18 @@ const GROUND_ROWS = 2;
  *  'fragile' — se agrieta y se rompe 0.35 s después del PRIMER toque, aunque saltes.
  *  'phantom' — (Acto 3, Limbo) es una trampa: no tiene colisión; al tocarla se desvanece
  *              mientras Aidan cae. Un leve brillo espectral la delata al jugador atento.
+ *  'cycle'   — (Acto 2, sin suelo) se rompen solas por ciclos: firmes → tiemblan y se
+ *              agrietan (aviso) → caen → reaparecen. Cada plataforma va desfasada
+ *              `stagger` ms por detrás de la anterior, así cuando la tuya avisa la
+ *              siguiente está firme.
  */
 const MOVER_TRAP = Object.freeze({
   fragileMs: 350,        // desde el primer toque hasta que se rompe
   phantomFadeMs: 300,
   respawnMs: 3000,
 });
+
+const CYCLE_TOTAL = MOVER_CYCLE.solidMs + MOVER_CYCLE.warnMs + MOVER_CYCLE.brokenMs;
 
 /**
  * Orbes: cuántos suelta cada enemigo. Cada orbe cuenta 1 (vida cada GameState.LIFE_EVERY).
@@ -63,6 +69,7 @@ export default class LevelScene extends Phaser.Scene {
     this.startTime = 0;
     this.levelClock = 0;
     this.lastSpecialRatio = -1;
+    this.safeMover = null;
     // Punto de control desde el que se empieza (-1 = inicio). En Difícil siempre -1.
     this.checkpointIndex = GameState.checkpointFor(this.levelId);
   }
@@ -165,8 +172,15 @@ export default class LevelScene extends Phaser.Scene {
         plat.dx = (p.dx ?? 0) * TILE;
         plat.dy = (p.dy ?? 0) * TILE;
         plat.period = p.ms ?? 2000;
+        plat.phase = p.phase ?? 0;
         plat.prevX = x;
         plat.trap = p.trap ?? def.moverTrap ?? 'fragile';
+        if (plat.trap === 'cycle') {
+          // Desfase: la siguiente plataforma va por detrás en su ciclo (rompe más tarde).
+          plat.cycleOffset = p.cycleOffset ?? -this.movers.getLength() * MOVER_CYCLE.stagger;
+          plat.cycleShift = 0;
+          plat.cycleState = null; // se fija en el primer update sin efectos
+        }
         plat.touchedAt = null;
         plat.broken = false;
         if (plat.trap === 'phantom') {
@@ -174,7 +188,8 @@ export default class LevelScene extends Phaser.Scene {
           // Casi idéntica a una normal: solo un leve parpadeo espectral la delata.
           plat.setTint(0xe6dcff).setAlpha(0.95);
           this.tweens.add({ targets: plat, alpha: 0.8, yoyo: true, repeat: -1, duration: 1100, ease: 'Sine.InOut' });
-        } else if (this.textures.exists('fx_crack')) {
+        }
+        if (plat.trap !== 'phantom' && this.textures.exists('fx_crack')) {
           plat.crack = this.add.tileSprite(x, y, w, 16, 'fx_crack', 0).setOrigin(0).setDepth(3.5).setVisible(false);
         }
       } else if (type === 'crumble') {
@@ -226,7 +241,7 @@ export default class LevelScene extends Phaser.Scene {
     if (!this.textures.exists('fx_ufo') || !this.textures.exists('fx_beam')) return;
     for (const u of this.def.ufos ?? []) {
       this.ufos.push(new Ufo(this, {
-        x: u.x * TILE, minX: u.zone[0] * TILE, maxX: u.zone[1] * TILE, groundY: GROUND_Y,
+        x: u.x * TILE, minX: u.zone[0] * TILE, maxX: u.zone[1] * TILE, groundY: GAME_HEIGHT,
       }));
     }
   }
@@ -234,6 +249,7 @@ export default class LevelScene extends Phaser.Scene {
   /** Trampas de las plataformas móviles (frágil / fantasma). */
   updateMoverTrap(m, delta, tx, ty) {
     if (m.crack) m.crack.setPosition(m.x, m.y);
+    if (m.trap === 'cycle') { this.updateCycleMover(m); return; }
     if (m.broken) return;
     void delta;
     if (m.trap === 'phantom') {
@@ -256,12 +272,97 @@ export default class LevelScene extends Phaser.Scene {
     if (ratio >= 1) this.breakMover(m, tx, ty, true);
   }
 
-  breakMover(m, tx, ty, crumble) {
+  /** Momento del ciclo de rotura (0..CYCLE_TOTAL) de una plataforma 'cycle'. */
+  cycleTime(m) {
+    const t = this.levelClock + m.cycleOffset + m.cycleShift;
+    return ((t % CYCLE_TOTAL) + CYCLE_TOTAL) % CYCLE_TOTAL;
+  }
+
+  updateCycleMover(m) {
+    const C = MOVER_CYCLE;
+    const t = this.cycleTime(m);
+    const state = t < C.solidMs ? 'solid' : t < C.solidMs + C.warnMs ? 'warn' : 'broken';
+    if (state === 'warn') {
+      const ratio = (t - C.solidMs) / C.warnMs;
+      if (m.crack) m.crack.setVisible(true).setFrame(Math.min(3, Math.floor(ratio * 4)));
+      m.setTint(Phaser.Display.Color.GetColor(255, Math.round(255 - ratio * 110), Math.round(255 - ratio * 110)));
+      // Temblor visual (el cuerpo no se mueve: no descoloca a Aidan).
+      const shake = Math.floor(this.levelClock / 45) % 2 ? 1.5 : -1.5;
+      m.setDisplayOrigin(shake, 0);
+      m.crack?.setDisplayOrigin(shake, 0);
+      if (m.cycleState === 'solid' && this.onScreen(m)) AudioManager.sfx(this, 'sfx_enemy_hit', { volume: 0.25, rate: 0.5 });
+    } else if (m.cycleState === 'warn' || (state === 'solid' && m.cycleState !== 'solid')) {
+      m.setDisplayOrigin(0, 0);
+      m.crack?.setDisplayOrigin(0, 0);
+    }
+    if (state === m.cycleState) return;
+    const prev = m.cycleState;
+    m.cycleState = state;
+    if (prev === null) { // estado inicial: sin partículas ni sonido
+      if (state === 'broken') { m.broken = true; m.body.enable = false; m.setAlpha(0); }
+      return;
+    }
+    if (state === 'broken') {
+      this.breakMover(m, 0, 0, true, { respawn: false, sound: this.onScreen(m) });
+    } else if (state === 'solid' && prev === 'broken') {
+      this.restoreCycleMover(m, true);
+    } else if (state === 'solid') {
+      this.restoreCycleMover(m, false);
+    }
+  }
+
+  /** Devuelve una plataforma 'cycle' a su estado firme (con fundido si venía rota). */
+  restoreCycleMover(m, fade) {
+    this.tweens.killTweensOf(m);
+    m.broken = false;
+    m.clearTint();
+    m.crack?.setVisible(false);
+    m.setDisplayOrigin(0, 0);
+    m.crack?.setDisplayOrigin(0, 0);
+    if (!m.body.enable) {
+      const w = (Math.PI * 2) / m.period;
+      const k = (1 - Math.cos(w * this.levelClock + Math.PI * 2 * m.phase)) / 2;
+      m.body.enable = true;
+      m.body.reset(m.originX0 + m.dx * k, m.originY0 + m.dy * k);
+    }
+    if (fade) {
+      m.setAlpha(0);
+      this.tweens.add({ targets: m, alpha: 1, duration: 300 });
+    } else m.setAlpha(1);
+  }
+
+  onScreen(obj) {
+    return Phaser.Geom.Rectangle.Overlaps(this.cameras.main.worldView, obj.getBounds());
+  }
+
+  /**
+   * Tras caer al vacío (o ser abducido) en un nivel sin suelo: Aidan vuelve a la última
+   * plataforma 'cycle' que pisó, que se repara al instante (empieza su fase firme).
+   * Si pisó suelo firme después, se usa el punto seguro normal.
+   */
+  prepareRespawn() {
+    const m = this.safeMover;
+    if (!m || !m.active) return;
+    m.cycleShift -= this.cycleTime(m); // ciclo a 0: firme durante solidMs
+    m.cycleState = 'solid';
+    this.restoreCycleMover(m, false);
+    this.player.lastSafe = { x: m.body.x + m.body.width / 2, y: m.body.y };
+  }
+
+  /** Abducción del platillo: el corazón ya se ha restado; recolocar sin más daño. */
+  returnToSafe() {
+    const p = this.player;
+    if (p.dead) return;
+    this.prepareRespawn();
+    p.body.reset(p.lastSafe.x, p.lastSafe.y - 4);
+  }
+
+  breakMover(m, tx, ty, crumble, { respawn = true, sound = true } = {}) {
     m.broken = true;
     m.body.enable = false;
     m.crack?.setVisible(false);
     if (crumble) {
-      AudioManager.sfx(this, 'sfx_enemy_hit', { volume: 0.6, rate: 0.7 });
+      if (sound) AudioManager.sfx(this, 'sfx_enemy_hit', { volume: 0.6, rate: 0.7 });
       const dust = this.add.particles(m.x + m.width / 2, m.y + 8, 'fx_pixel', {
         speed: { min: 30, max: 120 }, angle: { min: 20, max: 160 }, gravityY: 500, lifespan: 600,
         scale: { start: 1.2, end: 0 }, tint: [0x8a8f99, 0x5a5f69, 0xc9ccd4], quantity: 20, emitting: false,
@@ -270,6 +371,7 @@ export default class LevelScene extends Phaser.Scene {
       this.time.delayedCall(700, () => dust.destroy());
       this.tweens.add({ targets: m, y: m.y + 40, alpha: 0, duration: 380, ease: 'Quad.In' });
     }
+    if (!respawn) return;
     this.time.delayedCall(MOVER_TRAP.respawnMs, () => {
       if (!m.active) return;
       m.broken = false;
@@ -278,7 +380,7 @@ export default class LevelScene extends Phaser.Scene {
       m.clearTint();
       // Reaparece en la posición que le toca en su recorrido.
       const w = (Math.PI * 2) / m.period;
-      const k = (1 - Math.cos(w * this.levelClock)) / 2;
+      const k = (1 - Math.cos(w * this.levelClock + Math.PI * 2 * m.phase)) / 2;
       m.body.enable = true;
       m.body.reset(m.originX0 + m.dx * k, m.originY0 + m.dy * k);
       m.setAlpha(0);
@@ -563,6 +665,7 @@ export default class LevelScene extends Phaser.Scene {
     this.physics.add.collider(p, this.oneWay);
     // Las fantasma no colisionan (proceso = false): solo se detecta el contacto.
     this.physics.add.collider(p, this.movers, (pl, plat) => {
+      if (pl.body.touching.down && plat.body.touching.up && plat.trap === 'cycle') this.safeMover = plat;
       if (pl.body.touching.down && plat.body.touching.up && plat.touchedAt === null) plat.touchedAt = this.levelClock;
     }, (_pl, plat) => plat.trap !== 'phantom');
     this.physics.add.overlap(p, this.movers, (_pl, plat) => {
@@ -652,9 +755,9 @@ export default class LevelScene extends Phaser.Scene {
     this.levelClock += delta;
     for (const m of this.movers.getChildren()) {
       const w = (Math.PI * 2) / m.period;          // rad/ms
-      const t = this.levelClock;
-      const k = (1 - Math.cos(w * t)) / 2;          // 0..1
-      const dk = (Math.sin(w * t) * w * 1000) / 2;  // derivada por segundo
+      const a = w * this.levelClock + Math.PI * 2 * m.phase;
+      const k = (1 - Math.cos(a)) / 2;              // 0..1
+      const dk = (Math.sin(a) * w * 1000) / 2;      // derivada por segundo
       const tx = m.originX0 + m.dx * k;
       const ty = m.originY0 + m.dy * k;
       m.body.setVelocity(m.dx * dk + (tx - m.body.x) * 4, m.dy * dk + (ty - m.body.y) * 4);
@@ -713,7 +816,10 @@ export default class LevelScene extends Phaser.Scene {
     }
 
     // Foso
-    if (!this.player.dead && this.player.y > PIT_Y) this.player.fellIntoPit();
+    if (!this.player.dead && this.player.y > PIT_Y) {
+      this.prepareRespawn();
+      this.player.fellIntoPit();
+    }
 
     // Parallax
     const sx = this.cameras.main.scrollX;
@@ -735,6 +841,7 @@ export default class LevelScene extends Phaser.Scene {
     const onSpikes = this.def.hazards.some((h) => h.type === 'spikes'
       && p.x > h.x * TILE - margin && p.x < (h.x + h.w) * TILE + margin);
     if (onSolid && !onSpikes) {
+      this.safeMover = null; // el suelo firme manda sobre la última plataforma pisada
       p.lastSafe.x = p.x;
       p.lastSafe.y = p.y;
     }

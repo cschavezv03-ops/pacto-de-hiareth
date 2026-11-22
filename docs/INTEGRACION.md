@@ -255,3 +255,7 @@ Pruebas automatizadas equivalentes: `npm test`, `node tests/smoke.mjs <url>` y `
 ### Modo desarrollador
 
 `GameState.startDev(stepIndex, difficulty, { god })` arranca un nivel suelto sin tocar el guardado (`persist()` no escribe mientras `GameState.isDev`). En ese modo `advanceStory()` devuelve `{ type: 'dev' }` y el router vuelve al menú con `{ dev: true }` (selector de niveles). `newGame()` y `loadGame()` salen del modo desarrollador. Frank: si la VN necesita probar escenas sueltas, puede reutilizar el mismo mecanismo con pasos de tipo `vn`.
+
+### Acto 2 sin suelo
+
+El Acto 2 no tiene suelo continuo: islotes en el inicio, los checkpoints y la meta, y entre ellos plataformas móviles con `moverTrap: 'cycle'` (se rompen y reaparecen solas). `LevelScene.prepareRespawn()` recoloca a Aidan tras una caída sobre la última plataforma pisada; `LevelScene.returnToSafe()` lo usa el platillo al abducir. Detalles y tiempos en `docs/BALANCE.md` §11.

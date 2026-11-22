@@ -10,7 +10,9 @@
  *  goal:      { x, texture, label }  — al tocarlo termina el nivel
  *  orbs:      [{ x, h, n }] — grupos de orbes flotantes (recompensan explorar; también sin matar)
  *  ufos:      [{ x, zone: [min, max] }] — platillos abductores (peligro, no enemigo)
- *  moverTrap: 'fragile' | 'phantom' — trampa de las plataformas móviles del nivel
+ *  moverTrap: 'fragile' | 'phantom' | 'cycle' — trampa de las plataformas móviles del nivel
+ *             (cycle: se rompen y reaparecen por ciclos, sin necesidad de pisarlas)
+ *  moving:    dx/dy en tiles, ms = periodo, phase 0..1 opcional; cycleOffset (ms) opcional
  *  checkpoints: [x, ...] — puntos de control sobre suelo firme, fuera de zonas de patrulla
  *             (no se usan en dificultad Difícil)
  *
@@ -18,6 +20,14 @@
  * Ruta crítica: huecos ≤ 4 tiles, escalones ≤ 3.5 tiles.
  * Siempre hay forma de esquivar a cada enemigo (saltando por encima o por plataformas).
  */
+
+/** Ciclo de las plataformas que se rompen solas (moverTrap 'cycle', Acto 2). */
+export const MOVER_CYCLE = Object.freeze({
+  solidMs: 3600,   // firme
+  warnMs: 1000,    // tiembla y se agrieta: hora de saltar
+  brokenMs: 1500,  // rota (sin colisión)
+  stagger: 2000,   // desfase entre plataformas consecutivas (la siguiente rompe más tarde)
+});
 
 export const LEVEL_DATA = {
   act1: {
@@ -60,48 +70,62 @@ export const LEVEL_DATA = {
     orbs: [{ x: 26, h: 6.5 }, { x: 56, h: 7.5 }, { x: 86, h: 7.5 }, { x: 110, h: 5.5 }, { x: 153, h: 7.5 }],
   },
 
+  // Acto 2 — Vuela alto: ciudad en ruinas SIN SUELO. Solo hay cuatro islotes firmes
+  // (inicio, dos checkpoints y meta); entre ellos todo son plataformas móviles que se
+  // rompen por ciclos (moverTrap 'cycle', ver LevelScene.MOVER_CYCLE). Cada plataforma
+  // va desfasada respecto a la anterior: cuando la tuya tiembla, la siguiente está firme.
+  // Ritmo: H = horizontal (dx), V = vertical (dy < 0 sube). Las H seguidas comparten
+  // periodo para que el hueco entre ellas sea constante (≈3 tiles).
   act2: {
     title: 'Acto 2 — Vuela alto',
     bg: 'act2',
     music: 'music_act2',
     tile: 'tile_act2',
-    width: 200,
+    width: 158,
     parallax: [0.03, 0.1, 0.2, 0.35, 0.55],
-    ground: [[0, 30], [34, 58], [63, 88], [93, 118], [122, 150], [155, 200]],
+    ground: [[0, 7], [46, 52], [96, 102], [146, 158]],
+    moverTrap: 'cycle',
     platforms: [
-      { x: 20, h: 3, w: 4 },
-      { x: 42, h: 4, w: 5 },
-      { x: 58, h: 3, w: 2, type: 'moving', dx: 3, ms: 3800 },
-      { x: 70, h: 3, w: 4 },
-      { x: 77, h: 6, w: 5 },
-      { x: 88, h: 3, w: 2, type: 'moving', dx: 3, ms: 3500 },
-      { x: 100, h: 4, w: 5 },
-      { x: 108, h: 7, w: 4 },
-      { x: 130, h: 3, w: 4 },
-      { x: 137, h: 6, w: 5 },
-      { x: 150, h: 3, w: 2, type: 'moving', dx: 3, ms: 3300 },
-      { x: 165, h: 3, w: 5 },
-      { x: 175, h: 5, w: 4 },
+      // Tramo 1: introducción (gaps cortos, alturas suaves)
+      { x: 9, h: 2, w: 3, type: 'moving', dx: 3, ms: 3600 },
+      { x: 15, h: 3, w: 3, type: 'moving', dx: 3, ms: 3600 },
+      { x: 21, h: 4, w: 3, type: 'moving', dy: -2, ms: 3000 },
+      { x: 27, h: 3, w: 3, type: 'moving', dx: 3, ms: 3400 },
+      { x: 33, h: 2, w: 3, type: 'moving', dx: 3, ms: 3400 },
+      { x: 41, h: 2, w: 3, type: 'moving', dy: -2, ms: 3000 },
+      // Tramo 2: más verticales y alturas mayores
+      { x: 54, h: 2, w: 3, type: 'moving', dx: 3, ms: 3400 },
+      { x: 60, h: 4, w: 3, type: 'moving', dx: 3, ms: 3400 },
+      { x: 66, h: 5, w: 3, type: 'moving', dy: -2, ms: 2800 },
+      { x: 72, h: 3, w: 3, type: 'moving', dx: 3, ms: 3000 },
+      { x: 78, h: 4, w: 3, type: 'moving', dx: 3, ms: 3000 },
+      { x: 85, h: 3, w: 3, type: 'moving', dy: -2, ms: 3200 },
+      { x: 91, h: 2, w: 3, type: 'moving', dx: 2, ms: 3000 },
+      // Tramo 3: plataformas más estrechas y ritmo más rápido
+      { x: 104, h: 2, w: 3, type: 'moving', dx: 3, ms: 3200 },
+      { x: 110, h: 3, w: 3, type: 'moving', dx: 3, ms: 3200 },
+      { x: 116, h: 5, w: 3, type: 'moving', dy: -2, ms: 2600 },
+      { x: 122, h: 3, w: 2, type: 'moving', dx: 3, ms: 3000 },
+      { x: 127, h: 4, w: 3, type: 'moving', dx: 3, ms: 3000 },
+      { x: 133, h: 2, w: 3, type: 'moving', dx: 3, ms: 3000 },
+      { x: 140, h: 2, w: 3, type: 'moving', dy: -2, ms: 2800 },
     ],
+    // Los aliens flotan alto, disparando hacia las plataformas; se pueden esquivar.
     enemies: [
-      { type: 'alien', x: 16, zone: [10, 24] },
-      { type: 'alien', x: 46, zone: [37, 54] },
-      { type: 'alien', x: 74, zone: [66, 84] },
-      { type: 'alien', x: 104, zone: [96, 114] },
-      { type: 'alien', x: 134, zone: [125, 146] },
-      { type: 'alien', x: 166, zone: [158, 176] },
-      { type: 'alien', x: 186, zone: [181, 191] }, // guardián del portal
+      { type: 'alien', x: 24, zone: [18, 30], h: 8 },
+      { type: 'alien', x: 38, zone: [33, 43], h: 8 },
+      { type: 'alien', x: 64, zone: [57, 70], h: 9 },
+      { type: 'alien', x: 84, zone: [78, 92], h: 8 },
+      { type: 'alien', x: 114, zone: [107, 120], h: 9 },
+      { type: 'alien', x: 136, zone: [130, 143], h: 8 },
     ],
-    hazards: [
-      { type: 'spikes', x: 52, w: 2 },
-      { type: 'spikes', x: 113, w: 2 },
-      { type: 'spikes', x: 182, w: 2 },
-    ],
-    goal: { x: 193, texture: 'goal_portal' },
-    checkpoints: [65, 125],
-    // Platillos abductores: persiguen despacio y lanzan un haz tractor (salir de la luz).
-    ufos: [{ x: 22, zone: [12, 30] }, { x: 76, zone: [66, 90] }, { x: 136, zone: [124, 150] }, { x: 172, zone: [160, 188] }],
-    orbs: [{ x: 44, h: 5.5 }, { x: 79, h: 7.5 }, { x: 110, h: 8.5 }, { x: 139, h: 7.5 }, { x: 177, h: 6.5 }],
+    hazards: [],
+    goal: { x: 153, texture: 'goal_portal' },
+    checkpoints: [48, 98],
+    // Platillos abductores: uno por tramo; si te abducen pierdes 1 corazón y vuelves
+    // a la última plataforma pisada (no se suma la caída al vacío).
+    ufos: [{ x: 30, zone: [20, 40] }, { x: 76, zone: [64, 88] }, { x: 126, zone: [114, 138] }],
+    orbs: [{ x: 16, h: 5.5 }, { x: 42, h: 6 }, { x: 67, h: 9 }, { x: 92, h: 5 }, { x: 117, h: 8.5 }, { x: 141, h: 6 }],
   },
 
   act3: {

@@ -99,7 +99,12 @@ export class Ufo {
       this.inBeamMs += delta;
       b.setVelocityY(-T.liftSpeed); // te eleva: hay que salir de la luz
       if (this.inBeamMs >= T.abductMs) {
-        if (player.takeHit(this.sprite.x)) b.setVelocityY(260);
+        // Abducido: pierde 1 corazón y el platillo lo "suelta" en la última plataforma
+        // segura (en el Acto 2 no hay suelo: así no se suma además la caída al vacío).
+        if (player.takeHit(this.sprite.x)) {
+          if (this.scene.returnToSafe) this.scene.returnToSafe();
+          else b.setVelocityY(260);
+        }
         this.endBeam(this.scene.levelClock);
       }
     } else {

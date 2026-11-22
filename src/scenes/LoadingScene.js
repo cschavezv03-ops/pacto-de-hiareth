@@ -9,7 +9,7 @@ import { FONT_TITLE, FONT_UI, COLORS, panel } from '../ui/UiKit.js';
 /** Consejo por nivel (se muestra en su pantalla de carga). */
 const TIPS = {
   act1: 'Los slimes de lava avisan antes de saltar y dejan fuego al caer: no te quedes encima.',
-  act2: 'Si el haz de un platillo te atrapa, sal de la luz antes de que te abduzca.',
+  act2: 'No hay suelo: las plataformas tiemblan antes de romperse. Salta a la siguiente y sal del haz de los platillos.',
   act3: 'Agáchate (S / ↓) ante el tajo alto y salta el barrido bajo. No te fíes de todas las plataformas.',
   act4: 'Un lugar tranquilo… pero el hielo no perdona.',
   boss: 'El dash (Shift / L) te vuelve intocable un instante. La media luna (K) borra orbes.',

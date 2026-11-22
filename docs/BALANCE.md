@@ -148,7 +148,7 @@ Los enemigos dejaron de ser obstáculos pasivos: ahora presionan para que no bas
 | Esqueleto | Ojos rojos durante 250 ms | Tajo de 74×70 px, activo en los frames 4-5 de `skeleton-attack` | Saltar por encima o salir del alcance | 1600–2200 ms |
 | Alien | Carga cian de 450 ms | Abanico de 3 orbes (±0.28 rad) cada 3.er disparo si Aidan está a menos de 460 px | Moverse en lateral o usar plataformas | Disparo normal cada 2600 ms |
 | Guardián del Acto 1 | Igual que un slime | Slime adicional en x = 179, justo antes de la meta | Igual que un slime | Igual que un slime |
-| Guardián del Acto 2 | Igual que un alien | Alien adicional en x = 186, justo antes del portal | Igual que un alien | Igual que un alien |
+| Guardián del Acto 2 | — | Retirado en el rediseño sin suelo (§11) | — | — |
 
 Animaciones nuevas asociadas: `Slime3_Leap` (8 frames de 64×64), `skeleton/windup` (4 de 256×256) y `alien/charge` (4 de 256×256), generadas por `tools/gen_anim_sprites.py`. Si faltan, el código usa las animaciones existentes como respaldo. Ningún enemigo abandona su zona.
 
@@ -269,7 +269,7 @@ La puntuación **no depende de matar enemigos**. Así no premia ni delata la rut
 | Nivel | Ancho (tiles) | Ancho (px) | Enemigos | Fosos | Plataformas | Obstáculos | Meta |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Acto 1 — Tierra, mar y cielo | 190 | 6080 | 11 slimes (incluye guardián en x = 179) | 4 | 15 estáticas | 0 | `goal_sign` (x = 184) |
-| Acto 2 — Vuela alto | 200 | 6400 | 7 aliens (incluye guardián en x = 186) | 5 | 12 estáticas + 3 móviles | 3 pinchos | `goal_portal` (x = 193) |
+| Acto 2 — Vuela alto | 158 | 5056 | 6 aliens flotando alto | 6 | 20 móviles que se rompen por ciclos (sin suelo, §11) | 3 platillos abductores | `goal_portal` (x = 153) |
 | Acto 3 — Limbo | 205 | 6560 | 13 esqueletos (3 emboscados, 3 en plataformas) | 6 | 12 estáticas + 5 móviles | 2 pinchos | `goal_house` (x = 198) |
 | Acto 4 — Don't Try… (IF) | 175 | 5600 | 0 | 6 | 6 estáticas + 6 quebradizas + 2 móviles | 5 pinchos + 6 estalactitas | `goal_camp` (x = 168) |
 
@@ -278,7 +278,7 @@ Los **fosos** son los huecos entre los tramos de `ground`; no hay suelo en esos 
 Tramos de suelo y huecos:
 
 - **Acto 1:** `[0,34] [37,62] [66,96] [100,128] [131,190]`.
-- **Acto 2:** `[0,30] [34,58] [63,88] [93,118] [122,150] [155,200]`.
+- **Acto 2:** solo islotes `[0,7] [46,52] [96,102] [146,158]` (inicio, checkpoints y meta; ver §11).
 - **Acto 3:** `[0,28] [32,55] [59,80] [85,110] [114,140] [145,170] [174,205]`.
 - **Acto 4:** `[0,26] [30,48] [53,70] [76,96] [101,122] [128,148] [152,175]`.
 
@@ -337,7 +337,7 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 
 | Mecánica | Valores |
 | --- | --- |
-| Plataformas móviles frágiles (Actos 1, 2 y 4) | Se agrietan (4 etapas) y se rompen **0,35 s después del primer toque**, aunque Aidan salte; reaparecen a los 3 s en su recorrido |
+| Plataformas móviles frágiles (hasta el rediseño del Acto 2, §11) | Se agrietan (4 etapas) y se rompen **0,35 s después del primer toque**, aunque Aidan salte; reaparecen a los 3 s en su recorrido |
 | Plataformas móviles fantasma (Acto 3, Limbo) | **Trampa sin colisión**: parecen normales (solo un leve parpadeo espectral) y Aidan cae a través; al tocarlas se desvanecen. Los fosos del Acto 3 se acortaron a 4 tiles para que se salten sin ellas |
 | Plataformas eliminadas | 7 plataformas estáticas sobre fosos saltables (Actos 1-3) que regalaban el paso; `tests/levels.test.js` impide reintroducirlas y valida que todo sigue siendo alcanzable |
 | Lava del slime | Charco grande al aterrizar de su salto (dura 2,6 s) y brasas pequeñas al caminar cada 2,4-3,2 s (duran 1,8 s). Aparecen **sin dañar durante 0,26 s** (aviso) y solo sobre suelo firme |
@@ -354,7 +354,7 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 
 | Cambio | Detalle |
 | --- | --- |
-| Platillo abductor (Acto 2) | 4 platillos (`ufos` en `levels.js`). Persiguen a 85 px/s dentro de su zona (Aidan corre a 250), se alinean, **avisan 0,65 s** cargando el emisor y lanzan un haz tractor de 1,5 s y 60 px de ancho: dentro del haz Aidan es elevado y, si sigue 0,8 s, es abducido (−1 corazón). Recarga 2,4-3,2 s. Es un **peligro ambiental**: no se puede destruir, no suelta orbes y no cuenta para `enemiesKilled` (la ruta pacifista no cambia). Sprites `fx/ufo*.png` y `fx/tractor_beam.png` (`tools/gen_anim_sprites4.py`) |
+| Platillo abductor (Acto 2) | 4 platillos (3 desde §11) (`ufos` en `levels.js`). Persiguen a 85 px/s dentro de su zona (Aidan corre a 250), se alinean, **avisan 0,65 s** cargando el emisor y lanzan un haz tractor de 1,5 s y 60 px de ancho: dentro del haz Aidan es elevado y, si sigue 0,8 s, es abducido (−1 corazón). Recarga 2,4-3,2 s. Es un **peligro ambiental**: no se puede destruir, no suelta orbes y no cuenta para `enemiesKilled` (la ruta pacifista no cambia). Sprites `fx/ufo*.png` y `fx/tractor_beam.png` (`tools/gen_anim_sprites4.py`) |
 | Lava en plataformas | Los slimes sobre plataformas dejan la lava en su plataforma (antes aparecía en el suelo de abajo) |
 | Pantalla de carga por nivel | `LoadingScene` antes de cada nivel y del jefe, con el escenario completo, título, dificultad y un consejo. El router la genera solo para el paso real siguiente: la del Acto 4 solo aparece en la ruta pacifista (prueba E2E de la ruta convencional completa) |
 | Fondos completos | Pantallas de carga y tarjetas de la novela visual componen todas las capas del escenario (`ui/Backdrop.js`); antes usaban solo la capa más lejana, que en el Acto 2 es un cielo liso |
@@ -369,3 +369,23 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
   - Es una herramienta de pruebas, no una opción del jugador; no altera ninguna regla del documento maestro.
 - **Fuego fantasma en el aire.** `K` ya no exige estar en el suelo: se puede lanzar en pleno salto, con la misma recarga de 6.5 s.
 - **Música del jefe.** Se restauró el tema original del equipo (`BOSSFIGTH.ogg`); el tema metal generado se retiró de `public/`.
+
+## 11. Acto 2 sin suelo
+
+Pedido por el equipo para subir la dificultad del Acto 2 sin hacerlo imposible.
+
+- **Sin suelo continuo.** Solo quedan cuatro islotes firmes: inicio `[0,7]`, checkpoints `[46,52]` y `[96,102]`, y meta `[146,158]`. Entre ellos hay tres tramos de unos 40 tiles hechos solo de plataformas móviles (horizontales y verticales).
+- **Plataformas que se rompen por ciclos** (`moverTrap: 'cycle'`, `MOVER_CYCLE` en `levels.js`). No hace falta pisarlas para que se rompan:
+
+  | Fase | Duración | Qué se ve |
+  |---|---|---|
+  | Firme | 3,6 s | Normal |
+  | Aviso | 1,0 s | Tiembla, se agrieta en 4 etapas y se tiñe de rojo; suena un crujido si está en pantalla |
+  | Rota | 1,5 s | Cae deshecha y no tiene colisión; luego reaparece con un fundido en su recorrido |
+
+  Cada plataforma va **2 s por detrás** de la anterior, así que cuando la tuya avisa la siguiente está firme. Las horizontales seguidas comparten periodo, de modo que el hueco entre ellas es constante (≈3 tiles).
+- **Caer no te devuelve al checkpoint.** Al caer al vacío, Aidan pierde 1 corazón y reaparece sobre la **última plataforma que pisó**, que se repara al instante (empieza su fase firme). Si pisó un islote después, reaparece en el islote.
+- **Abducción.** Si un platillo te abduce, pierdes 1 corazón y te suelta en esa misma plataforma segura; no se suma la caída al vacío. Hay 3 platillos, uno por tramo.
+- **Aliens.** 6 aliens flotan alto (h = 8-9) y disparan hacia las plataformas. Se pueden esquivar o matar con el ataque aéreo o el Fuego fantasma. Se retiraron los pinchos y el guardián del portal, que dependían del suelo.
+- **Verificado que es superable.** `tests/levels.test.js` simula en el tiempo la posición y el estado de cada plataforma con la física real del salto de Aidan, usando solo el 80 % del alcance horizontal, subidas de como mucho 3,5 tiles y aterrizajes con al menos 0,25 s de plataforma firme. Sigue siendo superable con el 60 % del alcance. El recorrido óptimo dura unos 39 s.
+- La dificultad elegida no cambia los tiempos del ciclo, igual que el resto del escenario: solo cambian la resistencia de los enemigos y los checkpoints.

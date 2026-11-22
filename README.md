@@ -126,7 +126,7 @@ Menú
  └─ VN introducción
      └─ Acto 1 (plataformas, slimes)
          └─ VN (Aidan conoce a Aine)
-             └─ Acto 2 (plataformas, aliens)
+             └─ Acto 2 (sin suelo: plataformas que se rompen, aliens, platillos)
                  └─ VN (en el portal, Aine alcanza a Aidan)
                      └─ Acto 3 (plataformas, esqueletos)
                          └─ VN (casa abandonada / refugio)
