@@ -1,13 +1,33 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT, DIFFICULTIES } from '../config/constants.js';
-import { GameState } from '../managers/GameState.js';
+import { GameState, DEV_STEPS } from '../managers/GameState.js';
+import { LEVEL_DATA } from '../levels/levels.js';
 import { SaveManager } from '../managers/SaveManager.js';
 import { AudioManager } from '../managers/AudioManager.js';
 import { FONT_TITLE, FONT_UI, COLORS, menuList, muteButton, panel, audioPanel, oncePerKeyEvent } from '../ui/UiKit.js';
 
+/**
+ * Modo desarrollador (selector de niveles): visible con `npm run dev` o añadiendo
+ * `?dev` a la URL de la build. En el menú, F2 también lo activa.
+ */
+function devAvailable() {
+  try {
+    return Boolean(import.meta.env?.DEV) || new URLSearchParams(window.location.search).has('dev');
+  } catch {
+    return false;
+  }
+}
+
+const devPrefs = { difficulty: 'normal', god: false }; // se recuerdan durante la sesión
+
 export default class MenuScene extends Phaser.Scene {
   constructor() {
     super(SCENES.MENU);
+  }
+
+  init(data) {
+    this.openDev = Boolean(data?.dev); // al terminar un nivel de prueba se vuelve al selector
+    this.devEnabled = this.openDev || devAvailable() || MenuScene.devUnlocked;
   }
 
   create() {
@@ -15,7 +35,7 @@ export default class MenuScene extends Phaser.Scene {
     this.starting = false;
     this.audioOpen = false;
     this.list = null;
-    AudioManager.stopMusic();
+    AudioManager.playMusic(this, 'music_menu');
     const W = GAME_WIDTH;
     const H = GAME_HEIGHT;
 
@@ -36,7 +56,14 @@ export default class MenuScene extends Phaser.Scene {
     this.subtitle = this.add.text(W / 2, 428, '', {
       fontFamily: FONT_UI, fontSize: '16px', color: COLORS.dim, stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5);
-    this.showMainMenu();
+    if (this.openDev) this.showDevMenu();
+    else this.showMainMenu();
+    this.input.keyboard.on('keydown-F2', () => {
+      if (this.devEnabled || this.starting) return;
+      this.devEnabled = true;
+      MenuScene.devUnlocked = true;
+      if (!this.audioOpen && !this.helpPanel) this.showMainMenu();
+    });
 
     const { highScore } = SaveManager.load();
     this.add.text(W / 2, H - 70, `Mejor puntuación: ${highScore}`, {
@@ -60,7 +87,48 @@ export default class MenuScene extends Phaser.Scene {
     }
     options.push({ label: 'Opciones', onSelect: () => this.openAudio() });
     options.push({ label: 'Controles', onSelect: () => this.toggleHelp() });
-    this.list = menuList(this, GAME_WIDTH / 2, 292 - ((options.length - 1) * 48) / 2, options, { spacing: 48 });
+    if (this.devEnabled) options.push({ label: 'Modo desarrollador', onSelect: () => this.showDevMenu() });
+    const spacing = options.length > 4 ? 42 : 48;
+    this.list = menuList(this, GAME_WIDTH / 2, 292 - ((options.length - 1) * spacing) / 2, options, { spacing });
+  }
+
+  /**
+   * Selector de niveles para probarlos sueltos. No toca la partida guardada ni la
+   * puntuación máxima; al terminar (o desde Pausa → Menú) se vuelve aquí.
+   */
+  showDevMenu() {
+    this.list?.destroy();
+    const diffIds = Object.keys(DIFFICULTIES);
+    const diffLabel = () => `Dificultad: ${DIFFICULTIES[devPrefs.difficulty].label}`;
+    const godLabel = () => `Invencible: ${devPrefs.god ? 'Sí' : 'No'}`;
+    const options = DEV_STEPS.map((step) => ({
+      label: step.type === 'boss' ? 'Combate final' : (LEVEL_DATA[step.id]?.title ?? step.id),
+      onSelect: () => this.startDev(step.index),
+    }));
+    const diffIndex = options.length;
+    options.push({
+      label: diffLabel(),
+      onSelect: () => {
+        devPrefs.difficulty = diffIds[(diffIds.indexOf(devPrefs.difficulty) + 1) % diffIds.length];
+        this.list.setLabel(diffIndex, diffLabel());
+      },
+    });
+    options.push({
+      label: godLabel(),
+      onSelect: () => { devPrefs.god = !devPrefs.god; this.list.setLabel(diffIndex + 1, godLabel()); },
+    });
+    options.push({ label: 'Volver', onSelect: () => this.showMainMenu() });
+    const spacing = 27;
+    this.list = menuList(this, GAME_WIDTH / 2, 292 - ((options.length - 1) * spacing) / 2, options, { spacing, fontSize: 20 });
+    this.subtitle.setText('Modo desarrollador · no afecta a la partida guardada');
+  }
+
+  startDev(stepIndex) {
+    if (this.starting) return;
+    this.starting = true;
+    const step = GameState.startDev(stepIndex, devPrefs.difficulty, { god: devPrefs.god });
+    this.cameras.main.fadeOut(300, 0, 0, 0);
+    this.cameras.main.once('camerafadeoutcomplete', () => this.game.events.emit('story:goto', step));
   }
 
   /** Selección de dificultad al empezar (solo cambia resistencia y checkpoints). */
@@ -115,7 +183,7 @@ export default class MenuScene extends Phaser.Scene {
     const text = this.add.text(W / 2, H / 2 - 14, [
       'PLATAFORMAS',
       'Mover: A / D o ← / →     Saltar: Espacio',
-      'Agacharse: S / ↓     Atacar: J o clic izquierdo',
+      'Agacharse: S / ↓     Atacar: J o clic (también en el aire)',
       'Fuego fantasma: K o clic derecho (se recarga)',
       '',
       'COMBATE FINAL',

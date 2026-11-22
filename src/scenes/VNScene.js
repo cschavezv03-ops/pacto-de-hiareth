@@ -3,6 +3,7 @@ import { SCENES, GAME_WIDTH, GAME_HEIGHT, VN_SCENES } from '../config/constants.
 import { GameState } from '../managers/GameState.js';
 import { AudioManager } from '../managers/AudioManager.js';
 import { FONT_TITLE, FONT_UI, COLORS, muteButton, panel, oncePerKeyEvent } from '../ui/UiKit.js';
+import { drawBackdrop } from '../ui/Backdrop.js';
 
 /**
  * ESCENA VN PROVISIONAL (placeholder de integración).
@@ -23,42 +24,42 @@ const CARDS = {
   [VN_SCENES.INTRO]: {
     title: 'Introducción',
     text: 'Aidan conversa con el líder del Pacto de Hiareth: la misión, los portales y la piedra Lia Fáil.',
-    bg: 'bg_boss_1',
+    bg: 'boss',
   },
   [VN_SCENES.AFTER_ACT1]: {
     title: 'Acto 1 — Tierra, mar y cielo',
     text: 'Aidan conoce a Aine.',
-    bg: 'bg_act1_1',
+    bg: 'act1',
   },
   [VN_SCENES.AFTER_ACT2]: {
     title: 'Acto 2 — Vuela alto',
     text: 'En el portal, Aine alcanza a Aidan.',
-    bg: 'bg_act2_1',
+    bg: 'act2',
   },
   [VN_SCENES.AFTER_ACT3]: {
     title: 'Acto 3 — Limbo',
     text: 'En la casa abandonada: pérdidas, familias y esperanza.',
-    bg: 'bg_act3_1',
+    bg: 'act3',
   },
   [VN_SCENES.AFTER_ACT4]: {
     title: 'Acto 4 — Don\'t Try… (IF)',
     text: 'En el campamento: chocolate, auroras boreales e historias de las razas.',
-    bg: 'bg_act4_1',
+    bg: 'act4',
   },
   [VN_SCENES.BEFORE_BOSS]: {
     title: 'Acto final — Hiraeth',
     text: 'Aidan y Aine llegan a un páramo de cristal bajo una luna roja.',
-    bg: 'bg_boss_1',
+    bg: 'boss',
   },
   [VN_SCENES.ENDING_CONVENTIONAL]: {
     title: 'Final',
     text: 'Desenlace narrativo (Visual Novel).',
-    bg: 'bg_boss_1',
+    bg: 'boss',
   },
   [VN_SCENES.ENDING_IF]: {
     title: 'Final IF',
     text: 'Desenlace narrativo (Visual Novel).',
-    bg: 'bg_act4_1',
+    bg: 'act4',
   },
 };
 
@@ -76,11 +77,10 @@ export default class VNScene extends Phaser.Scene {
   create() {
     const W = GAME_WIDTH;
     const H = GAME_HEIGHT;
-    const card = CARDS[this.sceneId] ?? { title: this.sceneId, text: '', bg: 'bg_boss_1' };
+    const card = CARDS[this.sceneId] ?? { title: this.sceneId, text: '', bg: 'boss' };
     if (!this.isEnding) AudioManager.stopMusic();
 
-    if (this.textures.exists(card.bg)) this.add.image(0, 0, card.bg).setOrigin(0).setDisplaySize(W, H);
-    this.add.rectangle(0, 0, W, H, 0x0d0a18, 0.55).setOrigin(0);
+    drawBackdrop(this, card.bg, 0.55); // todas las capas del escenario, nunca solo el cielo
 
     this.add.text(W / 2, H / 2 - 90, card.title, {
       fontFamily: FONT_TITLE, fontSize: '44px', color: COLORS.ink, stroke: '#000', strokeThickness: 6,

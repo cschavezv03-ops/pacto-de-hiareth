@@ -1,0 +1,84 @@
+{
+  "aidan/JumpAttack.png": {
+    "frameWidth": 250,
+    "frameHeight": 250,
+    "frames": 6,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "aidan/Jump.png",
+        "aidan/Fall.png",
+        "aidan/Attack2.png",
+        "fx/ghostfire.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 167,
+    "notes": "Native Jump folded legs/body locked at original scale; shoulder/staff joints. Windup 0-1, horizontal ghostfire sweep x150-215 y99-149 in 2-3, recovery 4-5.",
+    "technical_checks_passed": true
+  },
+  "fx/orb.png": {
+    "frameWidth": 20,
+    "frameHeight": 20,
+    "frames": 6,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "slime/Slime3_Idle_with_shadow.png",
+        "slime/Slime3_Walk_with_shadow.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": null,
+    "notes": "Amber HUD-orb interpretation using native slime fire inks; faceted sphere, fixed centre, 1px charcoal contour, orbiting specular star.",
+    "technical_checks_passed": true
+  },
+  "fx/orb_pickup.png": {
+    "frameWidth": 32,
+    "frameHeight": 32,
+    "frames": 5,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "slime/Slime3_Idle_with_shadow.png",
+        "slime/Slime3_Walk_with_shadow.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": null,
+    "notes": "Expanding broken amber ring, cream flash and dispersing sparks; binary-alpha dissolution.",
+    "technical_checks_passed": true
+  },
+  "fx/lava_trail.png": {
+    "frameWidth": 64,
+    "frameHeight": 24,
+    "frames": 6,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "slime/Slime3_Idle_with_shadow.png",
+        "slime/Slime3_Walk_with_shadow.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 23,
+    "notes": "Native source rock facets and unscaled slime flame islands. Charcoal rim and golden molten channels on bottom rows 16-23.",
+    "technical_checks_passed": true
+  },
+  "fx/platform_crack.png": {
+    "frameWidth": 64,
+    "frameHeight": 16,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "slime/Slime3_Idle_with_shadow.png",
+        "slime/Slime3_Walk_with_shadow.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": null,
+    "notes": "Four cumulative charcoal fissure overlays with native rock dust; matching edge pixels for seamless 64px horizontal tiling over 32px platform.",
+    "technical_checks_passed": true
+  }
+}

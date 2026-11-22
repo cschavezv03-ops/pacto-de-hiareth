@@ -76,7 +76,7 @@ Hitbox del jugador: cuerpo de **38×76 px** con origen en los pies (`y = 167/250
 
 ## 2.1 Fuego fantasma (especial de niveles)
 
-Ataque a distancia con recarga, pedido por el equipo tras las pruebas. Se lanza con `K`, clic derecho o el botón táctil `✦`; **solo desde el suelo** y solo si la recarga está lista.
+Ataque a distancia con recarga, pedido por el equipo tras las pruebas. Se lanza con `K`, clic derecho o el botón táctil `✦`; en el suelo **o en pleno salto** (no frena la caída ni el control aéreo) y solo si la recarga está lista.
 
 | Parámetro | Valor | Constante / origen |
 | --- | --- | --- |
@@ -148,13 +148,13 @@ Los enemigos dejaron de ser obstáculos pasivos: ahora presionan para que no bas
 | Esqueleto | Ojos rojos durante 250 ms | Tajo de 74×70 px, activo en los frames 4-5 de `skeleton-attack` | Saltar por encima o salir del alcance | 1600–2200 ms |
 | Alien | Carga cian de 450 ms | Abanico de 3 orbes (±0.28 rad) cada 3.er disparo si Aidan está a menos de 460 px | Moverse en lateral o usar plataformas | Disparo normal cada 2600 ms |
 | Guardián del Acto 1 | Igual que un slime | Slime adicional en x = 179, justo antes de la meta | Igual que un slime | Igual que un slime |
-| Guardián del Acto 2 | Igual que un alien | Alien adicional en x = 186, justo antes del portal | Igual que un alien | Igual que un alien |
+| Guardián del Acto 2 | — | Retirado en el rediseño sin suelo (§11) | — | — |
 
 Animaciones nuevas asociadas: `Slime3_Leap` (8 frames de 64×64), `skeleton/windup` (4 de 256×256) y `alien/charge` (4 de 256×256), generadas por `tools/gen_anim_sprites.py`. Si faltan, el código usa las animaciones existentes como respaldo. Ningún enemigo abandona su zona.
 
 ## 4. Jefe: Morrigannus (`BOSS_TUNING`)
 
-El combate final tiene **tres fases** (Raíces, Astas y Luna roja), aviso previo para cada patrón, dash y Media luna de fuego. La vida escala con la dificultad; el resto de valores es común.
+El combate final tiene **tres fases** (Raíces, Astas y Luna roja), aviso previo para cada patrón, dash y Media luna de fuego. La vida, el repertorio, los avisos, los huecos y el movimiento del jefe cambian con la dificultad (§12); el resto de valores es común.
 
 | Parámetro | Valor | Comentario |
 | --- | --- | --- |
@@ -269,7 +269,7 @@ La puntuación **no depende de matar enemigos**. Así no premia ni delata la rut
 | Nivel | Ancho (tiles) | Ancho (px) | Enemigos | Fosos | Plataformas | Obstáculos | Meta |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Acto 1 — Tierra, mar y cielo | 190 | 6080 | 11 slimes (incluye guardián en x = 179) | 4 | 15 estáticas | 0 | `goal_sign` (x = 184) |
-| Acto 2 — Vuela alto | 200 | 6400 | 7 aliens (incluye guardián en x = 186) | 5 | 12 estáticas + 3 móviles | 3 pinchos | `goal_portal` (x = 193) |
+| Acto 2 — Vuela alto | 158 | 5056 | 6 aliens flotando alto | 6 | 20 móviles que se rompen por ciclos (sin suelo, §11) | 3 platillos abductores | `goal_portal` (x = 153) |
 | Acto 3 — Limbo | 205 | 6560 | 13 esqueletos (3 emboscados, 3 en plataformas) | 6 | 12 estáticas + 5 móviles | 2 pinchos | `goal_house` (x = 198) |
 | Acto 4 — Don't Try… (IF) | 175 | 5600 | 0 | 6 | 6 estáticas + 6 quebradizas + 2 móviles | 5 pinchos + 6 estalactitas | `goal_camp` (x = 168) |
 
@@ -278,7 +278,7 @@ Los **fosos** son los huecos entre los tramos de `ground`; no hay suelo en esos 
 Tramos de suelo y huecos:
 
 - **Acto 1:** `[0,34] [37,62] [66,96] [100,128] [131,190]`.
-- **Acto 2:** `[0,30] [34,58] [63,88] [93,118] [122,150] [155,200]`.
+- **Acto 2:** solo islotes `[0,7] [46,52] [96,102] [146,158]` (inicio, checkpoints y meta; ver §11).
 - **Acto 3:** `[0,28] [32,55] [59,80] [85,110] [114,140] [145,170] [174,205]`.
 - **Acto 4:** `[0,26] [30,48] [53,70] [76,96] [101,122] [128,148] [152,175]`.
 
@@ -309,7 +309,7 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 
 - **El dash existe solo en el jefe.** En los niveles no se implementó: no es necesario para el diseño de plataformas y mantiene el alcance bajo control (el documento lo dejaba a criterio de Sebas). En el combate final recorre 170 px en 150 ms, concede 200 ms de invulnerabilidad y tiene 800 ms de recarga.
 - **Coyote time (100 ms) y jump buffer (120 ms)**, con salto variable al soltar `Espacio`. Sigue siendo un salto simple: **no hay doble salto**.
-- **El ataque cuerpo a cuerpo y el Fuego fantasma solo se ejecutan desde el suelo**, porque no existe animación de ataque aéreo. `Attack1` y `Attack2` se alternan como **variantes visuales de la misma acción**, no como habilidades distintas. El Fuego fantasma usa `Cast_GhostFire` (8 frames) y una recarga de 6.5 s.
+- **El ataque cuerpo a cuerpo y el Fuego fantasma se pueden usar en el suelo o en el aire** (ataque aéreo con `JumpAttack`; el Fuego fantasma reutiliza su animación de lanzamiento). `Attack1` y `Attack2` se alternan como **variantes visuales de la misma acción**, no como habilidades distintas. El Fuego fantasma usa `Cast_GhostFire` (8 frames) y una recarga de 6.5 s.
 - **Fuego fantasma y fases del jefe: cambio pedido por el equipo tras las pruebas.** El Documento Maestro decía no inventar ataques mágicos adicionales y las Instrucciones no requerían fases; el equipo pidió ambos después de jugar y quedan **aprobados**. El Fuego fantasma es un ataque a distancia con recarga y las tres fases del jefe son una extensión del combate final, no una regla nueva de la historia.
 - **Animaciones nuevas derivadas de los sprites originales.** `tools/gen_anim_sprites.py` genera `Cast_GhostFire`, `fx/ghostfire`, `fx/ghostfire_burst`, `Slime3_Leap`, `skeleton/windup`, `alien/charge` y `fx/crescent` con muestreo NEAREST y paletas nativas, sin arte externo. El manifiesto `public/assets/sprites/anim_sprites.json` registra fuentes, línea base y notas; `tools/anim_preview.png` sirve para revisarlas. Si una tira falta, el código usa respaldos.
 - **La regla de rutas NO cambia.** El Acto 4 (el «easter egg» de la ruta pacifista) solo aparece si `enemiesKilled === 0`, y **todos los enemigos siguen siendo esquivables sin matar**: los ataques nuevos tienen aviso y ventana de esquiva. El Fuego fantasma **sí** cuenta como muerte directa porque es un ataque de Aidan, igual que el cuerpo a cuerpo.
@@ -332,3 +332,102 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 - **Latch de pulsaciones** en `InputManager`: una pulsación más corta que un frame no se pierde.
 - **Contador de enemigos derrotados opcional**: las Instrucciones (§6) prohíben mostrar el contador. El equipo pidió poder verlo; se implementó como opción «Enemigos derrotados» en Opciones, **apagada por defecto**, para conservar la sorpresa del Acto 4 (ruta pacifista) a quien no la active.
 - **Agacharse y repertorio del esqueleto**: pedidos por el equipo tras las pruebas. Agacharse no figuraba en las Instrucciones; los nuevos ataques del esqueleto son cuerpo a cuerpo para respetar «solo el alien utiliza ataques a distancia». La ruta pacifista sigue siendo viable (todos los ataques se esquivan) y el Acto 4 sigue apareciendo solo con `enemiesKilled === 0`.
+
+## 8. Cambios de la ronda «orbes y trampas»
+
+| Mecánica | Valores |
+| --- | --- |
+| Plataformas móviles frágiles (hasta el rediseño del Acto 2, §11) | Se agrietan (4 etapas) y se rompen **0,35 s después del primer toque**, aunque Aidan salte; reaparecen a los 3 s en su recorrido |
+| Plataformas móviles fantasma (Acto 3, Limbo) | **Trampa sin colisión**: parecen normales (solo un leve parpadeo espectral) y Aidan cae a través; al tocarlas se desvanecen. Los fosos del Acto 3 se acortaron a 4 tiles para que se salten sin ellas |
+| Plataformas eliminadas | 7 plataformas estáticas sobre fosos saltables (Actos 1-3) que regalaban el paso; `tests/levels.test.js` impide reintroducirlas y valida que todo sigue siendo alcanzable |
+| Lava del slime | Charco grande al aterrizar de su salto (dura 2,6 s) y brasas pequeñas al caminar cada 2,4-3,2 s (duran 1,8 s). Aparecen **sin dañar durante 0,26 s** (aviso) y solo sobre suelo firme |
+| Ataque en el aire | `J` en el aire; 6 frames a 20 fps, golpe en los frames 2-3; no frena la caída ni el control aéreo |
+| Orbes | Contador propio (`GameState.orbs`); slime 3, alien 4, esqueleto 5; 5 grupos de 5 fijos por nivel; a menos de 130 px persiguen a Aidan (520 px/s + aceleración) ignorando el terreno; los soltados duran 9 s si nadie se acerca |
+| Vidas | Cada **50 orbes** (`LIFE_EVERY`): cura 1 corazón o da 1 corazón extra (máx. 4). Aproximadamente 1 vida por nivel peleando y 1 cada 2 niveles por la ruta pacifista |
+| Pérdida de orbes | Game Over, reinicio desde la pausa o derrota ante el jefe → orbes a 0 (también el corazón extra guardado). Evita acumular corazones muriendo |
+| Jefe por dificultad | Velocidad de los orbes ×1,0 / ×1,25 / ×1,45 y respiro entre patrones ×1,05 / ×0,85 / ×0,72 (Fácil / Intermedio / Difícil); los avisos previos se mantienen |
+| Música del Acto 3 | Tema nuevo «Los nombres olvidados» (re menor/frigio, 80 BPM, loop de 96 s) generado con `tools/gen_music_level3.py`; el original del equipo era idéntico al del Acto 1 |
+
+**Desviaciones aprobadas por el equipo en esta ronda:** recuperar corazones durante un nivel (las Instrucciones §5.3 decían que no) y la animación de ataque aéreo (el Documento Maestro decía no asumirla; se generó a partir del sprite original). Los slimes dejan **terreno** que quema en lugar de lanzar llamas, para respetar «solo el alien utiliza ataques a distancia» y no alterar el contador de la ruta pacifista (como habrían hecho los mini slimes). Los orbes fijos garantizan que la ruta pacifista también pueda ganar vidas.
+
+## 9. Ronda «platillos y pantallas de carga»
+
+| Cambio | Detalle |
+| --- | --- |
+| Platillo abductor (Acto 2) | 4 platillos (3 desde §11) (`ufos` en `levels.js`). Persiguen a 85 px/s dentro de su zona (Aidan corre a 250), se alinean, **avisan 0,65 s** cargando el emisor y lanzan un haz tractor de 1,5 s y 60 px de ancho: dentro del haz Aidan es elevado y, si sigue 0,8 s, es abducido (−1 corazón). Recarga 2,4-3,2 s. Es un **peligro ambiental**: no se puede destruir, no suelta orbes y no cuenta para `enemiesKilled` (la ruta pacifista no cambia). Sprites `fx/ufo*.png` y `fx/tractor_beam.png` (`tools/gen_anim_sprites4.py`) |
+| Lava en plataformas | Los slimes sobre plataformas dejan la lava en su plataforma (antes aparecía en el suelo de abajo) |
+| Pantalla de carga por nivel | `LoadingScene` antes de cada nivel y del jefe, con el escenario completo, título, dificultad y un consejo. El router la genera solo para el paso real siguiente: la del Acto 4 solo aparece en la ruta pacifista (prueba E2E de la ruta convencional completa) |
+| Fondos completos | Pantallas de carga y tarjetas de la novela visual componen todas las capas del escenario (`ui/Backdrop.js`); antes usaban solo la capa más lejana, que en el Acto 2 es un cielo liso |
+
+
+## 10. Modo desarrollador y ajustes
+
+- **Modo desarrollador (selector de niveles).** Aparece en el menú principal con `npm run dev`, con `?dev` en la URL de la build o pulsando `F2` en el menú.
+  - Permite jugar suelto cualquier acto (incluido el Acto 4, sin necesidad de la ruta pacifista) o el combate final.
+  - Se elige la dificultad y, opcionalmente, invencibilidad (los fosos solo recolocan a Aidan).
+  - No lee ni escribe la partida guardada ni la puntuación máxima. Al terminar el nivel se vuelve al selector.
+  - Es una herramienta de pruebas, no una opción del jugador; no altera ninguna regla del documento maestro.
+- **Fuego fantasma en el aire.** `K` ya no exige estar en el suelo: se puede lanzar en pleno salto, con la misma recarga de 6.5 s.
+- **Música del jefe.** Se restauró el tema original del equipo (`BOSSFIGTH.ogg`); el tema metal generado se retiró de `public/`.
+
+## 11. Acto 2 sin suelo
+
+Pedido por el equipo para subir la dificultad del Acto 2 sin hacerlo imposible.
+
+- **Sin suelo continuo.** Solo quedan cuatro islotes firmes: inicio `[0,7]`, checkpoints `[46,52]` y `[96,102]`, y meta `[146,158]`. Entre ellos hay tres tramos de unos 40 tiles hechos solo de plataformas móviles (horizontales y verticales).
+- **Plataformas que se rompen por ciclos** (`moverTrap: 'cycle'`, `MOVER_CYCLE` en `levels.js`). No hace falta pisarlas para que se rompan:
+
+  | Fase | Duración | Qué se ve |
+  |---|---|---|
+  | Firme | 3,6 s | Normal |
+  | Aviso | 1,0 s | Tiembla, se agrieta en 4 etapas y se tiñe de rojo; suena un crujido si está en pantalla |
+  | Rota | 1,5 s | Cae deshecha y no tiene colisión; luego reaparece con un fundido en su recorrido |
+
+  Cada plataforma va **2 s por detrás** de la anterior, así que cuando la tuya avisa la siguiente está firme. Las horizontales seguidas comparten periodo, de modo que el hueco entre ellas es constante (≈3 tiles).
+- **Caer no te devuelve al checkpoint.** Al caer al vacío, Aidan pierde 1 corazón y reaparece sobre la **última plataforma que pisó**, que se repara al instante (empieza su fase firme). Si pisó un islote después, reaparece en el islote.
+- **Abducción.** Si un platillo te abduce, pierdes 1 corazón y te suelta en esa misma plataforma segura; no se suma la caída al vacío. Hay 3 platillos, uno por tramo.
+- **Aliens.** 6 aliens flotan alto (h = 8-9) y disparan hacia las plataformas. Se pueden esquivar o matar con el ataque aéreo o el Fuego fantasma. Se retiraron los pinchos y el guardián del portal, que dependían del suelo.
+- **Verificado que es superable.** `tests/levels.test.js` simula en el tiempo la posición y el estado de cada plataforma con la física real del salto de Aidan, usando solo el 80 % del alcance horizontal, subidas de como mucho 3,5 tiles y aterrizajes con al menos 0,25 s de plataforma firme. Sigue siendo superable con el 60 % del alcance. El recorrido óptimo dura unos 39 s.
+- La dificultad elegida no cambia los tiempos del ciclo de las plataformas (sí la velocidad de enemigos y platillos, §12).
+
+## 12. Dificultad: jefe y enemigos
+
+Pedido por el equipo: el jefe en Fácil se sentía igual que en Difícil. Cambio aprobado; amplía §1.1.
+
+### Morrigannus por dificultad
+
+Además de la vida y de `bossSpeedMult` y `bossRestMult`, cada dificultad tiene su propio perfil, `BOSS_PROFILES` en `src/objects/BossPatterns.js`.
+
+| | Fácil | Intermedio | Difícil |
+|---|---|---|---|
+| Fase 1 | abanico, anillo, lanza | abanico, anillo, lanza | **ráfaga**, anillo, lanza, anillo doble, abanico |
+| Fase 2 | abanico, muro, anillo, lanza | espiral, muro, abanico | espiral, **muro doble**, ráfaga, anillo doble, lanza, muro |
+| Fase 3 | espiral, abanico, muro, anillo, lanza | espiral, muro, lanza, anillo doble | **espiral de 4 brazos**, muro doble, ráfaga, anillo doble, espiral, lanza |
+| Patrones simultáneos | Nunca | Fase 3 (espiral + muro o lanza) | Desde la fase 2 |
+| Duración de los avisos | ×1,3 | ×1 | ×0,8 (siempre hay aviso) |
+| Hueco de los muros | 150 px | 116 px | 100 px |
+| Orbes por abanico / anillo | −1 / −3 | base | +2 / +4 |
+| Lanzas por ataque | 2 | 3 | 5 |
+| Brazos de la espiral | 2 (más lenta) | 2 | 3 |
+| Movimiento del jefe | Quieto | Oscila despacio | Persigue la altura de Aidan (70-98 px/s) |
+| Velocidad de los orbes / respiro | ×1,0 / ×1,05 | ×1,25 / ×0,85 | ×1,45 / ×0,72 |
+
+Patrones nuevos, exclusivos de Difícil:
+- **Ráfaga** (`burst`): tres abanicos cerrados de 3 orbes, cada uno apuntado a la posición actual de Aidan.
+- **Muro doble** (`wall2`): un segundo muro sale unos 0,56 s después del primero, con el hueco desplazado unos 100 px. Tiene su propio aviso.
+- **Espiral de 4 brazos** (`spiral4`).
+
+Medido en la prueba E2E (fase 1 y fase 3, unos 19 s), el máximo de balas en pantalla es 28 en Fácil, 43 en Intermedio y 78 en Difícil.
+
+### Enemigos y platillos por dificultad
+
+`scaledEnemyConfig()` en `Enemy.js` crea una copia de la configuración de cada tipo con estos multiplicadores (`DIFFICULTIES` en `constants.js`):
+
+| | Fácil | Intermedio | Difícil |
+|---|---|---|---|
+| Velocidad (patrulla, persecución, salto del slime, embestida, platillos) | ×0,9 | ×1 | ×1,2 |
+| Calma entre ataques (salto, tajo, embestida, brasas) | ×1,15 | ×1 | ×0,8 |
+| Intervalo de disparo del alien | 2990 ms | 2600 ms | 1820 ms |
+| Velocidad de los orbes del alien | 135 | 150 | 180 px/s |
+
+Los **avisos (`windupMs`) no cambian** en ninguna dificultad, así que todo sigue siendo esquivable sin matar y la ruta pacifista sigue siendo posible. Los platillos nunca alcanzan a Aidan corriendo: van a 102 px/s como máximo, frente a 250.

@@ -94,6 +94,7 @@ export function generateProceduralTextures(scene) {
   };
   heart('heart_full', 0xe8344e, 0x3a0a14);
   heart('heart_empty', 0x3b2a40, 0x14091a);
+  heart('heart_gold', 0xffc93c, 0x4a2e00); // corazón extra ganado con orbes
 
   // Pinchos de hielo / estalactitas (obstáculo ambiental del Acto 4 y otros).
   const spikes = scene.make.graphics({ x: 0, y: 0 }, false);

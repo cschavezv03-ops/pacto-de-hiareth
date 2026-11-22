@@ -11,7 +11,9 @@ const url = process.argv[2] ?? 'http://localhost:5173';
 const outDir = new URL('./screenshots/', import.meta.url).pathname;
 mkdirSync(outDir, { recursive: true });
 
-const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+// GPU (Vulkan/ANGLE) para FPS realistas; PW_GPU=0 fuerza WebGL por software.
+const GPU_ARGS = process.env.PW_GPU === '0' ? [] : ['--use-angle=vulkan', '--enable-features=Vulkan', '--ignore-gpu-blocklist', '--enable-gpu'];
+const browser = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required', ...GPU_ARGS] });
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push(e.message));

@@ -1,0 +1,523 @@
+EL PACTO DE HIARETH — MENÚ PRINCIPAL
+Memoria bajo la luna roja · Una historia de pérdida, memoria y fuego
+Composición original, síntesis determinista sin samples ni material externo.
+
+CONCEPTO Y PARTITURA
+La primera voz de piano recuerda a Blair y a los hijos de Aidan; la respuesta
+de arpa evoca a Aine. Cuerdas y coro sin palabras sostienen el duelo bajo la
+luna roja. El desarrollo abre un espacio de esperanza; el regreso conserva
+esa luz sin resolver la pérdida. Épica contenida, sin batería protagonista.
+Si menor → Re mayor (relativa mayor, compases 17–24) → Si menor.
+Tempo 75 BPM; 4/4; 32 compases; 102.400000 segundos.
+Leitmotiv de 5 notas: Si4–Re5–Do#5–Fa#5–Mi5 (MIDI 71,74,73,78,76).
+Intervalos en semitonos: +3, −1, +5, −2. Nombre: «La memoria del fuego».
+Ataques relativos: 0, 1.5, 2, 3, 5 pulsos; duraciones de partitura
+1.5, 0.5, 1, 2, 2 pulsos; silencio de 1 pulso al terminar los dos compases.
+Las notas se acortan ligeramente al tocar para dejar respirar el piano.
+Se expone en compases 1–2, vuelve en 9–10 y 25–26; 5–6 varían la respuesta.
+En 17–18 se abre a Re5–Fa#5–Mi5–La5–Fa#5, con el mismo ritmo; el giro
+tercera/vecina/salto funciona también aislado para futuros recuerdos o stingers.
+A  (0.0–25.6 s): exposición íntima; piano cercano, arpa y cuerdas oscuras.
+A2 (25.6–51.2 s): respuesta ascendente y mayor movimiento del arpa.
+B  (51.2–76.8 s): cadencia en Re mayor; cuerdas más altas, coro y campanas.
+A' (76.8–102.4 s): motivo original; descenso al Si3, respiración y vuelta.
+Tiempos de partitura: el archivo empieza con una anacrusa de 2.656054 s
+del acorde final; el compás 1 comienza después de ella. Se rota el ciclo
+completo sin eliminar, repetir ni estirar muestras; duración inalterada.
+Progresión (un acorde por compás):
+  A: Bm(add9) | Gmaj7 | D/F# | Asus4 | Em9 | Bm/F# | F#7sus4 | F#7
+  A2: Bm(add9) | Gmaj7 | D/F# | A(add9) | Em9 | Gmaj7 | F#7sus4 | F#7
+  B: Dmaj9 | A/C# | Bm7 | Gmaj7 | D/F# | Em9 | A(add9) | Dmaj9/A
+  A': Bm(add9) | Gmaj7 | D/F# | Em9 | G6 | F#7sus4 | Bm/F# | Bm(add9)/F#
+
+ORQUESTACIÓN, COHERENCIA Y MEZCLA
+Piano de martillo suave: parciales inarmónicos, tres cuerdas ligeramente
+desafinadas y apagador. Arpa de modos amortiguados. Cuerdas de cinco unísonos
+con vibrato independiente y arco lento; coro suave de formantes oo/ah.
+Cinco campanas lejanas y cuatro golpes graves muy discretos en el clímax.
+Registro grave centrado, piano casi central, arpa y cuerdas a ambos lados.
+Se reutilizan de gen_music_level3.py: hz, db, edge_envelope, Orchestra.add,
+pluck, choir, bell, drum, mix, decode, continuity, musical_estimates y fingerprint.
+Colas de notas y reverb circular de 3.6 s conservadas entre vueltas; EQ
+periódica a 32 Hz / 7.6 kHz. La paleta arpa/coro/reverb enlaza con Level3;
+Si menor enlaza con los candidatos tonales de Level2 y Level4.
+Las pistas existentes se analizaron en su totalidad: LUFS, true peak, RMS,
+croma, pulso aproximado, balance espectral y correlación estéreo.
+Croma/perfiles y autocorrelación son estimaciones, no transcripciones:
+son posibles ambigüedades de relativa mayor/menor y medio/doble tempo.
+Level1: 336.673515 s; -10.4 LUFS; RMS -12.906 dBFS; pico 0.830 dBFS; true peak 0.9 dBTP.
+  Tonalidad candidata: Do mayor (r=0.713); La menor (r=0.675); Sol mayor (r=0.606)
+  Pulso candidato: 86.1 BPM, 172.3 BPM, 56.2 BPM
+  Energía espectral (%): {"bass_0_250Hz": 58.72, "body_250_2000Hz": 33.62, "air_2000_5512Hz": 7.66}
+  Correlación estéreo 0.5493; SHA-256 c254ab5c8491710e6fed596984e7babb923e89fff0bbbe6ee2359971fd747c1f
+Level2: 198.373515 s; -10.4 LUFS; RMS -13.047 dBFS; pico 0.016 dBFS; true peak 0.0 dBTP.
+  Tonalidad candidata: Si menor (r=0.739); Si mayor (r=0.54); Re mayor (r=0.421)
+  Pulso candidato: 53.8 BPM, 107.7 BPM, 71.8 BPM
+  Energía espectral (%): {"bass_0_250Hz": 65.24, "body_250_2000Hz": 27.9, "air_2000_5512Hz": 6.86}
+  Correlación estéreo 0.5482; SHA-256 0bf164d464bb11149333ec12beb0096c7d85aa60d9a54f2bfcf74fefe8da6c49
+Level3: 96.000000 s; -12.6 LUFS; RMS -14.758 dBFS; pico -1.987 dBFS; true peak -2.0 dBTP.
+  Tonalidad candidata: Re menor (r=0.943); Re mayor (r=0.625); Fa mayor (r=0.611)
+  Pulso candidato: 129.2 BPM, 58.7 BPM, 80.7 BPM
+  Energía espectral (%): {"bass_0_250Hz": 27.88, "body_250_2000Hz": 71.84, "air_2000_5512Hz": 0.28}
+  Correlación estéreo 0.5633; SHA-256 98cb41e0342fe36bf14b39ffc79c775dc303108a0286faa2756499fb22677b8f
+Level4: 184.000000 s; -13.8 LUFS; RMS -16.730 dBFS; pico 0.534 dBFS; true peak 0.5 dBTP.
+  Tonalidad candidata: Si menor (r=0.734); Mi menor (r=0.714); Si mayor (r=0.578)
+  Pulso candidato: 95.7 BPM, 63.0 BPM, 184.6 BPM
+  Energía espectral (%): {"bass_0_250Hz": 48.78, "body_250_2000Hz": 47.33, "air_2000_5512Hz": 3.88}
+  Correlación estéreo 0.6967; SHA-256 78bf83f655c89b2b8e600184335fafdd175f8ea44f8cbae16560c137c02cade4
+BOSSFIGTH: 163.000000 s; -10.9 LUFS; RMS -13.285 dBFS; pico 0.586 dBFS; true peak 0.7 dBTP.
+  Tonalidad candidata: Do menor (r=0.901); Do mayor (r=0.718); Sol menor (r=0.522)
+  Pulso candidato: 89.1 BPM, 136.0 BPM, 52.7 BPM
+  Energía espectral (%): {"bass_0_250Hz": 51.81, "body_250_2000Hz": 43.96, "air_2000_5512Hz": 4.23}
+  Correlación estéreo 0.4776; SHA-256 aed96690cd855f80534bb3e5ccf9245c0ed41e549bed4f7c0557ed91a7b90373
+Media aritmética de las cinco pistas: -11.62 LUFS.
+Media de Level1–4: -11.80 LUFS.
+Objetivo menú: -14.12 LUFS (2.5 LU por debajo de las cinco referencias).
+Diferencia final respecto a Level1–4: -2.30 LU.
+Los picos positivos de algunas referencias son preexistentes; no se copian.
+Redondeo suave de picos, ganancia fija calibrada sobre el OGG decodificado,
+sin compresor que bombee ni normalización dinámica que altere el crescendo.
+
+VERIFICACIÓN SOBRE MENU.OGG DECODIFICADO
+Códec vorbis; 44100 Hz; 2 canales estéreo.
+Duración 102.400000000 s; 4515840 muestras/canal.
+Pico de muestra -3.6070 dBFS < −1 dBFS.
+True peak -3.6 dBTP < −1 dBTP (FFmpeg ebur128).
+Sonoridad integrada -14.1 LUFS; RMS -16.420 dBFS.
+Muestras con |x| ≥ 1: 0; todas las muestras finitas.
+Salto final/inicio 0.000596215 FS (-64.49 dBFS).
+Paso local p99 0.017943609 FS; error de pendiente en unión 0.000613393 FS.
+Ventanas 10 ms: inicio -22.671, final -20.336 dBFS; diferencia -2.335 dB.
+Ventanas 50 ms: inicio -15.970, final -15.865 dBFS; diferencia -0.104 dB.
+Ventanas 100 ms: inicio -15.459, final -15.420 dBFS; diferencia -0.039 dB.
+Ventanas 1000 ms: inicio -16.041, final -16.745 dBFS; diferencia +0.704 dB.
+Correlación estéreo 0.8552; side/mid -11.07 dB.
+RMS por cuartos del archivo (anacrusa incluida): -17.24, -16.29, -15.26, -17.19 dBFS.
+Protección técnica de extremos: 12 ms por lado; no se añade silencio ni cola extra.
+La armonía Bm/F#→Bm y la envoltura circular mantienen el retorno musical.
+Vorbis es con pérdida: «bucle perfecto» aquí significa duración exacta, sin
+pausa añadida, colas preservadas y discontinuidad por debajo del paso local
+normal y de 0.001 FS (−60 dBFS), verificada tras codificar y decodificar.
+También se verifica diferencia energética <1.5 dB en 100 ms, <2 dB en 1 s,
+error de pendiente <0.005 FS, pico/true peak <−1.1 dB y objetivo LUFS ±0.2.
+Todos los criterios: PASS. Se vuelve a decodificar la salida publicada.
+No se ha realizado escucha humana: la comprobación es numérica y estructural.
+
+REPRODUCIBILIDAD Y ALCANCE
+Ejecutar: tools/.venv/bin/python -B tools/gen_music_menu.py
+Solo análisis: tools/.venv/bin/python -B tools/gen_music_menu.py --analyze-only
+NumPy 2.5.5, FFmpeg/libvorbis q10; semilla 20261121.
+SHA-256 generador reutilizado sin modificar: a45d8ead1ac87734b0bab5e435c62bd79add8824458533163b24d4b86e3d6ff4
+SHA-256 Menu.ogg: d414198e7ed795635023e05225570c4da4925025d9e84c6c9166544e3c41a2ec
+Las cinco referencias y gen_music_level3.py conservan sus SHA-256 iniciales.
+Únicos destinos: tools/gen_music_menu.py, tools/menu_music_report.txt,
+public/assets/music/Menu.ogg. No se ha modificado código de Phaser.
+
+MÉTRICAS COMPLETAS (JSON)
+{
+  "references": {
+    "Level1": {
+      "duration_s": 336.673514739229,
+      "samples_per_channel": 14847302,
+      "rms_dbfs": -12.906476091293344,
+      "sample_peak_dbfs": 0.8303291785172907,
+      "integrated_lufs": -10.4,
+      "true_peak_dbtp": 0.9,
+      "tempo_candidates": [
+        {
+          "bpm": 86.1,
+          "autocorrelation": 0.638
+        },
+        {
+          "bpm": 172.3,
+          "autocorrelation": 0.502
+        },
+        {
+          "bpm": 56.2,
+          "autocorrelation": 0.465
+        },
+        {
+          "bpm": 112.3,
+          "autocorrelation": 0.236
+        },
+        {
+          "bpm": 68.0,
+          "autocorrelation": 0.214
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Do mayor",
+          "correlation": 0.713
+        },
+        {
+          "key": "La menor",
+          "correlation": 0.675
+        },
+        {
+          "key": "Sol mayor",
+          "correlation": 0.606
+        }
+      ],
+      "chroma": [
+        0.1154,
+        0.069,
+        0.0747,
+        0.0626,
+        0.0861,
+        0.0727,
+        0.0778,
+        0.0971,
+        0.0698,
+        0.0992,
+        0.0684,
+        0.1074
+      ],
+      "sha256": "c254ab5c8491710e6fed596984e7babb923e89fff0bbbe6ee2359971fd747c1f",
+      "spectral_energy_percent": {
+        "bass_0_250Hz": 58.72,
+        "body_250_2000Hz": 33.62,
+        "air_2000_5512Hz": 7.66
+      },
+      "stereo_correlation": 0.5492696137390829
+    },
+    "Level2": {
+      "duration_s": 198.37351473922902,
+      "samples_per_channel": 8748272,
+      "rms_dbfs": -13.047316363120594,
+      "sample_peak_dbfs": 0.016188485561259465,
+      "integrated_lufs": -10.4,
+      "true_peak_dbtp": 0.0,
+      "tempo_candidates": [
+        {
+          "bpm": 53.8,
+          "autocorrelation": 0.83
+        },
+        {
+          "bpm": 107.7,
+          "autocorrelation": 0.779
+        },
+        {
+          "bpm": 71.8,
+          "autocorrelation": 0.715
+        },
+        {
+          "bpm": 143.6,
+          "autocorrelation": 0.124
+        },
+        {
+          "bpm": 86.1,
+          "autocorrelation": 0.111
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Si menor",
+          "correlation": 0.739
+        },
+        {
+          "key": "Si mayor",
+          "correlation": 0.54
+        },
+        {
+          "key": "Re mayor",
+          "correlation": 0.421
+        }
+      ],
+      "chroma": [
+        0.0867,
+        0.0785,
+        0.0868,
+        0.0718,
+        0.0765,
+        0.059,
+        0.0953,
+        0.0706,
+        0.0758,
+        0.0984,
+        0.0796,
+        0.121
+      ],
+      "sha256": "0bf164d464bb11149333ec12beb0096c7d85aa60d9a54f2bfcf74fefe8da6c49",
+      "spectral_energy_percent": {
+        "bass_0_250Hz": 65.24,
+        "body_250_2000Hz": 27.9,
+        "air_2000_5512Hz": 6.86
+      },
+      "stereo_correlation": 0.5482071895498244
+    },
+    "Level3": {
+      "duration_s": 96.0,
+      "samples_per_channel": 4233600,
+      "rms_dbfs": -14.757700584990324,
+      "sample_peak_dbfs": -1.9868561668367284,
+      "integrated_lufs": -12.6,
+      "true_peak_dbtp": -2.0,
+      "tempo_candidates": [
+        {
+          "bpm": 129.2,
+          "autocorrelation": 0.299
+        },
+        {
+          "bpm": 58.7,
+          "autocorrelation": 0.278
+        },
+        {
+          "bpm": 80.7,
+          "autocorrelation": 0.064
+        },
+        {
+          "bpm": 107.7,
+          "autocorrelation": 0.058
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Re menor",
+          "correlation": 0.943
+        },
+        {
+          "key": "Re mayor",
+          "correlation": 0.625
+        },
+        {
+          "key": "Fa mayor",
+          "correlation": 0.611
+        }
+      ],
+      "chroma": [
+        0.0719,
+        0.04,
+        0.1676,
+        0.0446,
+        0.0855,
+        0.1192,
+        0.0429,
+        0.0929,
+        0.036,
+        0.1438,
+        0.0957,
+        0.0598
+      ],
+      "sha256": "98cb41e0342fe36bf14b39ffc79c775dc303108a0286faa2756499fb22677b8f",
+      "spectral_energy_percent": {
+        "bass_0_250Hz": 27.88,
+        "body_250_2000Hz": 71.84,
+        "air_2000_5512Hz": 0.28
+      },
+      "stereo_correlation": 0.5633452019587252
+    },
+    "Level4": {
+      "duration_s": 184.0,
+      "samples_per_channel": 8114400,
+      "rms_dbfs": -16.729619149290738,
+      "sample_peak_dbfs": 0.5343023923591637,
+      "integrated_lufs": -13.8,
+      "true_peak_dbtp": 0.5,
+      "tempo_candidates": [
+        {
+          "bpm": 95.7,
+          "autocorrelation": 0.629
+        },
+        {
+          "bpm": 63.0,
+          "autocorrelation": 0.612
+        },
+        {
+          "bpm": 184.6,
+          "autocorrelation": 0.583
+        },
+        {
+          "bpm": 129.2,
+          "autocorrelation": 0.558
+        },
+        {
+          "bpm": 76.0,
+          "autocorrelation": 0.507
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Si menor",
+          "correlation": 0.734
+        },
+        {
+          "key": "Mi menor",
+          "correlation": 0.714
+        },
+        {
+          "key": "Si mayor",
+          "correlation": 0.578
+        }
+      ],
+      "chroma": [
+        0.0811,
+        0.0539,
+        0.0781,
+        0.0506,
+        0.1167,
+        0.0468,
+        0.1312,
+        0.098,
+        0.0575,
+        0.0881,
+        0.056,
+        0.142
+      ],
+      "sha256": "78bf83f655c89b2b8e600184335fafdd175f8ea44f8cbae16560c137c02cade4",
+      "spectral_energy_percent": {
+        "bass_0_250Hz": 48.78,
+        "body_250_2000Hz": 47.33,
+        "air_2000_5512Hz": 3.88
+      },
+      "stereo_correlation": 0.6967466299919196
+    },
+    "BOSSFIGTH": {
+      "duration_s": 163.0,
+      "samples_per_channel": 7188300,
+      "rms_dbfs": -13.285295584073594,
+      "sample_peak_dbfs": 0.5856958402089555,
+      "integrated_lufs": -10.9,
+      "true_peak_dbtp": 0.7,
+      "tempo_candidates": [
+        {
+          "bpm": 89.1,
+          "autocorrelation": 0.554
+        },
+        {
+          "bpm": 136.0,
+          "autocorrelation": 0.54
+        },
+        {
+          "bpm": 52.7,
+          "autocorrelation": 0.513
+        },
+        {
+          "bpm": 66.3,
+          "autocorrelation": 0.51
+        }
+      ],
+      "key_candidates": [
+        {
+          "key": "Do menor",
+          "correlation": 0.901
+        },
+        {
+          "key": "Do mayor",
+          "correlation": 0.718
+        },
+        {
+          "key": "Sol menor",
+          "correlation": 0.522
+        }
+      ],
+      "chroma": [
+        0.1224,
+        0.0615,
+        0.0906,
+        0.0901,
+        0.0648,
+        0.0872,
+        0.0657,
+        0.1075,
+        0.0791,
+        0.0736,
+        0.0795,
+        0.0781
+      ],
+      "sha256": "aed96690cd855f80534bb3e5ccf9245c0ed41e549bed4f7c0557ed91a7b90373",
+      "spectral_energy_percent": {
+        "bass_0_250Hz": 51.81,
+        "body_250_2000Hz": 43.96,
+        "air_2000_5512Hz": 4.23
+      },
+      "stereo_correlation": 0.4776403157254976
+    }
+  },
+  "final": {
+    "duration_s": 102.4,
+    "samples_per_channel": 4515840,
+    "rms_dbfs": -16.419834396762067,
+    "sample_peak_dbfs": -3.6069609109862935,
+    "integrated_lufs": -14.1,
+    "true_peak_dbtp": -3.6
+  },
+  "loop": {
+    "boundary_sample_difference": 0.0005962145514786243,
+    "boundary_difference_dbfs": -64.49194857177895,
+    "interior_step_p99": 0.045613068081438626,
+    "window_10ms": {
+      "start_rms_dbfs": -22.671162403140606,
+      "end_rms_dbfs": -20.336196310801782,
+      "difference_db": -2.3349660923388242
+    },
+    "window_50ms": {
+      "start_rms_dbfs": -15.969502577320227,
+      "end_rms_dbfs": -15.865404749552376,
+      "difference_db": -0.10409782776785192
+    },
+    "window_100ms": {
+      "start_rms_dbfs": -15.458817313730922,
+      "end_rms_dbfs": -15.42011321105202,
+      "difference_db": -0.038704102678902785
+    },
+    "window_1000ms": {
+      "start_rms_dbfs": -16.04115596016368,
+      "end_rms_dbfs": -16.74534106675386,
+      "difference_db": 0.7041851065901774
+    },
+    "stereo_correlation": 0.8551958603774603,
+    "local_step_p99": 0.017943609133362758,
+    "local_step_rms": 0.005857116137796899,
+    "boundary_slope_error_fs": 0.0006133934067520386,
+    "clipped_samples": 0,
+    "dc_offset_per_channel": [
+      -2.910627066087475e-07,
+      1.1123320645738993e-05
+    ],
+    "side_to_mid_db": -11.073348074561068,
+    "section_rms_dbfs": [
+      -17.244767523796053,
+      -16.286404452228542,
+      -15.263766597741132,
+      -17.193572234507283
+    ],
+    "bar_rms_dbfs": [
+      -17.328216916463475,
+      -16.402662637170213,
+      -17.89439220927388,
+      -17.070252492744483,
+      -17.90374561873913,
+      -16.771842831274682,
+      -18.078107855351874,
+      -16.81774992937863,
+      -18.83431912219665,
+      -15.681466612818213,
+      -16.998258388083276,
+      -15.682304747437644,
+      -16.349912638029693,
+      -15.973125295425756,
+      -16.3315530975893,
+      -15.329930398024034,
+      -16.092260284139602,
+      -15.06888847468588,
+      -15.893974299509741,
+      -15.112310763251797,
+      -15.286274471393694,
+      -14.325222649028849,
+      -15.650243494412074,
+      -14.943854523572233,
+      -16.760091274131902,
+      -16.09592271755573,
+      -17.51346649524297,
+      -17.245562792788583,
+      -17.95642518045402,
+      -17.424693324304002,
+      -17.407097077686366,
+      -17.41044788256399
+    ]
+  },
+  "target_lufs": -14.120000000000001,
+  "guard_ms": 12,
+  "pickup_s": 2.6560544217687077
+}

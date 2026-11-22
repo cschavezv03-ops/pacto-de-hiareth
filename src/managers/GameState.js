@@ -28,13 +28,28 @@ export const STORY = Object.freeze([
   { type: 'ending' }, // se resuelve a ENDING_CONVENTIONAL o ENDING_IF
 ]);
 
+/**
+ * Cada LIFE_EVERY orbes Aidan recupera un corazón o gana uno extra (como las monedas de
+ * Mario). Los orbes se pierden al perder todas las vidas (Game Over), así no se pueden
+ * acumular corazones muriendo y repitiendo.
+ */
+export const LIFE_EVERY = 50;
+
 const state = {
   enemiesKilled: 0,
   storyIndex: 0,
   score: 0,
   difficulty: 'normal',
   checkpoint: null, // { levelId, index } — último punto de control activado
+  orbs: 0,                 // orbes recogidos desde el último Game Over
+  bonusHeart: false,       // vida ganada fuera del juego activo: se usa al iniciar el siguiente tramo
+  dev: null,               // modo desarrollador: { god } — nunca se guarda ni toca la partida real
 };
+
+/** Pasos jugables que se pueden probar sueltos desde el modo desarrollador. */
+export const DEV_STEPS = Object.freeze(STORY
+  .map((step, index) => ({ ...step, index }))
+  .filter((s) => s.type === 'level' || s.type === 'boss'));
 
 export const GameState = {
   /** Inicia una partida nueva: único punto donde enemiesKilled vuelve a 0. */
@@ -44,8 +59,37 @@ export const GameState = {
     state.score = 0;
     state.difficulty = DIFFICULTIES[difficulty] ? difficulty : 'normal';
     state.checkpoint = null;
+    state.orbs = 0;
+    state.bonusHeart = false;
+    state.dev = null;
     this.persist();
     return this.currentStep();
+  },
+
+  /**
+   * Modo desarrollador: juega un nivel o el jefe suelto, sin pasar por los anteriores.
+   * No lee ni escribe la partida guardada ni la puntuación máxima; al terminar el paso
+   * se vuelve al selector (advanceStory devuelve { type: 'dev' }).
+   */
+  startDev(stepIndex, difficulty = 'normal', { god = false } = {}) {
+    state.enemiesKilled = 0;
+    state.storyIndex = Math.max(0, Math.min(stepIndex, STORY.length - 1));
+    state.score = 0;
+    state.difficulty = DIFFICULTIES[difficulty] ? difficulty : 'normal';
+    state.checkpoint = null;
+    state.orbs = 0;
+    state.bonusHeart = false;
+    state.dev = { god: Boolean(god) };
+    return this.currentStep();
+  },
+
+  get isDev() {
+    return state.dev !== null;
+  },
+
+  /** Invencibilidad del modo desarrollador. */
+  get devGod() {
+    return Boolean(state.dev?.god);
   },
 
   /** Continúa desde el último paso guardado (nivel alcanzado). */
@@ -57,6 +101,9 @@ export const GameState = {
     state.score = save.run.score ?? 0;
     state.difficulty = DIFFICULTIES[save.run.difficulty] ? save.run.difficulty : 'normal';
     state.checkpoint = save.run.checkpoint ?? null;
+    state.orbs = save.run.orbs ?? 0;
+    state.bonusHeart = Boolean(save.run.bonusHeart);
+    state.dev = null;
     return this.currentStep();
   },
 
@@ -108,7 +155,48 @@ export const GameState = {
 
   addScore(points) {
     state.score += Math.max(0, Math.round(points));
-    SaveManager.submitHighScore(state.score);
+    if (!this.isDev) SaveManager.submitHighScore(state.score);
+  },
+
+  get orbs() {
+    return state.orbs;
+  },
+
+  /**
+   * Suma orbes y devuelve cuántas vidas se ganan al llegar a múltiplos de LIFE_EVERY.
+   * Cada orbe también suma 50 puntos a la puntuación (High Score).
+   */
+  addOrbs(n = 1) {
+    const before = Math.floor(state.orbs / LIFE_EVERY);
+    state.orbs += n;
+    this.addScore(50 * n);
+    return Math.floor(state.orbs / LIFE_EVERY) - before;
+  },
+
+  /** Game Over: los orbes acumulados se pierden. */
+  resetOrbs() {
+    state.orbs = 0;
+    state.bonusHeart = false;
+    this.persist();
+  },
+
+  /** Progreso hacia la siguiente vida (0..1), para el HUD. */
+  get lifeProgress() {
+    return (state.orbs % LIFE_EVERY) / LIFE_EVERY;
+  },
+
+  /** Guarda una vida ganada cuando no hay nivel activo (p. ej. al completar un nivel). */
+  grantBonusHeart() {
+    state.bonusHeart = true;
+    this.persist();
+  },
+
+  /** Consume la vida guardada al empezar un nivel o el jefe (true = empieza con 4 corazones). */
+  consumeBonusHeart() {
+    const had = state.bonusHeart;
+    state.bonusHeart = false;
+    if (had) this.persist();
+    return had;
   },
 
   /** Paso actual de la historia con el final ya resuelto. */
@@ -125,6 +213,10 @@ export const GameState = {
 
   /** Avanza al siguiente paso válido según la ruta y lo devuelve. */
   advanceStory() {
+    if (this.isDev) {
+      state.checkpoint = null;
+      return { type: 'dev' };
+    }
     let i = state.storyIndex + 1;
     while (i < STORY.length && STORY[i].pacifistOnly && !this.isPacifist()) i += 1;
     state.storyIndex = Math.min(i, STORY.length - 1);
@@ -140,6 +232,7 @@ export const GameState = {
   },
 
   persist() {
+    if (state.dev) return; // el modo desarrollador nunca toca la partida guardada
     SaveManager.saveRun({ ...state });
     const step = STORY[state.storyIndex];
     if (step) SaveManager.submitReached(state.storyIndex);

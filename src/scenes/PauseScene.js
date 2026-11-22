@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, GAME_HEIGHT } from '../config/constants.js';
 import { AudioManager } from '../managers/AudioManager.js';
+import { GameState } from '../managers/GameState.js';
 import { FONT_TITLE, COLORS, menuList, panel, audioPanel, oncePerKeyEvent } from '../ui/UiKit.js';
 
 /** Menú de pausa superpuesto. init({ from }) indica la escena pausada. */
@@ -53,6 +54,7 @@ export default class PauseScene extends Phaser.Scene {
   }
 
   restart() {
+    GameState.resetOrbs(); // reiniciar a mano cuenta como perder (evita acumular orbes)
     const target = this.scene.get(this.from);
     const data = target?.sys.settings.data ?? {};
     this.scene.stop(SCENES.HUD);

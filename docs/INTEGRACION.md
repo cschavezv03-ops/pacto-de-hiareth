@@ -162,6 +162,11 @@ Reglas:
 - `muteButton(scene, x, y, { onOpenAudio })` dibuja el icono de altavoz pixel art (sin recuadro).
 - Para manejadores de teclado propios, envolverlos con `oncePerKeyEvent(handler)` (Phaser puede reemitir el mismo evento).
 
+### Pantallas de carga y fondos
+
+- `SCENES.LOADING` (`LoadingScene`): el router la muestra antes de cada nivel y del jefe con `{ step }`. La VN de Frank no necesita gestionarla.
+- `drawBackdrop(scene, id, dim)` en `src/ui/Backdrop.js` dibuja el escenario completo de un acto (`'act1'…'act4' | 'boss'`). Úsalo como fondo de cualquier pantalla: algunas capas sueltas son solo cielo.
+
 ## 8. Registry usado por el HUD
 
 `HudScene` se lanza en paralelo a `LEVEL` y `BOSS` y solo lee del registry global:
@@ -232,7 +237,7 @@ Se puede cambiar libremente todo lo demás: composición, retratos, cajas de di�
 | Daño | Tocar un enemigo y un pincho | −1 corazón, parpadeo y 1 s sin recibir más daño |
 | Foso | Caer a un hueco del suelo | −1 corazón y reaparición en el último suelo seguro |
 | Enemigos | Golpear 4/6/8 veces slime/alien/esqueleto en Intermedio | Mueren en el número exacto; un mismo golpe no daña dos veces |
-| Fuego fantasma | `K`, clic derecho o `✦` desde el suelo; esperar la recarga y volver a lanzar | Proyectil violeta, 3 de daño y 560 px de alcance; 6.5 s de recarga; medidor en el HUD y en el botón; si mata, cuenta como muerte directa |
+| Fuego fantasma | `K`, clic derecho o `✦`, en el suelo o en pleno salto; esperar la recarga y volver a lanzar | Proyectil violeta, 3 de daño y 560 px de alcance; 6.5 s de recarga; medidor en el HUD y en el botón; si mata, cuenta como muerte directa |
 | Ataques enemigos | Acercarse a un slime, un esqueleto y un alien y esperar | Aviso naranja + salto, ojos rojos + tajo y carga cian + abanico; se esquivan sin matar y no abandonan su zona |
 | Rutas | Completar sin matar y repetir matando uno (cuerpo a cuerpo o con Fuego fantasma) | Sin muertes: aparece el Acto 4 y el final IF. Con una muerte: se omite y va al final convencional |
 | Reinicio | Perder los 3 corazones en un nivel | Game Over, «Reintentar» reconstruye el nivel con todos los enemigos y 3 corazones |
@@ -246,3 +251,11 @@ Se puede cambiar libremente todo lo demás: composición, retratos, cajas de di�
 | Continuar | Avanzar, recargar y pulsar «Continuar» | Se retoma el paso guardado y se conserva la puntuación |
 
 Pruebas automatizadas equivalentes: `npm test`, `node tests/smoke.mjs <url>` y `node tests/rules.e2e.mjs <url>` (ver el README).
+
+### Modo desarrollador
+
+`GameState.startDev(stepIndex, difficulty, { god })` arranca un nivel suelto sin tocar el guardado (`persist()` no escribe mientras `GameState.isDev`). En ese modo `advanceStory()` devuelve `{ type: 'dev' }` y el router vuelve al menú con `{ dev: true }` (selector de niveles). `newGame()` y `loadGame()` salen del modo desarrollador. Frank: si la VN necesita probar escenas sueltas, puede reutilizar el mismo mecanismo con pasos de tipo `vn`.
+
+### Acto 2 sin suelo
+
+El Acto 2 no tiene suelo continuo: islotes en el inicio, los checkpoints y la meta, y entre ellos plataformas móviles con `moverTrap: 'cycle'` (se rompen y reaparecen solas). `LevelScene.prepareRespawn()` recoloca a Aidan tras una caída sobre la última plataforma pisada; `LevelScene.returnToSafe()` lo usa el platillo al abducir. Detalles y tiempos en `docs/BALANCE.md` §11.

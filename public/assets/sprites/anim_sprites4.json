@@ -1,0 +1,62 @@
+{
+  "fx/ufo.png": {
+    "frameWidth": 48,
+    "frameHeight": 28,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "../bg/Level2/1.png",
+        "../bg/Level2/2.png",
+        "../bg/Level2/3.png",
+        "../bg/Level2/4.png",
+        "../bg/Level2/5.png",
+        "alien/idle.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 24,
+    "notes": "48x28 native Level2 scale (display x1.667); fixed rose-grey hull, translucent dome, violet pilot. Four sequential red/cyan light phases. Emitter centre (24,24). Suggested 7fps loop.",
+    "technical_checks_passed": true
+  },
+  "fx/ufo_charge.png": {
+    "frameWidth": 48,
+    "frameHeight": 28,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "../bg/Level2/1.png",
+        "../bg/Level2/2.png",
+        "../bg/Level2/3.png",
+        "../bg/Level2/4.png",
+        "../bg/Level2/5.png",
+        "alien/idle.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": 24,
+    "notes": "Same locked hull/dome as ufo.png. Four increasing cyan/mint/white charge states; stepped halo. Play once at 10-12fps, then hold frame 3. Emitter centre (24,24).",
+    "technical_checks_passed": true
+  },
+  "fx/tractor_beam.png": {
+    "frameWidth": 32,
+    "frameHeight": 96,
+    "frames": 4,
+    "source": {
+      "kind": "deterministic-pixel-derivative",
+      "files": [
+        "../bg/Level2/1.png",
+        "../bg/Level2/2.png",
+        "../bg/Level2/3.png",
+        "../bg/Level2/4.png",
+        "../bg/Level2/5.png",
+        "alien/idle.png"
+      ]
+    },
+    "license": "Inherited from project source artwork; no external artwork added.",
+    "baseline": null,
+    "notes": "32x96 native column; centre x16. Place top at craft emitter y24. Four alpha levels (40,80,128,192), cyan/mint source RGB. Bands and motes rise 6px/frame, exact 24px period; repeat vertically or stretch. Suggested 10fps loop. No end cap, seamless 3->0.",
+    "technical_checks_passed": true
+  }
+}

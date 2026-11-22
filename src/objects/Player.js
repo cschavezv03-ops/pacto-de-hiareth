@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { RULES } from '../config/constants.js';
 import { AudioManager } from '../managers/AudioManager.js';
+import { GameState } from '../managers/GameState.js';
 
 /**
  * Parámetros de movimiento (decididos por Sebas; ver docs/BALANCE.md).
@@ -22,6 +23,7 @@ export const PLAYER_TUNING = Object.freeze({
   attackMoveMult: 0.35,   // velocidad mientras ataca
   attackActiveFrom: 2,    // frames activos del golpe (de 8)
   attackActiveTo: 5,
+  airAttackActive: [2, 3], // frames activos del ataque aéreo (de 6)
   attackReach: 66,
   attackHeight: 64,
   // Fuego fantasma (ataque a distancia con recarga; pedido del equipo tras las pruebas)
@@ -146,12 +148,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const g = body.velocity.y > 0 ? RISE_GRAVITY * T.fallGravityMult : RISE_GRAVITY;
     body.setGravityY(g - WORLD_GRAVITY);
 
-    // --- Ataque (solo desde el suelo; un único botón) ---
-    if (input.justPressed('attack') && !this.attacking && this.onGround && !this.crouching) {
-      this.startAttack();
+    // --- Ataque (un único botón; en el aire usa el ataque aéreo) ---
+    if (input.justPressed('attack') && !this.attacking && !this.crouching) {
+      if (this.onGround) this.startAttack();
+      else this.startAirAttack(); // ataque en el aire (sprite propio JumpAttack)
     }
-    // --- Fuego fantasma: a distancia, con recarga, desde el suelo ---
-    if (input.justPressed('special') && !this.attacking && this.onGround && !this.crouching && this.specialReady) {
+    // --- Fuego fantasma: a distancia, con recarga; también en pleno salto ---
+    if (input.justPressed('special') && !this.attacking && !this.crouching && this.specialReady) {
       this.startSpecial();
     }
 
@@ -189,6 +192,25 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     AudioManager.sfx(this.scene, 'sfx_player_shot', { volume: 0.9 });
   }
 
+  /** Ataque en el aire: no frena la caída ni el control aéreo. */
+  startAirAttack() {
+    this.attacking = true;
+    this.attackId += 1;
+    this.play(this.scene.anims.exists('aidan-jump-attack') ? 'aidan-jump-attack' : 'aidan-attack1', true);
+    AudioManager.sfx(this.scene, 'sfx_attack', { volume: 0.7 });
+  }
+
+  /** Recupera un corazón (orbes); si ya está completo da un corazón extra (máx. 1). */
+  heal() {
+    if (this.dead) return null;
+    const max = RULES.PLAYER_HEARTS;
+    let kind = null;
+    if (this.hearts < max) { this.hearts += 1; kind = 'heal'; }
+    else if (this.hearts < max + 1) { this.hearts += 1; kind = 'extra'; }
+    if (kind) this.scene.events.emit('player:hearts', this.hearts);
+    return kind;
+  }
+
   startAttack() {
     this.attacking = true;
     this.attackId += 1; // cada golpe solo daña una vez a cada enemigo
@@ -203,7 +225,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   onAnimFrame(anim, frame) {
-    if (!anim.key.startsWith('aidan-attack') && anim.key !== 'aidan-cast') return;
+    if (!anim.key.startsWith('aidan-attack') && anim.key !== 'aidan-cast' && anim.key !== 'aidan-jump-attack') return;
     const i = frame.index - 1;
     if (this.casting) {
       // El lanzamiento no golpea cuerpo a cuerpo: emite la llamarada en su frame.
@@ -213,12 +235,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       }
       return;
     }
-    const active = i >= PLAYER_TUNING.attackActiveFrom && i <= PLAYER_TUNING.attackActiveTo;
-    this.attackZone.body.enable = active;
+    const [from, to] = anim.key === 'aidan-jump-attack'
+      ? PLAYER_TUNING.airAttackActive : [PLAYER_TUNING.attackActiveFrom, PLAYER_TUNING.attackActiveTo];
+    this.attackZone.body.enable = i >= from && i <= to;
   }
 
   onAnimComplete(anim) {
-    if (anim.key.startsWith('aidan-attack') || anim.key === 'aidan-cast') {
+    if (anim.key.startsWith('aidan-attack') || anim.key === 'aidan-cast' || anim.key === 'aidan-jump-attack') {
       this.attacking = false;
       this.casting = false;
       this.attackZone.body.enable = false;
@@ -252,6 +275,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    */
   takeHit(fromX = this.x) {
     if (this.dead || this.isInvulnerable) return false;
+    if (GameState.devGod) { // modo desarrollador: invencible (los fosos solo recolocan)
+      this.invulnerableUntil = this.clock + RULES.INVULNERABILITY_MS;
+      return false;
+    }
     this.hearts -= 1;
     this.invulnerableUntil = this.clock + RULES.INVULNERABILITY_MS;
     this.scene.events.emit('player:hearts', this.hearts);

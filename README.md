@@ -51,6 +51,7 @@ node tests/rules.e2e.mjs http://localhost:5173
 | Moverse a la izquierda / derecha | `A` / `D` o `←` / `→` | Botones `◀` / `▶` | `WASD` o flechas (vuelo libre en 4 direcciones) | Cruceta `▲ ◀ ▶ ▼` |
 | Saltar | `Espacio` (también `W` / `↑`) | Botón `⤒` | — | — |
 | Agacharse | `S` / `↓` (mantener) | Botón `▼` | — | — |
+| Ataque en el aire | `J` / clic izquierdo mientras salta | Botón `🔥` en el aire | — | — |
 | Atacar / disparar | `J` o clic izquierdo | Botón `🔥` | `J` (también `Espacio` o clic izquierdo); un disparo por pulsación | Botón `🔥` |
 | Fuego fantasma (especial de nivel) | `K` o clic derecho | Botón `✦` | — | — |
 | Media luna de fuego (especial del jefe) | — | — | `K` o clic derecho | Botón `☾` |
@@ -60,7 +61,7 @@ node tests/rules.e2e.mjs http://localhost:5173
 
 Notas:
 
-- El ataque cuerpo a cuerpo solo se ejecuta **desde el suelo**; en el jefe se dispara en cualquier momento.
+- El ataque cuerpo a cuerpo y el Fuego fantasma se pueden usar en el suelo o en pleno salto; en el jefe se dispara en cualquier momento.
 - El **Fuego fantasma** de los niveles también exige estar en el suelo: lanza un proyectil violeta de 3 de daño con 560 px de alcance y **6.5 s de recarga**. La recarga se ve bajo la placa de corazones y en el botón `✦`.
 - La **Media luna de fuego** y el **dash** son exclusivos del jefe. La media luna atraviesa y borra balas enemigas; el dash concede invulnerabilidad breve y tiene su propia recarga. El HUD muestra ambas recargas (medidor y símbolo `»`).
 - El salto es **simple** (sin doble salto). Soltar `Espacio` durante la subida acorta el salto.
@@ -108,9 +109,15 @@ src/
 
 ## Dificultad, checkpoints y audio
 
-- Al pulsar **Nueva partida** se elige **Fácil**, **Intermedio** (valores originales) o **Difícil**. Solo cambia cuántos golpes aguantan los enemigos y el jefe; en Difícil no hay puntos de control.
+- Al pulsar **Nueva partida** se elige **Fácil**, **Intermedio** (valores originales) o **Difícil**. Cambia cuántos golpes aguantan los enemigos y el jefe, la velocidad de los enemigos y la cadencia de los aliens, y el repertorio completo del jefe (ver docs/BALANCE.md §12); en Difícil no hay puntos de control.
 - Cada nivel tiene braseros de **punto de control**: al morir se reaparece en el último encendido.
 - **Opciones** (menú principal o pausa): volumen de música y efectos, silencio y la opción **«Enemigos derrotados»** (apagada por defecto) que muestra un contador en el HUD para quien quiera saber si va por la ruta sin muertes. El icono de altavoz (arriba a la derecha) silencia con un clic; la tecla `M` también.
+
+## Orbes y vidas
+
+- Los enemigos derrotados sueltan **orbes** (slime 3, alien 4, esqueleto 5) y cada nivel tiene 5 grupos de orbes flotantes en zonas altas o difíciles (también se consiguen sin derrotar a nadie). En cuanto Aidan pasa cerca, el orbe le persigue hasta recogerse, aunque siga corriendo.
+- El número del HUD son los orbes. Cada **50 orbes** Aidan recupera un corazón o, si los tiene todos, gana un **corazón extra dorado** (máximo 1). La barra ámbar indica el progreso.
+- **Al perder todas las vidas (Game Over), reiniciar desde la pausa o caer ante el jefe, los orbes vuelven a 0**, así no se pueden acumular corazones muriendo y repitiendo. Cada orbe suma además 50 puntos a la puntuación (High Score).
 
 ## Flujo de escenas
 
@@ -119,7 +126,7 @@ Menú
  └─ VN introducción
      └─ Acto 1 (plataformas, slimes)
          └─ VN (Aidan conoce a Aine)
-             └─ Acto 2 (plataformas, aliens)
+             └─ Acto 2 (sin suelo: plataformas que se rompen, aliens, platillos)
                  └─ VN (en el portal, Aine alcanza a Aidan)
                      └─ Acto 3 (plataformas, esqueletos)
                          └─ VN (casa abandonada / refugio)
@@ -188,9 +195,13 @@ tools/.venv/bin/python tools/gen_props.py
 ## Créditos
 
 - **Equipo:** Frank — Visual Novel; Sebas — gameplay (plataformas, física, combate, enemigos, jefe y sistemas compartidos).
-- **Sprites y soundtrack:** proporcionados por el equipo.
+- **Sprites y soundtrack:** proporcionados por el equipo (temas de los Actos 1, 2 y 4).
+- **Música generada para el proyecto** (síntesis con NumPy + FFmpeg, regenerable):
+  - Menú: `tools/gen_music_menu.py` → `Menu.ogg` (si menor → re mayor, 75 BPM; leitmotiv Si–Re–Do♯–Fa♯–Mi).
+  - Acto 3 «Los nombres olvidados»: `tools/gen_music_level3.py` → `Level3.ogg` (el original del equipo era idéntico al del Acto 1).
+  - Jefe final: se usa el tema original del equipo, `BOSSFIGTH.ogg`. El tema metal generado (`tools/gen_music_boss.py`) se descartó tras escucharlo.
 - **Motor:** [Phaser 3.90](https://phaser.io), licencia MIT.
-- **Efectos de sonido:** sintetizados por procedimiento con `tools/gen_sfx.py`.
+- **Efectos de sonido:** sintetizados por procedimiento con `tools/gen_sfx.py` y `tools/gen_sfx2.py` (orbes con tono ascendente en cadena, derrota de enemigo, checkpoint, fin de nivel y victoria sobre el jefe).
 
 ## Autoevaluación
 

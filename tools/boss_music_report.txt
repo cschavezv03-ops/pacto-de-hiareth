@@ -1,0 +1,140 @@
+EL PACTO DE HIARETH — MORRIGANNUS: LA ÚLTIMA LUNA
+Composición original por síntesis; sin samples ni melodías de terceros.
+
+ANÁLISIS PREVIO DEL ORIGINAL
+BOSSFIGTH: 163.000 s; -10.9 LUFS;
+RMS -13.285 dBFS; pico 0.586 dBFS;
+true peak 0.7 dBTP.
+Croma/perfiles: [{"key": "Do menor", "correlation": 0.901}, {"key": "Do mayor", "correlation": 0.718}, {"key": "Sol menor", "correlation": 0.522}]
+Flujo espectral/autocorrelación: [{"bpm": 89.1, "autocorrelation": 0.554}, {"bpm": 136.0, "autocorrelation": 0.54}, {"bpm": 52.7, "autocorrelation": 0.513}, {"bpm": 66.3, "autocorrelation": 0.51}]
+Estimaciones, no transcripción: do menor r=0.901; 89.1 BPM puede representar
+medio pulso (~178.2 BPM); otros candidatos 136.0 y 52.7 BPM. Se adopta
+do menor y 180 BPM, coherencia tonal directa y pulso próximo al doble.
+Se conserva el original, incluido su SHA-256: aed96690cd855f80534bb3e5ccf9245c0ed41e549bed4f7c0557ed91a7b90373
+
+COMPOSICIÓN Y ARREGLO
+180 BPM, 4/4, 96 compases, 128 s; do menor, afinación grave C2 / bajo C1.
+Do–Lab–Sol7 / Do–Sib–Fa menor–Sol7; Reb en el breakdown, Si natural
+sobre Sol7. Motivo recurrente Do–Sol–Lab–Sol–Mib–Re–Do; respuesta ascendente.
+Intensidad obstinada y teatral de reintento; sin citar temas de Cuphead.
+Las fases son secciones del único OGG; no se cambia código Phaser.
+    0.000–  5.333 s | cc. 1–4: Invocación
+    5.333– 26.667 s | cc. 5–20: A / Raíces
+   26.667– 48.000 s | cc. 21–36: A2 / Raíces se cierran
+   48.000– 69.333 s | cc. 37–52: B / Astas
+   69.333– 85.333 s | cc. 53–64: Puente / Quebrar las raíces
+   85.333– 96.000 s | cc. 65–72: Ascenso
+   96.000–122.667 s | cc. 73–92: Clímax / Luna roja
+  122.667–128.000 s | cc. 93–96: Retorno a la cacería
+Raíces: pedal de Do y galope sincopado con respuestas cromáticas.
+Astas: tema cantabile en registro alto, órgano abierto y ride.
+Puente: batería a medio tiempo, chugs separados y fricción de Reb.
+Ascenso: secuencias y semicorcheas; Luna roja: doble bombo, tema y terceras.
+Últimos cuatro compases: dominante Sol7 y galope de retorno a Do menor.
+
+SÍNTESIS Y MEZCLA
+Doble guitarra independiente L/R ±0.91: cuerdas armónicas Do/quinta/octava,
+desafinación, variación de púa y microtiempo; palm mute por decaimiento modal;
+tanh + waveshaping cúbico a 88.2 kHz, filtro cabinet antes de reducir a 44.1 kHz.
+Preamp con corte a 120 Hz y énfasis de presencia previo a distorsión.
+Cabinet: corte grave 120 Hz, cuerpo 850 Hz, presencia 1.8 kHz,
+rebaje 3.1 kHz y caída 4.6 kHz.
+Bajo central con seno y saturación paralela; corte 38 Hz y caída 1.9 kHz.
+Bombo 57 Hz con ataque 2.2–7.5 kHz; caja 185/335 Hz y ruido filtrado;
+tom con caída de tono, hats/ride/crash con ruido y modos inarmónicos.
+Lead con vibrato, delay de corchea con puntillo y armonía diatónica en clímax.
+Coros formánticos, órgano por registros y campanas de cristal.
+Se reutilizan hz, edge_envelope, Orchestra.add/choir/bell/mix (reverb circular),
+master, musical_estimates, encode, decode, continuity y fingerprint de
+tools/gen_music_level3.py, importado sin modificar ni crear __pycache__.
+Reverb circular amortiguada, envíos de guitarra/bajo muy bajos y coro amplio.
+EQ circular de master: control subsónico 32 Hz y agudos 7.6 kHz.
+Master suave reutilizado + loudnorm de dos pasos; objetivo −11.4 LUFS,
+cercano al original, techo −1.8 dBTP previo a Vorbis. Sin normalizar a 0 dBFS.
+
+VERIFICACIÓN DEL OGG FINAL DECODIFICADO
+{
+  "duration_s": 128.0,
+  "samples_per_channel": 5644800,
+  "rms_dbfs": -14.505871852212337,
+  "sample_peak_dbfs": -2.5262240518349204,
+  "integrated_lufs": -11.3,
+  "true_peak_dbtp": -2.5,
+  "dc_per_channel": [
+    -4.142216691053269e-06,
+    3.959077329245877e-05
+  ],
+  "clipped_samples": 0,
+  "sample_rate_hz": 44100,
+  "channels": 2
+}
+Diferencia respecto al original: -0.40 LU.
+Continuidad: {
+  "boundary_sample_difference": 9.409933409187943e-05,
+  "boundary_difference_dbfs": -80.52826899824454,
+  "interior_step_p99": 0.114876779615879,
+  "window_10ms": {
+    "start_rms_dbfs": -15.733504422771347,
+    "end_rms_dbfs": -17.523333988850847,
+    "difference_db": 1.7898295660795007
+  },
+  "window_50ms": {
+    "start_rms_dbfs": -13.031195115566048,
+    "end_rms_dbfs": -14.54626924403793,
+    "difference_db": 1.5150741284718823
+  },
+  "window_100ms": {
+    "start_rms_dbfs": -13.660719511099618,
+    "end_rms_dbfs": -13.671467496970015,
+    "difference_db": 0.010747985870397159
+  },
+  "window_1000ms": {
+    "start_rms_dbfs": -17.283580592923293,
+    "end_rms_dbfs": -15.936969726946565,
+    "difference_db": -1.3466108659767286
+  },
+  "stereo_correlation": 0.46851854273578475
+}
+Colas instrumentales y convolución envueltas; no hay un final musical en silencio.
+Microfundido técnico de 8 ms en extremos para controlar error Vorbis.
+LOOPSTART=0; LOOPLENGTH=5644800; LOOPEND=5644800. Duración exacta al decodificar.
+Sol7→Do menor cierra la armonía; la reverb del ciclo anterior existe desde muestra 0.
+Criterios: 120–160 s, N exacto, estéreo 44100 Hz, sample/true peak < −1 dB,
+|LUFS-original| <= 1.5 LU, cero muestras recortadas, |DC| < 0.0001 FS,
+salto unión < 0.001 FS y p99 interior; energía 100 ms adyacentes dentro de 3 dB.
+Todos los criterios automáticos: PASS.
+
+ESPECTROGRAMA Y DISTRIBUCIÓN
+tools/boss_music_spectrogram.png: FFmpeg showspectrumpic del OGG final,
+frecuencia logarítmica y escala de intensidad logarítmica, rango 85 dB.
+Bandas (% energía de voces antes de sumar/reverb/master; no stems exportados):
+             0–35 |35–120 |120–350 |350–2000 |2–6k |6–16k |16–22.05k Hz
+guitars        0.002 | 0.100 | 15.483 | 69.813 | 14.574 | 0.028 | 0.000
+bass           11.126 | 87.457 | 1.345 | 0.071 | 0.000 | 0.000 | 0.000
+drums          0.378 | 76.106 | 17.219 | 0.672 | 2.656 | 2.938 | 0.031
+organ/choir    0.000 | 0.000 | 38.949 | 60.821 | 0.230 | 0.000 | 0.000
+crystal bell   0.000 | 0.000 | 0.000 | 98.545 | 1.455 | 0.000 | 0.000
+lead           0.000 | 0.000 | 0.098 | 95.625 | 4.268 | 0.009 | 0.000
+Revisión visual: estructura rítmica de graves, líneas armónicas del lead/cuerdas
+en medios, transitorios de caja/platos y caída progresiva por encima de 8 kHz.
+No se afirma escucha humana: verificación numérica y revisión visual del espectrograma.
+
+REPRODUCIBILIDAD
+tools/.venv/bin/python tools/gen_music_boss.py
+Dependencias: NumPy del venv, FFmpeg/libvorbis. Semilla 20261121.
+Sólo se publican el script, BossMetal.ogg, este informe y el PNG solicitado.
+Intermedios temporales en /tmp; BOSSFIGTH y El pacto de hiareth utils intactos.
+
+MEDICIÓN LOUDNORM PREVIA
+{
+  "input_i": "-10.64",
+  "input_tp": "-1.83",
+  "input_lra": "3.60",
+  "input_thresh": "-20.64",
+  "output_i": "-10.97",
+  "output_tp": "-1.80",
+  "output_lra": "3.70",
+  "output_thresh": "-20.97",
+  "normalization_type": "dynamic",
+  "target_offset": "-0.43"
+}
