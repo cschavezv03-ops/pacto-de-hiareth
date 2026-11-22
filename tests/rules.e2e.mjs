@@ -698,6 +698,52 @@ await step('moving platforms move smoothly (no velocity spikes)', async () => {
   return r;
 });
 
+await step('ghost fire (K) can be cast mid-jump', async () => {
+  const r = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const p = s.player;
+    p.invulnerableUntil = p.clock + 99999;
+    p.specialReadyAt = 0;
+    p.attacking = false;
+    p.body.setVelocityY(-520); // en pleno salto
+    s.time.delayedCall(120, () => resolve({ air: !p.onGround }));
+  }));
+  assert.ok(r.air, 'Aidan está en el aire');
+  await page.keyboard.press('KeyK');
+  const after = await page.evaluate(() => new Promise((resolve) => {
+    const s = window.__level;
+    const p = s.player;
+    s.time.delayedCall(60, () => resolve({ casting: p.casting, ready: p.specialReady, anim: p.anims.currentAnim?.key }));
+  }));
+  assert.equal(after.ready, false, 'la recarga empezó');
+  assert.equal(after.casting, true);
+  return { ...r, ...after };
+});
+
+await step('dev mode: level select plays a level alone and returns, save untouched', async () => {
+  const saved0 = await page.evaluate(() => localStorage.getItem('pactoHiareth.save.v1'));
+  await page.evaluate(() => window.game.events.emit('story:goto', { type: 'dev' }));
+  await page.waitForFunction(() => window.game.scene.isActive('Menu'), null, { timeout: 6000 });
+  await page.waitForTimeout(300);
+  const labels = await page.evaluate(() => window.game.scene.getScene('Menu').list.items.map((t) => t.text));
+  assert.ok(labels.some((l) => l.includes('Combate final')), labels.join(' | '));
+  for (let i = 0; i < 4; i += 1) { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); }
+  await page.keyboard.press('Enter');
+  await page.waitForFunction(() => window.game.scene.isActive('Boss'), null, { timeout: 8000 });
+  const r = await page.evaluate(() => ({ dev: window.__GameState.isDev, step: window.__GameState.currentStep().type }));
+  assert.equal(r.dev, true);
+  assert.equal(r.step, 'boss');
+  await page.evaluate(() => window.game.events.emit('story:goto', window.__GameState.advanceStory()));
+  await page.waitForFunction(() => window.game.scene.isActive('Menu'), null, { timeout: 6000 });
+  const back = await page.evaluate(() => ({
+    devMenu: window.game.scene.getScene('Menu').openDev,
+    save: localStorage.getItem('pactoHiareth.save.v1'),
+  }));
+  assert.equal(back.devMenu, true, 'vuelve al selector');
+  assert.equal(back.save, saved0, 'la partida guardada no cambia');
+  return { labels, ...r };
+});
+
 await browser.close();
 console.log(JSON.stringify({ results, errors }, null, 2));
 const failed = Object.values(results).some((v) => typeof v === 'string' && v.startsWith('FALLO')) || errors.length;

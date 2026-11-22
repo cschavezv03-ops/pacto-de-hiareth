@@ -237,7 +237,7 @@ Se puede cambiar libremente todo lo demás: composición, retratos, cajas de di�
 | Daño | Tocar un enemigo y un pincho | −1 corazón, parpadeo y 1 s sin recibir más daño |
 | Foso | Caer a un hueco del suelo | −1 corazón y reaparición en el último suelo seguro |
 | Enemigos | Golpear 4/6/8 veces slime/alien/esqueleto en Intermedio | Mueren en el número exacto; un mismo golpe no daña dos veces |
-| Fuego fantasma | `K`, clic derecho o `✦` desde el suelo; esperar la recarga y volver a lanzar | Proyectil violeta, 3 de daño y 560 px de alcance; 6.5 s de recarga; medidor en el HUD y en el botón; si mata, cuenta como muerte directa |
+| Fuego fantasma | `K`, clic derecho o `✦`, en el suelo o en pleno salto; esperar la recarga y volver a lanzar | Proyectil violeta, 3 de daño y 560 px de alcance; 6.5 s de recarga; medidor en el HUD y en el botón; si mata, cuenta como muerte directa |
 | Ataques enemigos | Acercarse a un slime, un esqueleto y un alien y esperar | Aviso naranja + salto, ojos rojos + tajo y carga cian + abanico; se esquivan sin matar y no abandonan su zona |
 | Rutas | Completar sin matar y repetir matando uno (cuerpo a cuerpo o con Fuego fantasma) | Sin muertes: aparece el Acto 4 y el final IF. Con una muerte: se omite y va al final convencional |
 | Reinicio | Perder los 3 corazones en un nivel | Game Over, «Reintentar» reconstruye el nivel con todos los enemigos y 3 corazones |
@@ -251,3 +251,7 @@ Se puede cambiar libremente todo lo demás: composición, retratos, cajas de di�
 | Continuar | Avanzar, recargar y pulsar «Continuar» | Se retoma el paso guardado y se conserva la puntuación |
 
 Pruebas automatizadas equivalentes: `npm test`, `node tests/smoke.mjs <url>` y `node tests/rules.e2e.mjs <url>` (ver el README).
+
+### Modo desarrollador
+
+`GameState.startDev(stepIndex, difficulty, { god })` arranca un nivel suelto sin tocar el guardado (`persist()` no escribe mientras `GameState.isDev`). En ese modo `advanceStory()` devuelve `{ type: 'dev' }` y el router vuelve al menú con `{ dev: true }` (selector de niveles). `newGame()` y `loadGame()` salen del modo desarrollador. Frank: si la VN necesita probar escenas sueltas, puede reutilizar el mismo mecanismo con pasos de tipo `vn`.

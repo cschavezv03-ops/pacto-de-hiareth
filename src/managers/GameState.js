@@ -43,7 +43,13 @@ const state = {
   checkpoint: null, // { levelId, index } — último punto de control activado
   orbs: 0,                 // orbes recogidos desde el último Game Over
   bonusHeart: false,       // vida ganada fuera del juego activo: se usa al iniciar el siguiente tramo
+  dev: null,               // modo desarrollador: { god } — nunca se guarda ni toca la partida real
 };
+
+/** Pasos jugables que se pueden probar sueltos desde el modo desarrollador. */
+export const DEV_STEPS = Object.freeze(STORY
+  .map((step, index) => ({ ...step, index }))
+  .filter((s) => s.type === 'level' || s.type === 'boss'));
 
 export const GameState = {
   /** Inicia una partida nueva: único punto donde enemiesKilled vuelve a 0. */
@@ -55,8 +61,35 @@ export const GameState = {
     state.checkpoint = null;
     state.orbs = 0;
     state.bonusHeart = false;
+    state.dev = null;
     this.persist();
     return this.currentStep();
+  },
+
+  /**
+   * Modo desarrollador: juega un nivel o el jefe suelto, sin pasar por los anteriores.
+   * No lee ni escribe la partida guardada ni la puntuación máxima; al terminar el paso
+   * se vuelve al selector (advanceStory devuelve { type: 'dev' }).
+   */
+  startDev(stepIndex, difficulty = 'normal', { god = false } = {}) {
+    state.enemiesKilled = 0;
+    state.storyIndex = Math.max(0, Math.min(stepIndex, STORY.length - 1));
+    state.score = 0;
+    state.difficulty = DIFFICULTIES[difficulty] ? difficulty : 'normal';
+    state.checkpoint = null;
+    state.orbs = 0;
+    state.bonusHeart = false;
+    state.dev = { god: Boolean(god) };
+    return this.currentStep();
+  },
+
+  get isDev() {
+    return state.dev !== null;
+  },
+
+  /** Invencibilidad del modo desarrollador. */
+  get devGod() {
+    return Boolean(state.dev?.god);
   },
 
   /** Continúa desde el último paso guardado (nivel alcanzado). */
@@ -70,6 +103,7 @@ export const GameState = {
     state.checkpoint = save.run.checkpoint ?? null;
     state.orbs = save.run.orbs ?? 0;
     state.bonusHeart = Boolean(save.run.bonusHeart);
+    state.dev = null;
     return this.currentStep();
   },
 
@@ -121,7 +155,7 @@ export const GameState = {
 
   addScore(points) {
     state.score += Math.max(0, Math.round(points));
-    SaveManager.submitHighScore(state.score);
+    if (!this.isDev) SaveManager.submitHighScore(state.score);
   },
 
   get orbs() {
@@ -179,6 +213,10 @@ export const GameState = {
 
   /** Avanza al siguiente paso válido según la ruta y lo devuelve. */
   advanceStory() {
+    if (this.isDev) {
+      state.checkpoint = null;
+      return { type: 'dev' };
+    }
     let i = state.storyIndex + 1;
     while (i < STORY.length && STORY[i].pacifistOnly && !this.isPacifist()) i += 1;
     state.storyIndex = Math.min(i, STORY.length - 1);
@@ -194,6 +232,7 @@ export const GameState = {
   },
 
   persist() {
+    if (state.dev) return; // el modo desarrollador nunca toca la partida guardada
     SaveManager.saveRun({ ...state });
     const step = STORY[state.storyIndex];
     if (step) SaveManager.submitReached(state.storyIndex);

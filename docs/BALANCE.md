@@ -76,7 +76,7 @@ Hitbox del jugador: cuerpo de **38×76 px** con origen en los pies (`y = 167/250
 
 ## 2.1 Fuego fantasma (especial de niveles)
 
-Ataque a distancia con recarga, pedido por el equipo tras las pruebas. Se lanza con `K`, clic derecho o el botón táctil `✦`; **solo desde el suelo** y solo si la recarga está lista.
+Ataque a distancia con recarga, pedido por el equipo tras las pruebas. Se lanza con `K`, clic derecho o el botón táctil `✦`; en el suelo **o en pleno salto** (no frena la caída ni el control aéreo) y solo si la recarga está lista.
 
 | Parámetro | Valor | Constante / origen |
 | --- | --- | --- |
@@ -309,7 +309,7 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 
 - **El dash existe solo en el jefe.** En los niveles no se implementó: no es necesario para el diseño de plataformas y mantiene el alcance bajo control (el documento lo dejaba a criterio de Sebas). En el combate final recorre 170 px en 150 ms, concede 200 ms de invulnerabilidad y tiene 800 ms de recarga.
 - **Coyote time (100 ms) y jump buffer (120 ms)**, con salto variable al soltar `Espacio`. Sigue siendo un salto simple: **no hay doble salto**.
-- **El ataque cuerpo a cuerpo y el Fuego fantasma solo se ejecutan desde el suelo**, porque no existe animación de ataque aéreo. `Attack1` y `Attack2` se alternan como **variantes visuales de la misma acción**, no como habilidades distintas. El Fuego fantasma usa `Cast_GhostFire` (8 frames) y una recarga de 6.5 s.
+- **El ataque cuerpo a cuerpo y el Fuego fantasma se pueden usar en el suelo o en el aire** (ataque aéreo con `JumpAttack`; el Fuego fantasma reutiliza su animación de lanzamiento). `Attack1` y `Attack2` se alternan como **variantes visuales de la misma acción**, no como habilidades distintas. El Fuego fantasma usa `Cast_GhostFire` (8 frames) y una recarga de 6.5 s.
 - **Fuego fantasma y fases del jefe: cambio pedido por el equipo tras las pruebas.** El Documento Maestro decía no inventar ataques mágicos adicionales y las Instrucciones no requerían fases; el equipo pidió ambos después de jugar y quedan **aprobados**. El Fuego fantasma es un ataque a distancia con recarga y las tres fases del jefe son una extensión del combate final, no una regla nueva de la historia.
 - **Animaciones nuevas derivadas de los sprites originales.** `tools/gen_anim_sprites.py` genera `Cast_GhostFire`, `fx/ghostfire`, `fx/ghostfire_burst`, `Slime3_Leap`, `skeleton/windup`, `alien/charge` y `fx/crescent` con muestreo NEAREST y paletas nativas, sin arte externo. El manifiesto `public/assets/sprites/anim_sprites.json` registra fuentes, línea base y notas; `tools/anim_preview.png` sirve para revisarlas. Si una tira falta, el código usa respaldos.
 - **La regla de rutas NO cambia.** El Acto 4 (el «easter egg» de la ruta pacifista) solo aparece si `enemiesKilled === 0`, y **todos los enemigos siguen siendo esquivables sin matar**: los ataques nuevos tienen aviso y ventana de esquiva. El Fuego fantasma **sí** cuenta como muerte directa porque es un ataque de Aidan, igual que el cuerpo a cuerpo.
@@ -359,3 +359,13 @@ Los emboscados están en tramos con espacio libre a ambos lados (nunca junto al 
 | Pantalla de carga por nivel | `LoadingScene` antes de cada nivel y del jefe, con el escenario completo, título, dificultad y un consejo. El router la genera solo para el paso real siguiente: la del Acto 4 solo aparece en la ruta pacifista (prueba E2E de la ruta convencional completa) |
 | Fondos completos | Pantallas de carga y tarjetas de la novela visual componen todas las capas del escenario (`ui/Backdrop.js`); antes usaban solo la capa más lejana, que en el Acto 2 es un cielo liso |
 
+
+## 10. Modo desarrollador y ajustes
+
+- **Modo desarrollador (selector de niveles).** Aparece en el menú principal con `npm run dev`, con `?dev` en la URL de la build o pulsando `F2` en el menú.
+  - Permite jugar suelto cualquier acto (incluido el Acto 4, sin necesidad de la ruta pacifista) o el combate final.
+  - Se elige la dificultad y, opcionalmente, invencibilidad (los fosos solo recolocan a Aidan).
+  - No lee ni escribe la partida guardada ni la puntuación máxima. Al terminar el nivel se vuelve al selector.
+  - Es una herramienta de pruebas, no una opción del jugador; no altera ninguna regla del documento maestro.
+- **Fuego fantasma en el aire.** `K` ya no exige estar en el suelo: se puede lanzar en pleno salto, con la misma recarga de 6.5 s.
+- **Música del jefe.** Se restauró el tema original del equipo (`BOSSFIGTH.ogg`); el tema metal generado se retiró de `public/`.

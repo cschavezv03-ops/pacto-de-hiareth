@@ -92,3 +92,24 @@ test('cada 50 orbes se concede una vida; Game Over los devuelve a 0', async () =
   assert.equal(GameState.consumeBonusHeart(), true);
   assert.equal(GameState.consumeBonusHeart(), false);
 });
+
+test('modo desarrollador: nivel suelto sin tocar el guardado y vuelta al selector', async () => {
+  const { DEV_STEPS } = await import('../src/managers/GameState.js');
+  GameState.advanceStory(); // partida real en el Acto 1
+  const saved = JSON.stringify(SaveManager.load());
+  const act4 = DEV_STEPS.find((s) => s.id === LEVELS.ACT4);
+  assert.ok(act4, 'el Acto 4 se puede probar suelto');
+  assert.ok(DEV_STEPS.some((s) => s.type === 'boss'));
+  assert.ok(DEV_STEPS.every((s) => s.type === 'level' || s.type === 'boss'));
+  const step = GameState.startDev(act4.index, 'hard', { god: true });
+  assert.equal(step.id, LEVELS.ACT4);
+  assert.equal(GameState.difficulty.id, 'hard');
+  assert.ok(GameState.isDev && GameState.devGod);
+  GameState.registerKill();
+  GameState.addScore(999999);
+  assert.deepEqual(GameState.advanceStory(), { type: 'dev' });
+  assert.equal(JSON.stringify(SaveManager.load()), saved, 'la partida guardada no cambia');
+  GameState.loadGame();
+  assert.ok(!GameState.isDev, 'Continuar sale del modo desarrollador');
+  assert.equal(GameState.currentStep().id, LEVELS.ACT1);
+});

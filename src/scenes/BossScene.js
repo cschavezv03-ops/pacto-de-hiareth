@@ -546,6 +546,7 @@ export default class BossScene extends Phaser.Scene {
     if (this.finished || !bullet.active || !bullet.body.enable
       || this.elapsedMs < this.invulnerableUntil || this.elapsedMs < this.dashInvulnerableUntil) return;
     bullet.disableBody(true, true);
+    if (GameState.devGod) return; // modo desarrollador: invencible
     this.hearts = Math.max(0, this.hearts - 1);
     this.registry.set('hearts', this.hearts);
     this.invulnerableUntil = this.elapsedMs + RULES.INVULNERABILITY_MS;

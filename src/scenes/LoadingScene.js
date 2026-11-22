@@ -42,7 +42,7 @@ export default class LoadingScene extends Phaser.Scene {
     this.add.text(W / 2, H / 2 - 70, title, {
       fontFamily: FONT_TITLE, fontSize: '44px', color: COLORS.ink, stroke: '#000', strokeThickness: 6,
     }).setOrigin(0.5);
-    this.add.text(W / 2, H / 2 - 24, GameState.difficulty.label, {
+    this.add.text(W / 2, H / 2 - 24, GameState.isDev ? `${GameState.difficulty.label} · Modo desarrollador` : GameState.difficulty.label, {
       fontFamily: FONT_UI, fontSize: '16px', color: '#ffd9a8', stroke: '#000', strokeThickness: 3,
     }).setOrigin(0.5);
 

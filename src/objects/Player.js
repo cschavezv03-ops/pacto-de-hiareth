@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { RULES } from '../config/constants.js';
 import { AudioManager } from '../managers/AudioManager.js';
+import { GameState } from '../managers/GameState.js';
 
 /**
  * Parámetros de movimiento (decididos por Sebas; ver docs/BALANCE.md).
@@ -147,13 +148,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const g = body.velocity.y > 0 ? RISE_GRAVITY * T.fallGravityMult : RISE_GRAVITY;
     body.setGravityY(g - WORLD_GRAVITY);
 
-    // --- Ataque (solo desde el suelo; un único botón) ---
+    // --- Ataque (un único botón; en el aire usa el ataque aéreo) ---
     if (input.justPressed('attack') && !this.attacking && !this.crouching) {
       if (this.onGround) this.startAttack();
       else this.startAirAttack(); // ataque en el aire (sprite propio JumpAttack)
     }
-    // --- Fuego fantasma: a distancia, con recarga, desde el suelo ---
-    if (input.justPressed('special') && !this.attacking && this.onGround && !this.crouching && this.specialReady) {
+    // --- Fuego fantasma: a distancia, con recarga; también en pleno salto ---
+    if (input.justPressed('special') && !this.attacking && !this.crouching && this.specialReady) {
       this.startSpecial();
     }
 
@@ -274,6 +275,10 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
    */
   takeHit(fromX = this.x) {
     if (this.dead || this.isInvulnerable) return false;
+    if (GameState.devGod) { // modo desarrollador: invencible (los fosos solo recolocan)
+      this.invulnerableUntil = this.clock + RULES.INVULNERABILITY_MS;
+      return false;
+    }
     this.hearts -= 1;
     this.invulnerableUntil = this.clock + RULES.INVULNERABILITY_MS;
     this.scene.events.emit('player:hearts', this.hearts);

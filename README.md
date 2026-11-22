@@ -61,7 +61,7 @@ node tests/rules.e2e.mjs http://localhost:5173
 
 Notas:
 
-- El ataque cuerpo a cuerpo solo se ejecuta **desde el suelo**; en el jefe se dispara en cualquier momento.
+- El ataque cuerpo a cuerpo y el Fuego fantasma se pueden usar en el suelo o en pleno salto; en el jefe se dispara en cualquier momento.
 - El **Fuego fantasma** de los niveles también exige estar en el suelo: lanza un proyectil violeta de 3 de daño con 560 px de alcance y **6.5 s de recarga**. La recarga se ve bajo la placa de corazones y en el botón `✦`.
 - La **Media luna de fuego** y el **dash** son exclusivos del jefe. La media luna atraviesa y borra balas enemigas; el dash concede invulnerabilidad breve y tiene su propia recarga. El HUD muestra ambas recargas (medidor y símbolo `»`).
 - El salto es **simple** (sin doble salto). Soltar `Espacio` durante la subida acorta el salto.
@@ -199,7 +199,7 @@ tools/.venv/bin/python tools/gen_props.py
 - **Música generada para el proyecto** (síntesis con NumPy + FFmpeg, regenerable):
   - Menú: `tools/gen_music_menu.py` → `Menu.ogg` (si menor → re mayor, 75 BPM; leitmotiv Si–Re–Do♯–Fa♯–Mi).
   - Acto 3 «Los nombres olvidados»: `tools/gen_music_level3.py` → `Level3.ogg` (el original del equipo era idéntico al del Acto 1).
-  - Jefe final, metal sinfónico: `tools/gen_music_boss.py` → `BossMetal.ogg` (do menor, 180 BPM). El tema original del jefe se conserva en `El pacto de hiareth utils/Soundtrack/BOSSFIGTH.ogg`.
+  - Jefe final: se usa el tema original del equipo, `BOSSFIGTH.ogg`. El tema metal generado (`tools/gen_music_boss.py`) se descartó tras escucharlo.
 - **Motor:** [Phaser 3.90](https://phaser.io), licencia MIT.
 - **Efectos de sonido:** sintetizados por procedimiento con `tools/gen_sfx.py` y `tools/gen_sfx2.py` (orbes con tono ascendente en cadena, derrota de enemigo, checkpoint, fin de nivel y victoria sobre el jefe).
 

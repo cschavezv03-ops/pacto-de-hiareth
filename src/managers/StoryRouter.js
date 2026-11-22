@@ -9,6 +9,7 @@
  *   { type: 'level', id }  -> SCENES.LOADING -> SCENES.LEVEL con { levelId: id }
  *   { type: 'boss' }       -> SCENES.LOADING -> SCENES.BOSS
  *   { type: 'ending', id } -> SCENES.VN     con { sceneId: id, isEnding: true }
+ *   { type: 'dev' }        -> SCENES.MENU   con { dev: true } (vuelve al selector de niveles)
  */
 import { SCENES } from '../config/constants.js';
 import { AudioManager } from './AudioManager.js';
@@ -35,6 +36,10 @@ export function goToStep(game, step) {
     case 'ending':
       AudioManager.stopMusic();
       sm.start(SCENES.VN, { sceneId: step.id, isEnding: true });
+      break;
+    case 'dev':
+      AudioManager.stopMusic();
+      sm.start(SCENES.MENU, { dev: true });
       break;
     default:
       sm.start(SCENES.MENU);
