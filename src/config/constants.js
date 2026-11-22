@@ -57,16 +57,24 @@ export const RULES = Object.freeze({
  * corazones de Aidan (3) son iguales en todas. 'normal' = valores del documento.
  */
 export const DIFFICULTIES = Object.freeze({
-  // bossSpeedMult / bossRestMult: velocidad de los orbes del jefe y respiro entre patrones.
+  // bossSpeedMult / bossRestMult: velocidad de los orbes del jefe y respiro entre patrones;
+  // el repertorio del jefe por dificultad está en BossPatterns.BOSS_PROFILES.
+  // enemySpeedMult: velocidad de patrulla/persecución/saltos/embestidas (y platillos).
+  // enemyCooldownMult: calma entre ataques. alienFireMult: intervalo entre disparos del
+  // alien (menor = más rápido). alienShotSpeedMult: velocidad de sus orbes.
+  // Los AVISOS (telegraphs) no cambian: todo sigue siendo esquivable sin matar.
   easy: { id: 'easy', label: 'Fácil', hitMult: 0.5, bossHealthMult: 0.65, checkpoints: true,
     bossSpeedMult: 1.0, bossRestMult: 1.05,
-    desc: 'Enemigos más frágiles · con puntos de control' },
+    enemySpeedMult: 0.9, enemyCooldownMult: 1.15, alienFireMult: 1.15, alienShotSpeedMult: 0.9,
+    desc: 'Enemigos más frágiles y lentos · con puntos de control' },
   normal: { id: 'normal', label: 'Intermedio', hitMult: 1, bossHealthMult: 1, checkpoints: true,
     bossSpeedMult: 1.25, bossRestMult: 0.85,
+    enemySpeedMult: 1, enemyCooldownMult: 1, alienFireMult: 1, alienShotSpeedMult: 1,
     desc: 'Experiencia original · con puntos de control' },
   hard: { id: 'hard', label: 'Difícil', hitMult: 1.5, bossHealthMult: 1.25, checkpoints: false,
     bossSpeedMult: 1.45, bossRestMult: 0.72,
-    desc: 'Enemigos más resistentes · sin puntos de control' },
+    enemySpeedMult: 1.2, enemyCooldownMult: 0.8, alienFireMult: 0.7, alienShotSpeedMult: 1.2,
+    desc: 'Enemigos más resistentes y rápidos · sin puntos de control' },
 });
 
 /** Golpes necesarios para derrotar a un enemigo según la dificultad. */

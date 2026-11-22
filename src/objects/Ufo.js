@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { AudioManager } from '../managers/AudioManager.js';
+import { GameState } from '../managers/GameState.js';
 
 /**
  * Pequeño platillo abductor del Acto 2 (peligro ambiental, NO es un enemigo: no se puede
@@ -58,7 +59,8 @@ export class Ufo {
     if (this.state === 'hunt') {
       const target = Phaser.Math.Clamp(player.x, this.minX, this.maxX);
       const dx = target - s.x;
-      s.x += Math.sign(dx) * Math.min(Math.abs(dx), T.speed * (delta / 1000));
+      const speed = T.speed * (GameState.difficulty.enemySpeedMult ?? 1); // 76-102 px/s según dificultad
+      s.x += Math.sign(dx) * Math.min(Math.abs(dx), speed * (delta / 1000));
       const inZone = player.x > this.minX - 40 && player.x < this.maxX + 40;
       if (inZone && !player.dead && Math.abs(player.x - s.x) < T.alignRange && now >= this.nextBeam) {
         this.state = 'charge';

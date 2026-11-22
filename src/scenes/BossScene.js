@@ -3,13 +3,14 @@ import { GAME_WIDTH, GAME_HEIGHT, RULES, SCENES } from '../config/constants.js';
 import { GameState } from '../managers/GameState.js';
 import { AudioManager } from '../managers/AudioManager.js';
 import { InputManager } from '../managers/InputManager.js';
-import BossPatterns, { PATTERN_COLORS } from '../objects/BossPatterns.js';
+import BossPatterns, { PATTERN_COLORS, BOSS_PROFILES } from '../objects/BossPatterns.js';
 
 export const BOSS_TUNING = Object.freeze({
   // Intermedio: 1.2–1.5 impactos normales/s + 85% de especiales acertados
   // = 19.6–22.6 DPS => 186–215 s, más entrada/transiciones. Objetivo 3–4 min.
   // Es una hipótesis de balance, no un límite de duración: disparar mejor se premia.
-  // Fácil 2730 / Intermedio 4200 / Difícil 5250; solo se escala la vida.
+  // Fácil 2730 / Intermedio 4200 / Difícil 5250. Además cambian el repertorio, los
+  // avisos, los huecos y el movimiento del jefe (BossPatterns.BOSS_PROFILES).
   HEALTH: 4200,
   SHOT_DAMAGE: 10,
   PLAYER_SPEED: 245,
@@ -178,7 +179,9 @@ export default class BossScene extends Phaser.Scene {
       this.trails.push(trail);
     }
     for (let i = 0; i < 2; i += 1) this.telegraphs.push(this.add.graphics().setDepth(2));
-    this.patterns = new BossPatterns(this, BOSS_TUNING);
+    this.profile = BOSS_PROFILES[GameState.difficulty.id] ?? BOSS_PROFILES.normal;
+    this.patterns = new BossPatterns(this, BOSS_TUNING, this.profile);
+    this.bossHomeY = this.boss.y;
     this.phaseText = this.add.text(GAME_WIDTH / 2, 118, 'I · Raíces', {
       fontFamily: 'Georgia, serif', fontSize: '28px', color: '#ffe0ef',
       stroke: '#160d28', strokeThickness: 5,
@@ -308,12 +311,33 @@ export default class BossScene extends Phaser.Scene {
       this.player.setAlpha(this.elapsedMs < this.invulnerableUntil
         ? 0.45 + 0.55 * Math.pow(Math.cos(this.elapsedMs / 110), 2) : 1);
     }
+    this.updateBossDrift(delta);
     if (this.transitionRemaining > 0) {
       this.transitionRemaining = Math.max(0, this.transitionRemaining - delta);
       this.phaseText.setAlpha(0.6 + 0.4 * this.transitionRemaining / BOSS_TUNING.PHASE_TRANSITION_MS);
     } else this.patterns.update(delta);
     this.updateBossTint();
     if (this.elapsedMs >= this.nextUiAt) this.publishCooldowns();
+  }
+
+  /**
+   * Movimiento vertical del jefe según la dificultad: quieto (Fácil), oscilación suave
+   * (Intermedio) o persigue la altura de Aidan (Difícil). Más difícil apuntarle y los
+   * patrones salen desde alturas distintas.
+   */
+  updateBossDrift(delta) {
+    const pr = this.profile;
+    if (pr.drift === 'still' || this.finished) { this.boss.body.setVelocityY(0); return; }
+    const minY = 150;
+    const maxY = GAME_HEIGHT - 150;
+    let target;
+    if (pr.drift === 'sway') target = this.bossHomeY + Math.sin(this.elapsedMs / 2600) * 90;
+    else target = this.player.y;
+    target = Phaser.Math.Clamp(target, minY, maxY);
+    const dy = target - this.boss.y;
+    const v = Math.sign(dy) * Math.min(Math.abs(dy) * 4, pr.driftSpeed * (1 + 0.4 * this.intensity));
+    this.boss.body.setVelocityY(Math.abs(dy) < 2 ? 0 : v);
+    void delta;
   }
 
   updateEffects(delta) {
@@ -452,11 +476,16 @@ export default class BossScene extends Phaser.Scene {
     g.clear().setVisible(true).lineStyle(2, color, 0.75);
     const x = this.boss.x - 45;
     const y = this.boss.y;
-    if (track.kind === 'lance') {
+    if (track.kind === 'burst') {
+      for (const a of [track.angle - 0.17, track.angle + 0.17]) {
+        g.lineBetween(x, y, x + Math.cos(a) * 220, y + Math.sin(a) * 220);
+      }
+      g.strokeCircle(x, y, 26);
+    } else if (track.kind === 'lance') {
       g.lineBetween(x, y, x + Math.cos(track.angle) * 1100, y + Math.sin(track.angle) * 1100);
       g.strokeCircle(x, y, 20);
-    } else if (track.kind === 'wall') {
-      const half = BOSS_TUNING.WALL_GAP / 2;
+    } else if (track.kind === 'wall' || track.kind === 'wall2') {
+      const half = this.profile.wallGap / 2;
       g.fillStyle(color, 0.09).fillRect(32, track.gap - half, 900, half * 2);
       g.lineBetween(32, track.gap - half, 932, track.gap - half);
       g.lineBetween(32, track.gap + half, 932, track.gap + half);
@@ -468,7 +497,8 @@ export default class BossScene extends Phaser.Scene {
       }
     } else {
       g.strokeCircle(x, y, 42);
-      if (track.kind === 'double' || track.kind === 'spiral') g.strokeCircle(x, y, 60);
+      if (track.kind === 'double' || track.kind === 'spiral' || track.kind === 'spiral4') g.strokeCircle(x, y, 60);
+      if (track.kind === 'spiral4') g.strokeCircle(x, y, 78);
     }
   }
 
@@ -557,6 +587,7 @@ export default class BossScene extends Phaser.Scene {
       this.finished = true;
       this.pendingDefeat = true;
       this.player.body.stop();
+      this.boss.body.stop();
       this.patterns.reset();
       AudioManager.sfx(this, 'sfx_player_die');
     }
@@ -611,6 +642,7 @@ export default class BossScene extends Phaser.Scene {
     this.finished = true;
     this.patterns.reset();
     this.player.body.stop();
+    this.boss.body.stop();
     this.player.setAlpha(1).clearTint().play(FLY_ANIMATION);
     this.boss.body.enable = false;
     this.boss.clearTint();

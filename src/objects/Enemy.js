@@ -71,6 +71,32 @@ export const ENEMY_TYPES = {
 };
 
 /**
+ * Copia de la configuración de un tipo ajustada a la dificultad (velocidades y calma
+ * entre ataques). Los avisos (windupMs) no cambian para que todo siga siendo esquivable.
+ */
+const scaledCache = new Map();
+export function scaledEnemyConfig(type, difficulty) {
+  const key = `${type}:${difficulty.id}`;
+  if (scaledCache.has(key)) return scaledCache.get(key);
+  const cfg = structuredClone(ENEMY_TYPES[type]);
+  const sp = difficulty.enemySpeedMult ?? 1;
+  const cd = difficulty.enemyCooldownMult ?? 1;
+  const cool = (range) => range.map((ms) => Math.round(ms * cd));
+  cfg.speed = Math.round(cfg.speed * sp);
+  if (cfg.chaseSpeed) cfg.chaseSpeed = Math.round(cfg.chaseSpeed * sp);
+  if (cfg.leap) { cfg.leap.maxVx = Math.round(cfg.leap.maxVx * sp); cfg.leap.cooldownMs = cool(cfg.leap.cooldownMs); }
+  if (cfg.lava) cfg.lava.emberEveryMs = cool(cfg.lava.emberEveryMs);
+  if (cfg.swing) cfg.swing.cooldownMs = cool(cfg.swing.cooldownMs);
+  if (cfg.charge) { cfg.charge.speed = Math.round(cfg.charge.speed * sp); cfg.charge.cooldownMs = cool(cfg.charge.cooldownMs); }
+  if (cfg.shootIntervalMs) {
+    cfg.shootIntervalMs = Math.round(cfg.shootIntervalMs * (difficulty.alienFireMult ?? 1));
+    cfg.projectileSpeed = Math.round(cfg.projectileSpeed * (difficulty.alienShotSpeedMult ?? 1));
+  }
+  scaledCache.set(key, cfg);
+  return cfg;
+}
+
+/**
  * Reloj del nivel: solo avanza mientras la escena se actualiza (LevelScene.levelClock),
  * así una pausa no consume avisos, aturdimientos ni cadencias de disparo.
  */
@@ -88,7 +114,7 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
    * @param {object} spec { type, x, y, minX, maxX }
    */
   constructor(scene, spec) {
-    const cfg = ENEMY_TYPES[spec.type];
+    const cfg = scaledEnemyConfig(spec.type, GameState.difficulty);
     super(scene, spec.x, spec.y, cfg.texture, 0);
     this.cfg = cfg;
     this.kind = spec.type;

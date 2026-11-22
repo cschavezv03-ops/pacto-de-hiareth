@@ -154,7 +154,7 @@ Animaciones nuevas asociadas: `Slime3_Leap` (8 frames de 64×64), `skeleton/wind
 
 ## 4. Jefe: Morrigannus (`BOSS_TUNING`)
 
-El combate final tiene **tres fases** (Raíces, Astas y Luna roja), aviso previo para cada patrón, dash y Media luna de fuego. La vida escala con la dificultad; el resto de valores es común.
+El combate final tiene **tres fases** (Raíces, Astas y Luna roja), aviso previo para cada patrón, dash y Media luna de fuego. La vida, el repertorio, los avisos, los huecos y el movimiento del jefe cambian con la dificultad (§12); el resto de valores es común.
 
 | Parámetro | Valor | Comentario |
 | --- | --- | --- |
@@ -388,4 +388,46 @@ Pedido por el equipo para subir la dificultad del Acto 2 sin hacerlo imposible.
 - **Abducción.** Si un platillo te abduce, pierdes 1 corazón y te suelta en esa misma plataforma segura; no se suma la caída al vacío. Hay 3 platillos, uno por tramo.
 - **Aliens.** 6 aliens flotan alto (h = 8-9) y disparan hacia las plataformas. Se pueden esquivar o matar con el ataque aéreo o el Fuego fantasma. Se retiraron los pinchos y el guardián del portal, que dependían del suelo.
 - **Verificado que es superable.** `tests/levels.test.js` simula en el tiempo la posición y el estado de cada plataforma con la física real del salto de Aidan, usando solo el 80 % del alcance horizontal, subidas de como mucho 3,5 tiles y aterrizajes con al menos 0,25 s de plataforma firme. Sigue siendo superable con el 60 % del alcance. El recorrido óptimo dura unos 39 s.
-- La dificultad elegida no cambia los tiempos del ciclo, igual que el resto del escenario: solo cambian la resistencia de los enemigos y los checkpoints.
+- La dificultad elegida no cambia los tiempos del ciclo de las plataformas (sí la velocidad de enemigos y platillos, §12).
+
+## 12. Dificultad: jefe y enemigos
+
+Pedido por el equipo: el jefe en Fácil se sentía igual que en Difícil. Cambio aprobado; amplía §1.1.
+
+### Morrigannus por dificultad
+
+Además de la vida y de `bossSpeedMult` y `bossRestMult`, cada dificultad tiene su propio perfil, `BOSS_PROFILES` en `src/objects/BossPatterns.js`.
+
+| | Fácil | Intermedio | Difícil |
+|---|---|---|---|
+| Fase 1 | abanico, anillo, lanza | abanico, anillo, lanza | **ráfaga**, anillo, lanza, anillo doble, abanico |
+| Fase 2 | abanico, muro, anillo, lanza | espiral, muro, abanico | espiral, **muro doble**, ráfaga, anillo doble, lanza, muro |
+| Fase 3 | espiral, abanico, muro, anillo, lanza | espiral, muro, lanza, anillo doble | **espiral de 4 brazos**, muro doble, ráfaga, anillo doble, espiral, lanza |
+| Patrones simultáneos | Nunca | Fase 3 (espiral + muro o lanza) | Desde la fase 2 |
+| Duración de los avisos | ×1,3 | ×1 | ×0,8 (siempre hay aviso) |
+| Hueco de los muros | 150 px | 116 px | 100 px |
+| Orbes por abanico / anillo | −1 / −3 | base | +2 / +4 |
+| Lanzas por ataque | 2 | 3 | 5 |
+| Brazos de la espiral | 2 (más lenta) | 2 | 3 |
+| Movimiento del jefe | Quieto | Oscila despacio | Persigue la altura de Aidan (70-98 px/s) |
+| Velocidad de los orbes / respiro | ×1,0 / ×1,05 | ×1,25 / ×0,85 | ×1,45 / ×0,72 |
+
+Patrones nuevos, exclusivos de Difícil:
+- **Ráfaga** (`burst`): tres abanicos cerrados de 3 orbes, cada uno apuntado a la posición actual de Aidan.
+- **Muro doble** (`wall2`): un segundo muro sale unos 0,56 s después del primero, con el hueco desplazado unos 100 px. Tiene su propio aviso.
+- **Espiral de 4 brazos** (`spiral4`).
+
+Medido en la prueba E2E (fase 1 y fase 3, unos 19 s), el máximo de balas en pantalla es 28 en Fácil, 43 en Intermedio y 78 en Difícil.
+
+### Enemigos y platillos por dificultad
+
+`scaledEnemyConfig()` en `Enemy.js` crea una copia de la configuración de cada tipo con estos multiplicadores (`DIFFICULTIES` en `constants.js`):
+
+| | Fácil | Intermedio | Difícil |
+|---|---|---|---|
+| Velocidad (patrulla, persecución, salto del slime, embestida, platillos) | ×0,9 | ×1 | ×1,2 |
+| Calma entre ataques (salto, tajo, embestida, brasas) | ×1,15 | ×1 | ×0,8 |
+| Intervalo de disparo del alien | 2990 ms | 2600 ms | 1820 ms |
+| Velocidad de los orbes del alien | 135 | 150 | 180 px/s |
+
+Los **avisos (`windupMs`) no cambian** en ninguna dificultad, así que todo sigue siendo esquivable sin matar y la ruta pacifista sigue siendo posible. Los platillos nunca alcanzan a Aidan corriendo: van a 102 px/s como máximo, frente a 250.

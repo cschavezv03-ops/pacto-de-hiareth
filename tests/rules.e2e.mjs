@@ -765,6 +765,66 @@ await step('dev mode: level select plays a level alone and returns, save untouch
   return { labels, ...r };
 });
 
+await step('boss adapts to difficulty: repertoire, density, movement', async () => {
+  const out = {};
+  for (const diff of ['easy', 'normal', 'hard']) {
+    await page.evaluate((d) => {
+      const GS = window.__GameState;
+      const idx = 10; // paso del jefe en STORY
+      GS.startDev(idx, d, { god: true });
+      window.game.events.emit('story:goto', GS.currentStep());
+    }, diff);
+    await page.waitForFunction(() => window.__boss?.player && window.game.scene.isActive('Boss'), null, { timeout: 8000 });
+    out[diff] = await page.evaluate(() => new Promise((resolve) => {
+      const b = window.__boss;
+      const kinds = new Set();
+      let maxBullets = 0; let minY = Infinity; let maxY = -Infinity;
+      b.player.body.reset(200, 150); // arriba: el jefe que persigue debería subir
+      const sample = () => {
+        for (const t of b.patterns.tracks) if (t.kind) kinds.add(t.kind);
+        maxBullets = Math.max(maxBullets, b.bossBullets.countActive(true));
+        minY = Math.min(minY, b.boss.y); maxY = Math.max(maxY, b.boss.y);
+      };
+      const ev = b.time.addEvent({ delay: 50, loop: true, callback: sample });
+      // Fase 1 unos segundos y luego fase 3.
+      b.time.delayedCall(9000, () => { b.phase = 3; b.phaseElapsedMs = 0; b.patterns.reset(); });
+      b.time.delayedCall(19000, () => {
+        ev.remove();
+        resolve({ kinds: [...kinds].sort(), maxBullets, yRange: Math.round(maxY - minY), profileWallGap: b.profile.wallGap, speedMult: b.speedMult });
+      });
+    }));
+  }
+  const { easy, normal, hard } = out;
+  assert.ok(!easy.kinds.includes('burst') && !normal.kinds.includes('burst'), 'burst solo en Difícil');
+  assert.ok(hard.kinds.includes('burst'), `Difícil usa patrones propios: ${hard.kinds}`);
+  assert.ok(hard.kinds.includes('spiral4') || hard.kinds.includes('wall2'));
+  assert.ok(easy.maxBullets < normal.maxBullets && normal.maxBullets < hard.maxBullets,
+    `densidad creciente ${easy.maxBullets} < ${normal.maxBullets} < ${hard.maxBullets}`);
+  assert.equal(easy.yRange, 0, 'en Fácil el jefe no se mueve');
+  assert.ok(hard.yRange > 60, `en Difícil el jefe persigue a Aidan (${hard.yRange}px)`);
+  assert.ok(easy.profileWallGap > normal.profileWallGap && normal.profileWallGap > hard.profileWallGap);
+  return out;
+});
+
+await step('enemies are faster and aliens fire faster on hard', async () => {
+  const r = await page.evaluate(async () => {
+    const { scaledEnemyConfig } = await import('/src/objects/Enemy.js');
+    const { DIFFICULTIES } = await import('/src/config/constants.js');
+    const pick = (d) => {
+      const s = scaledEnemyConfig('slime', DIFFICULTIES[d]); const a = scaledEnemyConfig('alien', DIFFICULTIES[d]);
+      const k = scaledEnemyConfig('skeleton', DIFFICULTIES[d]);
+      return { slime: s.speed, leapVx: s.leap.maxVx, alienEvery: a.shootIntervalMs, alienShot: a.projectileSpeed,
+        skel: k.chaseSpeed, charge: k.charge.speed, windup: k.charge.windupMs };
+    };
+    return { easy: pick('easy'), normal: pick('normal'), hard: pick('hard') };
+  });
+  assert.ok(r.hard.alienEvery < r.normal.alienEvery && r.normal.alienEvery < r.easy.alienEvery);
+  assert.ok(r.hard.slime > r.normal.slime && r.hard.skel > r.normal.skel && r.hard.charge > r.normal.charge);
+  assert.equal(r.hard.windup, r.normal.windup, 'los avisos no cambian');
+  assert.ok(r.hard.alienShot <= 200, 'los orbes del alien siguen siendo esquivables');
+  return r;
+});
+
 await browser.close();
 console.log(JSON.stringify({ results, errors }, null, 2));
 const failed = Object.values(results).some((v) => typeof v === 'string' && v.startsWith('FALLO')) || errors.length;

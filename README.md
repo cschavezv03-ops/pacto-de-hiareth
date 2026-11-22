@@ -109,7 +109,7 @@ src/
 
 ## Dificultad, checkpoints y audio
 
-- Al pulsar **Nueva partida** se elige **Fácil**, **Intermedio** (valores originales) o **Difícil**. Solo cambia cuántos golpes aguantan los enemigos y el jefe; en Difícil no hay puntos de control.
+- Al pulsar **Nueva partida** se elige **Fácil**, **Intermedio** (valores originales) o **Difícil**. Cambia cuántos golpes aguantan los enemigos y el jefe, la velocidad de los enemigos y la cadencia de los aliens, y el repertorio completo del jefe (ver docs/BALANCE.md §12); en Difícil no hay puntos de control.
 - Cada nivel tiene braseros de **punto de control**: al morir se reaparece en el último encendido.
 - **Opciones** (menú principal o pausa): volumen de música y efectos, silencio y la opción **«Enemigos derrotados»** (apagada por defecto) que muestra un contador en el HUD para quien quiera saber si va por la ruta sin muertes. El icono de altavoz (arriba a la derecha) silencia con un clic; la tecla `M` también.
 
