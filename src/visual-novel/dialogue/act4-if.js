@@ -27,7 +27,6 @@ export default [
   n('Guardan silencio y tú decides recargarte en ella también.'),
   d('Aine', '¡Mira!', 'sorprendida'),
   a('Volteas hacia arriba. En la extensión púrpura, hay auroras boreales.'),
-  music('erosion', { gain: 0.4, fadeMs: 1200 }),
   d('Aidan', '¿Eso no es?', 'sorprendido'),
   n('En las auroras boreales observan Slimes, Aliens y Esqueletos. Tomas a Aine de la mano y juntos miran como su forma cambia... y parecen contar una historia.'),
   n('A través de fuegos convertidos en color y escena, como una magia ancestral, ves que los slimes no causaron el fuego.... Eran el eslabón más bajo de su raza, ciudadanos, que los slimes de alto mando habían abandonado al lugar.'),
