@@ -63,7 +63,7 @@ export const MUSIC = [
   { key: 'music_act4', url: `${A}/music/Level4.ogg` },
   // Tema original del equipo para el combate final (el metal generado se descartó).
   { key: 'music_boss', url: `${A}/music/BOSSFIGTH.ogg` },
-  { key: 'music_menu', url: `${A}/music/Menu.ogg` },   // tema del menú (tools/gen_music_menu.py)
+  { key: 'music_menu', url: `${A}/music/MainMenuTheme.ogg` }, // El original se conserva en backups/audio/Menu_original_backup.ogg.
 ];
 
 /** Efectos de sonido generados por tools/gen_sfx.py (WAV mono 22050 Hz). */
@@ -72,4 +72,5 @@ export const SFX = [
   'alien_shot', 'player_shot', 'boss_shot', 'boss_hit', 'level_clear', 'ui_select',
   // tools/gen_sfx2.py
   'orb_pickup', 'orb_pickup2', 'orb_pickup3', 'checkpoint', 'boss_defeat',
+  'menu_rain_thunder',
 ].map((name) => ({ key: `sfx_${name}`, url: `${A}/sfx/${name}.wav` }));

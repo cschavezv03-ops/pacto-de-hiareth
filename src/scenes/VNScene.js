@@ -1,68 +1,28 @@
 import Phaser from 'phaser';
-import { SCENES, GAME_WIDTH, GAME_HEIGHT, VN_SCENES } from '../config/constants.js';
-import { GameState } from '../managers/GameState.js';
+import { SCENES, GAME_WIDTH, VN_SCENES } from '../config/constants.js';
 import { AudioManager } from '../managers/AudioManager.js';
-import { FONT_TITLE, FONT_UI, COLORS, muteButton, panel, oncePerKeyEvent } from '../ui/UiKit.js';
-import { drawBackdrop } from '../ui/Backdrop.js';
+import { muteButton } from '../ui/UiKit.js';
+import DialogueRunner from '../visual-novel/DialogueRunner.js';
+import DialogueRenderer from '../visual-novel/DialogueRenderer.js';
+import CharacterPresenter from '../visual-novel/CharacterPresenter.js';
+import BackgroundPresenter from '../visual-novel/BackgroundPresenter.js';
+import VNInput from '../visual-novel/VNInput.js';
+import VNTransitions from '../visual-novel/VNTransitions.js';
+import { VN_SCRIPTS } from '../visual-novel/dialogue/index.js';
+import {
+  VN_BACKGROUNDS,
+  VN_MUSIC,
+  VN_SFX,
+  characterForSpeaker,
+  portraitPath,
+  portraitTexture,
+  voiceForSpeaker,
+} from '../visual-novel/assetManifest.js';
 
-/**
- * ESCENA VN PROVISIONAL (placeholder de integración).
- *
- * La Visual Novel completa es responsabilidad de Frank. Esta escena solo existe para
- * que el flujo del juego sea jugable de principio a fin mientras tanto. NO contiene
- * diálogos: muestra el título del tramo narrativo y la descripción del Documento
- * Maestro / Instrucciones de Sebas, sin inventar contenido.
- *
- * Contrato que la escena de Frank debe respetar (misma clave SCENES.VN):
- *   init({ sceneId, isEnding })  -> sceneId es uno de VN_SCENES
- *   al terminar:  const next = GameState.advanceStory();
- *                 this.game.events.emit('story:goto', next);
- *   en finales (isEnding): volver al menú con this.scene.start(SCENES.MENU)
- *   No modificar GameState.enemiesKilled.
- */
-const CARDS = {
-  [VN_SCENES.INTRO]: {
-    title: 'Introducción',
-    text: 'Aidan conversa con el líder del Pacto de Hiareth: la misión, los portales y la piedra Lia Fáil.',
-    bg: 'boss',
-  },
-  [VN_SCENES.AFTER_ACT1]: {
-    title: 'Acto 1 — Tierra, mar y cielo',
-    text: 'Aidan conoce a Aine.',
-    bg: 'act1',
-  },
-  [VN_SCENES.AFTER_ACT2]: {
-    title: 'Acto 2 — Vuela alto',
-    text: 'En el portal, Aine alcanza a Aidan.',
-    bg: 'act2',
-  },
-  [VN_SCENES.AFTER_ACT3]: {
-    title: 'Acto 3 — Limbo',
-    text: 'En la casa abandonada: pérdidas, familias y esperanza.',
-    bg: 'act3',
-  },
-  [VN_SCENES.AFTER_ACT4]: {
-    title: 'Acto 4 — Don\'t Try… (IF)',
-    text: 'En el campamento: chocolate, auroras boreales e historias de las razas.',
-    bg: 'act4',
-  },
-  [VN_SCENES.BEFORE_BOSS]: {
-    title: 'Acto final — Hiraeth',
-    text: 'Aidan y Aine llegan a un páramo de cristal bajo una luna roja.',
-    bg: 'boss',
-  },
-  [VN_SCENES.ENDING_CONVENTIONAL]: {
-    title: 'Final',
-    text: 'Desenlace narrativo (Visual Novel).',
-    bg: 'boss',
-  },
-  [VN_SCENES.ENDING_IF]: {
-    title: 'Final IF',
-    text: 'Desenlace narrativo (Visual Novel).',
-    bg: 'act4',
-  },
-};
+const FAST_ADVANCE_MS = 280;
+const SKIP_RELEASE_MS = 460;
 
+/** VN integrada en la instancia y el flujo narrativo existentes. */
 export default class VNScene extends Phaser.Scene {
   constructor() {
     super(SCENES.VN);
@@ -71,61 +31,192 @@ export default class VNScene extends Phaser.Scene {
   init(data) {
     this.sceneId = data?.sceneId ?? VN_SCENES.INTRO;
     this.isEnding = Boolean(data?.isEnding);
-    this.leaving = false;
+  }
+
+  preload() {
+    const commands = VN_SCRIPTS[this.sceneId] ?? VN_SCRIPTS[VN_SCENES.INTRO];
+    const backgroundKeys = new Set();
+    const portraits = new Set();
+    const queuedAudio = new Set();
+    const queueAudio = (key, path) => {
+      if (!path || this.cache.audio.exists(key) || queuedAudio.has(key)) return;
+      queuedAudio.add(key);
+      this.load.audio(key, path);
+    };
+
+    commands.forEach((command) => {
+      if (command.type === 'background' && !command.key.startsWith('gameplay:')) backgroundKeys.add(command.key);
+      if (command.type === 'showCharacter') portraits.add(`${command.character}:${command.expression ?? 'neutral'}`);
+      if (command.type === 'setExpression') portraits.add(`${command.character}:${command.expression}`);
+      if (command.type === 'dialogue') {
+        const character = characterForSpeaker(command.speaker);
+        if (character) portraits.add(`${character}:${command.expression ?? 'neutral'}`);
+        const voice = voiceForSpeaker(command.speaker);
+        if (voice) queueAudio(voice.key, voice.path);
+      }
+      if (command.type === 'music') {
+        const key = `vn_music_${command.key}`;
+        queueAudio(key, VN_MUSIC[command.key]);
+      }
+      if (command.type === 'sfx') {
+        const key = `vn_sfx_${command.key}`;
+        queueAudio(key, VN_SFX[command.key]);
+      }
+    });
+
+    backgroundKeys.forEach((key) => {
+      if (!this.textures.exists(`vn_bg_${key}`) && VN_BACKGROUNDS[key]) {
+        this.load.image(`vn_bg_${key}`, VN_BACKGROUNDS[key]);
+      }
+    });
+    portraits.forEach((entry) => {
+      const [character, expression] = entry.split(':');
+      const key = portraitTexture(character, expression);
+      const path = portraitPath(character, expression);
+      if (path && !this.textures.exists(key)) this.load.image(key, path);
+    });
+    this.load.on('loaderror', (file) => console.warn('[VN] No se pudo cargar el recurso', file.key, file.src));
   }
 
   create() {
-    const W = GAME_WIDTH;
-    const H = GAME_HEIGHT;
-    const card = CARDS[this.sceneId] ?? { title: this.sceneId, text: '', bg: 'boss' };
     if (!this.isEnding) AudioManager.stopMusic();
+    AudioManager.stopAmbience();
 
-    drawBackdrop(this, card.bg, 0.55); // todas las capas del escenario, nunca solo el cielo
+    this.backgroundPresenter = new BackgroundPresenter(this);
+    this.characterPresenter = new CharacterPresenter(this);
+    this.dialogueRenderer = new DialogueRenderer(this);
+    this.transitions = new VNTransitions(this);
+    muteButton(this, GAME_WIDTH - 12, 12);
 
-    this.add.text(W / 2, H / 2 - 90, card.title, {
-      fontFamily: FONT_TITLE, fontSize: '44px', color: COLORS.ink, stroke: '#000', strokeThickness: 6,
-    }).setOrigin(0.5);
+    const commands = VN_SCRIPTS[this.sceneId] ?? VN_SCRIPTS[VN_SCENES.INTRO];
+    this.runner = new DialogueRunner(commands, {
+      onLine: (command) => this.dialogueRenderer.show(command, this.characterPresenter),
+      onCommand: (command) => this.runCommand(command),
+      onComplete: () => this.transitions.finish({ isEnding: this.isEnding }),
+    });
+    this.inputController = new VNInput(this, () => this.advance());
+    this.cameras.main.fadeIn(380, 0, 0, 0);
+    this.runner.start();
 
-    panel(this, W / 2, H - 120, W - 120, 130);
-    this.add.text(W / 2, H - 135, card.text, {
-      fontFamily: FONT_UI, fontSize: '22px', color: COLORS.ink, align: 'center',
-      wordWrap: { width: W - 180 },
-    }).setOrigin(0.5);
-    this.add.text(W / 2, H - 78, '[ Escena de Visual Novel — pendiente de integración (Frank) ]', {
-      fontFamily: FONT_UI, fontSize: '15px', color: COLORS.dim,
-    }).setOrigin(0.5);
-
-    if (this.isEnding) {
-      this.add.text(W / 2, H / 2 - 30, `Puntuación: ${GameState.score}`, {
-        fontFamily: FONT_UI, fontSize: '24px', color: COLORS.accent, stroke: '#000', strokeThickness: 4,
-      }).setOrigin(0.5);
-    }
-
-    const prompt = this.add.text(W / 2, H - 28, this.isEnding ? 'Enter / toque: volver al menú' : 'Enter / toque: continuar', {
-      fontFamily: FONT_UI, fontSize: '18px', color: COLORS.accent, stroke: '#000', strokeThickness: 3,
-    }).setOrigin(0.5);
-    this.tweens.add({ targets: prompt, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
-
-    muteButton(this, W - 12, 12);
-    this.cameras.main.fadeIn(400, 0, 0, 0);
-
-    this.input.keyboard.on('keydown-ENTER', oncePerKeyEvent(() => this.next()));
-    this.input.keyboard.on('keydown-SPACE', oncePerKeyEvent(() => this.next()));
-    this.input.on('pointerup', (p) => { if (p.y > 60) this.next(); });
+    this.events.once('shutdown', () => this.destroyVN());
   }
 
-  next() {
-    if (this.leaving) return;
-    this.leaving = true;
-    AudioManager.sfx(this, 'sfx_ui_select');
-    this.cameras.main.fadeOut(350, 0, 0, 0);
-    this.cameras.main.once('camerafadeoutcomplete', () => {
-      if (this.isEnding) {
-        this.scene.start(SCENES.MENU);
-        return;
-      }
-      const next = GameState.advanceStory();
-      this.game.events.emit('story:goto', next);
+  runCommand(command) {
+    switch (command.type) {
+      case 'background':
+        return this.backgroundPresenter.set(command.key, { sunrise: command.sunrise });
+      case 'showCharacter':
+        this.characterPresenter.show(command.character, command.expression, command.position);
+        break;
+      case 'hideCharacter':
+        this.characterPresenter.hide(command.character);
+        break;
+      case 'setExpression':
+        this.characterPresenter.setExpression(command.character, command.expression);
+        break;
+      case 'music':
+        AudioManager.playMusic(this, `vn_music_${command.key}`, {
+          gain: command.gain,
+          loop: command.loop,
+          fadeMs: command.fadeMs,
+        });
+        break;
+      case 'stopMusic':
+        AudioManager.fadeOutMusic(this, command.fadeMs);
+        break;
+      case 'sfx':
+        AudioManager.vnSfx(this, `vn_sfx_${command.key}`, command);
+        break;
+      case 'ambience':
+        this.playVNAmbience(command);
+        break;
+      case 'stopAmbience':
+        this.cancelPendingAmbience(command.key);
+        AudioManager.fadeOutAmbience(this, command.key ? `vn_sfx_${command.key}` : null, command.fadeMs);
+        break;
+      default:
+        console.warn(`[VN] Comando narrativo desconocido: ${command.type}`);
+    }
+    return null;
+  }
+
+  playVNAmbience(command) {
+    const key = `vn_sfx_${command.key}`;
+    if (this.cache.audio.exists(key)) {
+      AudioManager.playAmbience(this, key, command);
+      return;
+    }
+
+    const path = VN_SFX[command.key];
+    if (!path) return;
+    this.pendingAmbiences ??= new Map();
+    if (this.pendingAmbiences.has(key)) return;
+    const token = Symbol(key);
+    this.pendingAmbiences.set(key, token);
+
+    const onError = (file) => {
+      if (file.key !== key) return;
+      if (this.pendingAmbiences.get(key) === token) this.pendingAmbiences.delete(key);
+      this.load.off('loaderror', onError);
+    };
+    this.load.on('loaderror', onError);
+    this.load.once(`filecomplete-audio-${key}`, () => {
+      this.load.off('loaderror', onError);
+      if (this.pendingAmbiences.get(key) !== token) return;
+      this.pendingAmbiences.delete(key);
+      if (this.sys.isActive()) AudioManager.playAmbience(this, key, command);
     });
+    this.load.audio(key, path);
+    this.load.start();
+  }
+
+  cancelPendingAmbience(key) {
+    if (key) this.pendingAmbiences?.delete(`vn_sfx_${key}`);
+    else this.pendingAmbiences?.clear();
+  }
+
+  advance() {
+    const now = this.time.now;
+    if (this.lastAdvanceAt !== undefined && now - this.lastAdvanceAt <= FAST_ADVANCE_MS) {
+      this.setSkipping(true);
+    }
+    this.lastAdvanceAt = now;
+    if (this.skipping) this.refreshSkipReleaseTimer();
+
+    if (this.transitions.leaving) return;
+    const pageState = this.dialogueRenderer.completeLine();
+    if (pageState === 'done') this.runner.next();
+  }
+
+  setSkipping(value) {
+    if (this.skipping === value) return;
+    this.skipping = value;
+    AudioManager.setVNSkipMode(value);
+  }
+
+  refreshSkipReleaseTimer() {
+    this.skipReleaseTimer?.remove(false);
+    this.skipReleaseTimer = this.time.delayedCall(SKIP_RELEASE_MS, () => {
+      this.skipReleaseTimer = null;
+      this.setSkipping(false);
+    });
+  }
+
+  destroyVN() {
+    this.skipReleaseTimer?.remove(false);
+    this.skipReleaseTimer = null;
+    this.setSkipping(false);
+    AudioManager.stopVNSfx();
+    this.pendingAmbiences?.clear();
+    this.runner?.destroy();
+    this.dialogueRenderer?.destroy();
+    this.characterPresenter?.destroy();
+    this.backgroundPresenter?.destroy();
+    this.inputController?.destroy();
+    this.runner = null;
+    this.dialogueRenderer = null;
+    this.characterPresenter = null;
+    this.backgroundPresenter = null;
+    this.inputController = null;
   }
 }

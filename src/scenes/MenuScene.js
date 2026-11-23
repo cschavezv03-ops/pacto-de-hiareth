@@ -43,6 +43,7 @@ export default class MenuScene extends Phaser.Scene {
     this.layers = [1, 2, 3].map((i) =>
       this.add.tileSprite(0, 0, W, H, `bg_boss_${i}`).setOrigin(0).setTileScale(H / 324));
     this.add.rectangle(0, 0, W, H, 0x0d0a18, 0.35).setOrigin(0);
+    this.createStormEffects(W, H);
 
     this.add.text(W / 2, 92, 'El Pacto de Hiareth', {
       fontFamily: FONT_TITLE, fontSize: '58px', color: COLORS.ink,
@@ -75,6 +76,96 @@ export default class MenuScene extends Phaser.Scene {
 
     muteButton(this, W - 16, 14, { onOpenAudio: () => this.openAudio() });
     this.helpPanel = null;
+  }
+
+  createStormEffects(width, height) {
+    const textureKey = 'menu_rain_streak';
+    if (!this.textures.exists(textureKey)) {
+      const texture = this.make.graphics({ x: 0, y: 0, add: false });
+      texture.fillStyle(0xb9d8f4, 0.9).fillRect(0, 0, 2, 16);
+      texture.generateTexture(textureKey, 2, 16);
+      texture.destroy();
+    }
+
+    // Lluvia ligera en una capa de fondo: el texto del menú permanece nítido.
+    this.rainEmitter = this.add.particles(0, 0, textureKey, {
+      x: { min: 0, max: width },
+      y: -18,
+      speedX: { min: -92, max: -58 },
+      speedY: { min: 390, max: 510 },
+      lifespan: 1050,
+      quantity: 2,
+      frequency: 28,
+      maxParticles: 110,
+      alpha: { start: 0.25, end: 0.02 },
+      scale: { start: 0.85, end: 0.72 },
+      rotate: { min: -18, max: -18 },
+    });
+    this.rainEmitter.setDepth(0).setScrollFactor(0);
+
+    this.lightningFlash = this.add.rectangle(0, 0, width, height, 0xb8d8ff, 0)
+      .setOrigin(0).setDepth(0).setScrollFactor(0);
+    this.scheduleLightning();
+    this.startStormAudio();
+  }
+
+  scheduleLightning() {
+    this.lightningTimer = this.time.delayedCall(Phaser.Math.Between(11000, 19000), () => {
+      if (!this.sys.isActive() || !this.lightningFlash?.active) return;
+      this.tweens.add({
+        targets: this.lightningFlash,
+        alpha: 0.11,
+        duration: 45,
+        yoyo: true,
+        hold: 45,
+        onComplete: () => {
+          this.time.delayedCall(110, () => {
+            if (!this.sys.isActive() || !this.lightningFlash?.active) return;
+            this.tweens.add({
+              targets: this.lightningFlash,
+              alpha: 0.055,
+              duration: 35,
+              yoyo: true,
+              onComplete: () => this.scheduleLightning(),
+            });
+          });
+        },
+      });
+    });
+  }
+
+  startStormAudio() {
+    const key = 'sfx_menu_rain_thunder';
+    if (!this.cache.audio.exists(key)) return;
+
+    const begin = () => {
+      if (!this.sys.isActive() || this.menuStormSound) return;
+      this.menuStormSound = this.sound.add(key, { loop: true, volume: 0 });
+      this.menuStormSound.play();
+      this.tweens.add({
+        targets: this.menuStormSound,
+        volume: AudioManager.sfxVolume * 0.24,
+        duration: 1200,
+      });
+    };
+
+    if (this.sound.locked) this.sound.once('unlocked', begin);
+    else begin();
+
+    this.offStormVolume = AudioManager.onMuteChange(() => {
+      this.menuStormSound?.setVolume(AudioManager.sfxVolume * 0.24);
+    });
+    this.events.once('shutdown', () => {
+      this.sound.off('unlocked', begin);
+      this.offStormVolume?.();
+      this.offStormVolume = null;
+      if (this.menuStormSound) {
+        this.tweens.killTweensOf(this.menuStormSound);
+        this.menuStormSound.stop();
+        this.menuStormSound.destroy();
+      }
+      this.menuStormSound = null;
+    });
   }
 
   showMainMenu() {

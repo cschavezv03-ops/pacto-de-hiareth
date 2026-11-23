@@ -13,6 +13,7 @@ export const SCENES = Object.freeze({
   PRELOAD: 'Preload',
   MENU: 'Menu',
   VN: 'VisualNovel',     // escena VN (Frank). Recibe { sceneId } en init().
+  CHAPTER_CARD: 'ChapterCard', // intertítulo narrativo antes de un acto o zona importante.
   LEVEL: 'Level',        // nivel de plataformas. Recibe { levelId } en init().
   BOSS: 'Boss',          // Bullet Hell contra Morrigannus.
   HUD: 'Hud',            // HUD paralelo a LEVEL/BOSS.

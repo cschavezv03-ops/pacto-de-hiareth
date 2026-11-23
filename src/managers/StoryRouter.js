@@ -11,25 +11,33 @@
  *   { type: 'ending', id } -> SCENES.VN     con { sceneId: id, isEnding: true }
  *   { type: 'dev' }        -> SCENES.MENU   con { dev: true } (vuelve al selector de niveles)
  */
-import { SCENES } from '../config/constants.js';
+import { LEVELS, SCENES, VN_SCENES } from '../config/constants.js';
 import { AudioManager } from './AudioManager.js';
 
-const MANAGED = [SCENES.VN, SCENES.LEVEL, SCENES.BOSS, SCENES.HUD, SCENES.PAUSE, SCENES.GAME_OVER, SCENES.BOSS_DEFEAT, SCENES.LOADING, SCENES.MENU, SCENES.ENDING];
+const MANAGED = [SCENES.CHAPTER_CARD, SCENES.VN, SCENES.LEVEL, SCENES.BOSS, SCENES.HUD, SCENES.PAUSE, SCENES.GAME_OVER, SCENES.BOSS_DEFEAT, SCENES.LOADING, SCENES.MENU, SCENES.ENDING];
 
-export function goToStep(game, step) {
+const CHAPTER_CARDS = Object.freeze({
+  [`vn:${VN_SCENES.INTRO}`]: { chapter: 'PRÓLOGO', title: 'EL PACTO DE HIARETH' },
+  [`level:${LEVELS.ACT1}`]: { chapter: 'ACTO I', title: 'LA ALDEA EN LLAMAS' },
+  [`level:${LEVELS.ACT2}`]: { chapter: 'ACTO II', title: 'LA FEDERACIÓN' },
+  [`level:${LEVELS.ACT3}`]: { chapter: 'ACTO III', title: 'EL LIMBO' },
+  [`level:${LEVELS.ACT4}`]: { chapter: 'ACTO IV', title: 'LAS AURORAS BOREALES' },
+  [`vn:${VN_SCENES.BEFORE_BOSS}`]: { chapter: 'DESENLACE', title: 'PÁRAMO DE CRISTAL' },
+  [`ending:${VN_SCENES.ENDING_CONVENTIONAL}`]: { chapter: 'EPÍLOGO', title: 'LA MARIPOSA DE FUEGO' },
+  [`ending:${VN_SCENES.ENDING_IF}`]: { chapter: 'EPÍLOGO', title: 'LO QUE PERMANECE' },
+});
+
+function cardForStep(step) {
+  return CHAPTER_CARDS[`${step.type}:${step.id ?? ''}`] ?? null;
+}
+
+export function startStoryStep(game, step) {
   const sm = game.scene;
-  // Las operaciones del SceneManager se encolan: primero detener, luego arrancar.
-  for (const key of MANAGED) {
-    if (sm.isActive(key) || sm.isPaused(key) || sm.isSleeping(key)) sm.stop(key);
-  }
   switch (step.type) {
     case 'vn':
       sm.start(SCENES.VN, { sceneId: step.id });
       break;
-    // Niveles y jefe pasan por su pantalla de carga (solo la del paso real siguiente).
     case 'level':
-      sm.start(SCENES.LOADING, { step });
-      break;
     case 'boss':
       sm.start(SCENES.LOADING, { step });
       break;
@@ -44,6 +52,20 @@ export function goToStep(game, step) {
     default:
       sm.start(SCENES.MENU);
   }
+}
+
+export function goToStep(game, step) {
+  const sm = game.scene;
+  // Las operaciones del SceneManager se encolan: primero detener, luego arrancar.
+  for (const key of MANAGED) {
+    if (sm.isActive(key) || sm.isPaused(key) || sm.isSleeping(key)) sm.stop(key);
+  }
+  const chapterCard = cardForStep(step);
+  if (chapterCard) {
+    sm.start(SCENES.CHAPTER_CARD, { step, chapterCard });
+    return;
+  }
+  startStoryStep(game, step);
 }
 
 export function installStoryRouter(game) {
