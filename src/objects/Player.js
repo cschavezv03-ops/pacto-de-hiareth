@@ -20,6 +20,7 @@ export const PLAYER_TUNING = Object.freeze({
   maxFall: 820,           // < medio tile por tick a 60 Hz
   coyoteMs: 100,
   bufferMs: 120,
+  actionBufferMs: 220,    // J/K pulsados mientras otra acción termina no se pierden
   attackMoveMult: 0.35,   // velocidad mientras ataca
   attackActiveFrom: 2,    // frames activos del golpe (de 8)
   attackActiveTo: 5,
@@ -79,6 +80,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     this.dead = false;
     this.lastGroundTime = -Infinity;
     this.lastJumpPress = -Infinity;
+    this.lastJumpAt = -Infinity;     // momento del último salto (para no contarlo como suelo)
+    this.lastAttackPress = -Infinity;
+    this.lastSpecialPress = -Infinity;
     this.lastSafe = { x, y }; // lo actualiza LevelScene solo sobre suelo firme
 
     // Zona de golpe melee (sin gravedad, solo overlap).
@@ -109,8 +113,12 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const input = this.controls;
     const body = this.body;
 
-    if (this.onGround && body.velocity.y >= 0) this.lastGroundTime = time;
+    // Sobre una plataforma que sube la velocidad vertical es negativa aunque Aidan esté
+    // apoyado: se cuenta como suelo salvo justo después de un salto propio.
+    if (this.onGround && (body.velocity.y >= 0 || time - this.lastJumpAt > 150)) this.lastGroundTime = time;
     if (input.justPressed('jump')) this.lastJumpPress = time;
+    if (input.justPressed('attack')) this.lastAttackPress = time;
+    if (input.justPressed('special')) this.lastSpecialPress = time;
 
     // --- Agacharse: solo en el suelo y sin atacar; no se desplaza mientras tanto ---
     const wantCrouch = input.isDown('down') && this.onGround && !this.attacking;
@@ -133,11 +141,13 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     // --- Salto: buffer + coyote, simple (sin doble salto) ---
     const canCoyote = time - this.lastGroundTime <= T.coyoteMs;
     const buffered = time - this.lastJumpPress <= T.bufferMs;
-    if (buffered && canCoyote && !this.attacking) {
+    // El salto tiene prioridad: también sale durante un ataque (el golpe sigue en el aire).
+    if (buffered && canCoyote) {
       if (this.crouching) this.setCrouch(false); // saltar levanta a Aidan
       body.setVelocityY(JUMP_VELOCITY);
       this.lastJumpPress = -Infinity;
       this.lastGroundTime = -Infinity;
+      this.lastJumpAt = time;
       if (!input.isDown('jump')) body.setVelocityY(JUMP_VELOCITY * T.jumpCut);
       AudioManager.sfx(this.scene, 'sfx_jump', { volume: 0.6 });
     }
@@ -148,14 +158,21 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     const g = body.velocity.y > 0 ? RISE_GRAVITY * T.fallGravityMult : RISE_GRAVITY;
     body.setGravityY(g - WORLD_GRAVITY);
 
-    // --- Ataque (un único botón; en el aire usa el ataque aéreo) ---
-    if (input.justPressed('attack') && !this.attacking && !this.crouching) {
+    // --- Fuego fantasma: a distancia, con recarga; también en pleno salto ---
+    // Interrumpe un golpe cuerpo a cuerpo (en el suelo o en el aire) y, si se pulsa
+    // durante otro lanzamiento, queda en búfer unos instantes en vez de perderse.
+    const wantsSpecial = time - this.lastSpecialPress <= T.actionBufferMs;
+    if (wantsSpecial && !this.casting && this.specialReady) {
+      if (this.crouching) this.setCrouch(false);
+      this.lastSpecialPress = -Infinity;
+      this.startSpecial();
+    }
+    // --- Ataque (un único botón; en el aire usa el ataque aéreo), con búfer ---
+    const wantsAttack = time - this.lastAttackPress <= T.actionBufferMs;
+    if (wantsAttack && !this.attacking && !this.crouching) {
+      this.lastAttackPress = -Infinity;
       if (this.onGround) this.startAttack();
       else this.startAirAttack(); // ataque en el aire (sprite propio JumpAttack)
-    }
-    // --- Fuego fantasma: a distancia, con recarga; también en pleno salto ---
-    if (input.justPressed('special') && !this.attacking && !this.crouching && this.specialReady) {
-      this.startSpecial();
     }
 
     this.positionAttackZone();
@@ -184,6 +201,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   }
 
   startSpecial() {
+    this.attackZone.body.enable = false; // cancela el golpe cuerpo a cuerpo en curso
     this.attacking = true;
     this.casting = true;
     this.specialReadyAt = this.clock + PLAYER_TUNING.specialCooldownMs;

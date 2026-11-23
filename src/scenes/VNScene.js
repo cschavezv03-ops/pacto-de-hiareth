@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { SCENES, GAME_WIDTH, VN_SCENES } from '../config/constants.js';
 import { AudioManager } from '../managers/AudioManager.js';
-import { muteButton } from '../ui/UiKit.js';
+import { muteButton, oncePerKeyEvent, FONT_UI, COLORS } from '../ui/UiKit.js';
 import DialogueRunner from '../visual-novel/DialogueRunner.js';
 import DialogueRenderer from '../visual-novel/DialogueRenderer.js';
 import CharacterPresenter from '../visual-novel/CharacterPresenter.js';
@@ -21,6 +21,7 @@ import {
 
 const FAST_ADVANCE_MS = 280;
 const SKIP_RELEASE_MS = 460;
+const SKIP_CONFIRM_MS = 2600; // segunda pulsación dentro de este margen = saltar la escena
 
 /** VN integrada en la instancia y el flujo narrativo existentes. */
 export default class VNScene extends Phaser.Scene {
@@ -75,7 +76,11 @@ export default class VNScene extends Phaser.Scene {
       const path = portraitPath(character, expression);
       if (path && !this.textures.exists(key)) this.load.image(key, path);
     });
-    this.load.on('loaderror', (file) => console.warn('[VN] No se pudo cargar el recurso', file.key, file.src));
+    // La instancia de la escena se reutiliza: registrar el aviso una sola vez.
+    if (!this.loadErrorHooked) {
+      this.loadErrorHooked = true;
+      this.load.on('loaderror', (file) => console.warn('[VN] No se pudo cargar el recurso', file.key, file.src));
+    }
   }
 
   create() {
@@ -87,6 +92,7 @@ export default class VNScene extends Phaser.Scene {
     this.dialogueRenderer = new DialogueRenderer(this);
     this.transitions = new VNTransitions(this);
     muteButton(this, GAME_WIDTH - 12, 12);
+    this.createSkipButton();
 
     const commands = VN_SCRIPTS[this.sceneId] ?? VN_SCRIPTS[VN_SCENES.INTRO];
     this.runner = new DialogueRunner(commands, {
@@ -175,6 +181,68 @@ export default class VNScene extends Phaser.Scene {
     else this.pendingAmbiences?.clear();
   }
 
+  /**
+   * Botón «Saltar» (y teclas Tab / Esc): salta la escena completa de la VN y continúa la
+   * historia. Pide una segunda pulsación para no saltarse diálogos por accidente.
+   */
+  createSkipButton() {
+    this.skipArmedUntil = 0;
+    this.skipButton = this.add.text(GAME_WIDTH - 60, 16, 'Saltar ⏭', {
+      fontFamily: FONT_UI, fontSize: '16px', color: COLORS.ink,
+      backgroundColor: '#140e24cc', padding: { x: 10, y: 5 },
+      stroke: '#000000', strokeThickness: 2,
+    }).setOrigin(1, 0).setDepth(1000).setInteractive({ useHandCursor: true });
+    this.skipButton.on('pointerover', () => this.skipButton.setColor(COLORS.accent));
+    this.skipButton.on('pointerout', () => { if (!this.skipArmed) this.skipButton.setColor(COLORS.ink); });
+    this.skipButton.on('pointerup', (_p, _x, _y, event) => {
+      event?.stopPropagation?.(); // no debe avanzar el diálogo
+      this.requestSkip();
+    });
+    this.skipKeys = oncePerKeyEvent((event) => {
+      if (event?.repeat) return;
+      if (event?.code === 'Tab' || event?.code === 'Escape') {
+        event.preventDefault?.();
+        this.requestSkip();
+      }
+    });
+    this.input.keyboard.on('keydown', this.skipKeys);
+    this.input.keyboard.addCapture?.('TAB');
+  }
+
+  get skipArmed() {
+    return this.time.now < this.skipArmedUntil;
+  }
+
+  /** Zona de la UI superior (mute y saltar): un clic ahí no avanza el diálogo. */
+  isUiPointer(pointer) {
+    if (pointer.y < 60 && pointer.x > GAME_WIDTH - 76) return true;
+    return Boolean(this.skipButton?.getBounds().contains(pointer.x, pointer.y));
+  }
+
+  requestSkip() {
+    if (this.transitions?.leaving || !this.skipButton) return;
+    if (!this.skipArmed) {
+      this.skipArmedUntil = this.time.now + SKIP_CONFIRM_MS;
+      this.skipButton.setText('¿Saltar escena? ⏭').setColor(COLORS.accent);
+      this.skipResetTimer?.remove(false);
+      this.skipResetTimer = this.time.delayedCall(SKIP_CONFIRM_MS, () => {
+        this.skipButton?.setText('Saltar ⏭').setColor(COLORS.ink);
+      });
+      return;
+    }
+    this.skipScene();
+  }
+
+  /** Salta el resto de la escena: mismo cierre que al terminar el último diálogo. */
+  skipScene() {
+    if (this.transitions.leaving) return;
+    this.skipResetTimer?.remove(false);
+    this.skipButton?.disableInteractive().setText('Saltando…');
+    this.setSkipping(true); // corta voces y efectos de la VN
+    this.runner?.destroy();
+    this.transitions.finish({ isEnding: this.isEnding });
+  }
+
   advance() {
     const now = this.time.now;
     if (this.lastAdvanceAt !== undefined && now - this.lastAdvanceAt <= FAST_ADVANCE_MS) {
@@ -203,6 +271,10 @@ export default class VNScene extends Phaser.Scene {
   }
 
   destroyVN() {
+    this.input.keyboard?.off('keydown', this.skipKeys);
+    this.skipResetTimer?.remove(false);
+    this.skipResetTimer = null;
+    this.skipButton = null;
     this.skipReleaseTimer?.remove(false);
     this.skipReleaseTimer = null;
     this.setSkipping(false);

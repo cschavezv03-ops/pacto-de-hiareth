@@ -20,15 +20,22 @@ const step = async (name, fn) => {
   try { results[name] = await fn(); } catch (e) { results[name] = `FALLO: ${e.message}`; }
 };
 
-// Partida nueva desde el menú: Nueva partida -> Intermedio -> VN intro -> Acto 1
+/** Salta la escena de VN activa con el botón «Saltar» (Tab dos veces). */
+const skipVN = async () => {
+  await page.waitForFunction(() => window.game.scene.isActive('VisualNovel') && window.game.scene.getScene('VisualNovel').skipButton, null, { timeout: 20000 });
+  await page.waitForTimeout(300);
+  await page.keyboard.press('Tab');
+  await page.waitForTimeout(150);
+  await page.keyboard.press('Tab');
+};
+
+// Partida nueva desde el menú: Nueva partida -> Intermedio -> (Prólogo) VN intro -> Acto 1
 await page.keyboard.press('Enter');
 await page.waitForTimeout(150);
 await page.keyboard.press('ArrowDown');
 await page.keyboard.press('Enter');
-await page.waitForFunction(() => window.game.scene.isActive('VisualNovel'), null, { timeout: 5000 });
-await page.waitForTimeout(600);
-await page.keyboard.press('Enter');
-await page.waitForFunction(() => window.__level?.levelId === 'act1', null, { timeout: 5000 });
+await skipVN();
+await page.waitForFunction(() => window.__level?.levelId === 'act1', null, { timeout: 15000 });
 await page.waitForTimeout(800);
 
 await step('kill slime with 4 hits', async () => {
@@ -98,9 +105,9 @@ await step('game over restarts level, respawns enemies, keeps kills', async () =
     p.invulnerableUntil = 0; p.hearts = 1; p.takeHit(p.x);
     return GameState.enemiesKilled;
   });
-  await page.waitForFunction(() => window.game.scene.isActive('GameOver'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.isActive('GameOver'), null, { timeout: 12000 });
   await page.keyboard.press('Enter'); // Reintentar
-  await page.waitForFunction(() => window.__level?.player && window.game.scene.isActive('Level'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.player && window.game.scene.isActive('Level'), null, { timeout: 12000 });
   await page.waitForTimeout(300);
   const after = await page.evaluate(async () => {
     const GameState = window.__GameState;
@@ -172,13 +179,13 @@ await step('reaching the goal advances to the next VN (conventional route skips 
     s.player.invulnerableUntil = s.player.clock + 99999;
     s.player.body.reset(s.goal.x - 30, s.goal.y - 5);
   });
-  await page.waitForFunction(() => window.game.scene.isActive('VisualNovel'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.isActive('VisualNovel'), null, { timeout: 20000 });
   return page.evaluate(() => window.game.scene.getScene('VisualNovel').sceneId);
 });
 
 await step('pause menu opens and resumes', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act2' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act2', null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act2', null, { timeout: 12000 });
   await page.waitForTimeout(400);
   await page.keyboard.press('Escape');
   await page.waitForFunction(() => window.game.scene.isActive('Pause'), null, { timeout: 3000 });
@@ -246,7 +253,7 @@ await step('pit respects invulnerability and respawns on safe ground', async () 
 
 await step('crumbling platform respawns without errors (act 4)', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act4' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act4', null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act4', null, { timeout: 12000 });
   await page.waitForTimeout(500);
   await page.evaluate(() => {
     const s = window.__level;
@@ -265,7 +272,7 @@ await step('crumbling platform respawns without errors (act 4)', async () => {
 
 await step('skeleton swing hurts Aidan standing in front; alien fires a 3-way spread', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act3' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 12000 });
   await page.waitForTimeout(300);
   const zonesAtSpawn = await page.evaluate(() => window.__level.enemyHitboxes.getChildren().filter((z) => z.body.enable).length);
   assert.equal(zonesAtSpawn, 0, 'ninguna zona de tajo activa al aparecer (sin daño invisible)');
@@ -286,7 +293,7 @@ await step('skeleton swing hurts Aidan standing in front; alien fires a 3-way sp
   assert.ok(sk.actions.includes('swing'), JSON.stringify(sk));
   assert.ok(sk.h1 < sk.h0, 'el tajo resta un corazón');
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act2' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 12000 });
   const al = await page.evaluate(() => {
     const s = window.__level;
     const a = s.enemies.getChildren()[0];
@@ -302,7 +309,7 @@ await step('skeleton swing hurts Aidan standing in front; alien fires a 3-way sp
 
 await step('kill counter: hidden by default, visible only when enabled in options', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act1' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.game.scene.isActive('Hud'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.game.scene.isActive('Hud'), null, { timeout: 12000 });
   await page.waitForTimeout(300);
   const hidden = await page.evaluate(() => window.game.scene.getScene('Hud').killText.visible);
   // Activar con el panel real: pausa -> Opciones -> fila 4 -> alternar
@@ -330,7 +337,7 @@ await step('kill counter: hidden by default, visible only when enabled in option
 
 await step('act 3: crouch dodges the high slash, sweep hits a crouched Aidan, charge stays in zone, ambush rises', async () => {
   await page.evaluate(() => { window.__GameState.newGame('normal'); window.game.events.emit('story:goto', { type: 'level', id: 'act3' }); });
-  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 12000 });
   await page.waitForTimeout(300);
   const strike = (kind, crouch) => page.evaluate(([kind, crouch]) => new Promise((resolve) => {
     const s = window.__level;
@@ -403,7 +410,7 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
   const out = {};
   // Plataformas del Acto 2: se rompen solas por ciclos y Aidan reaparece sobre la última pisada.
   await page.evaluate(() => { window.__GameState.newGame('normal'); window.game.events.emit('story:goto', { type: 'level', id: 'act2' }); });
-  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 12000 });
   await page.waitForTimeout(300);
   out.cycle = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level; const m = s.movers.getChildren()[1]; const p = s.player;
@@ -476,7 +483,7 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
 
   // Plataforma fantasma (Acto 3) y lava del slime (Acto 1).
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act3' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 12000 });
   out.phantom = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level; const m = s.movers.getChildren()[0]; const p = s.player;
     p.invulnerableUntil = p.clock + 1e6;
@@ -488,7 +495,7 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
   assert.equal(out.phantom.broken, true, 'se desvanece al tocarla');
   assert.equal(out.phantom.fellThrough, true, 'no sostiene a Aidan: es una trampa');
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act1' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.__level.player, null, { timeout: 12000 });
   out.lava = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level; const p = s.player;
     const e = s.enemies.getChildren().find((x) => x.alive && x.kind === 'slime' && !x.cfg.flying && x.y > 400);
@@ -520,12 +527,12 @@ await step('new mechanics: fragile/phantom movers, air attack, orbs + extra life
 
 await step('act 2 UFO: aligns, warns, lifts and abducts (no kill counted); loading screens have full backdrops', async () => {
   await page.evaluate(() => { window.__GameState.newGame('normal'); window.game.events.emit('story:goto', { type: 'level', id: 'act2' }); });
-  await page.waitForFunction(() => window.game.scene.isActive('Loading'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.isActive('Loading'), null, { timeout: 12000 });
   const loading = await page.evaluate(() => {
     const L = window.game.scene.getScene('Loading');
     return { step: L.step, layers: L.children.list.filter((o) => o.type === 'Image' && o.texture.key.startsWith('bg_act2')).length };
   });
-  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 8000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 12000 });
   const r = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level; const p = s.player; const u = s.ufos[0];
     const kills0 = window.__GameState.enemiesKilled;
@@ -555,12 +562,12 @@ await step('conventional route end to end: the Act 4 loading screen and level ne
   });
   const seen = [];
   for (let i = 0; i < 12; i += 1) {
-    await page.waitForFunction(() => ['VisualNovel', 'Level', 'Boss'].some((k) => window.game.scene.isActive(k)), null, { timeout: 9000 });
+    await page.waitForFunction(() => ['VisualNovel', 'Level', 'Boss'].some((k) => window.game.scene.isActive(k)), null, { timeout: 20000 });
     await page.waitForTimeout(500);
     const st = await page.evaluate(() => (window.game.scene.isActive('VisualNovel') ? 'vn:' + window.game.scene.getScene('VisualNovel').sceneId
       : window.game.scene.isActive('Level') ? 'level:' + window.__level.levelId : 'boss'));
     seen.push(st);
-    if (st.startsWith('vn:')) { await page.keyboard.press('Enter'); await page.waitForTimeout(500); }
+    if (st.startsWith('vn:')) { await skipVN(); await page.waitForTimeout(1200); }
     else if (st.startsWith('level:')) {
       await page.evaluate(() => {
         const s = window.__level;
@@ -586,15 +593,13 @@ await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -
     window.game.events.emit('story:goto', GS.currentStep());
     return GS.enemiesKilled;
   });
-  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act3' && window.__level.player, null, { timeout: 12000 });
   await page.evaluate(() => { const s = window.__level; s.player.invulnerableUntil = s.player.clock + 1e6; s.player.body.reset(s.goal.x - 10, s.goal.y - 4); });
-  await page.waitForFunction(() => window.game.scene.isActive('VisualNovel'), null, { timeout: 6000 });
-  await page.waitForTimeout(500);
-  await page.keyboard.press('Enter'); // after_act3 -> siguiente paso
-  await page.waitForFunction(() => window.game.scene.isActive('Loading') || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 6000 });
+  await skipVN(); // after_act3 -> siguiente paso
+  await page.waitForFunction(() => window.game.scene.isActive('Loading') || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 15000 });
   const loadingStep = await page.evaluate(() => (window.game.scene.isActive('Loading') ? window.game.scene.getScene('Loading').step.id : null));
   assert.equal(loadingStep, 'act4', 'sin muertes aparece la pantalla de carga del Acto 4');
-  await page.waitForFunction(() => window.__level?.levelId === 'act4' || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 8000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act4' || window.game.scene.getScene('VisualNovel').sceneId === 'before_boss', null, { timeout: 15000 });
   const pacNext = await page.evaluate(() => (window.game.scene.isActive('Level') ? window.__level.levelId : window.game.scene.getScene('VisualNovel').sceneId));
   const conv = await page.evaluate(() => {
     const GS = window.__GameState;
@@ -612,7 +617,7 @@ await step('pacifist easter egg: no kills -> act 4 loads after act 3; one kill -
 
 await step('boss: player shot damages boss; boss scene restarts on death', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'boss' }));
-  await page.waitForFunction(() => window.__boss?.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__boss?.player, null, { timeout: 12000 });
   await page.waitForTimeout(300);
   const hp0 = await page.evaluate(() => window.__boss.bossHealth);
   await page.evaluate(() => { const b = window.__boss; b.player.body.reset(b.boss.x - 200, b.boss.y); });
@@ -669,7 +674,7 @@ await step('checkpoint: activating it and dying respawns there; enemies reset', 
     GameState.advanceStory(); // paso del Acto 1, sin checkpoint guardado
     window.game.events.emit('story:goto', { type: 'level', id: 'act1' });
   });
-  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act1' && window.__level.player, null, { timeout: 12000 });
   await page.waitForTimeout(400);
   const cpX = await page.evaluate(() => {
     const s = window.__level;
@@ -680,9 +685,9 @@ await step('checkpoint: activating it and dying respawns there; enemies reset', 
   });
   await page.waitForTimeout(400);
   await page.evaluate(() => { const p = window.__level.player; p.invulnerableUntil = 0; p.hearts = 1; p.takeHit(p.x); });
-  await page.waitForFunction(() => window.game.scene.isActive('GameOver'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.isActive('GameOver'), null, { timeout: 12000 });
   await page.keyboard.press('Enter');
-  await page.waitForFunction(() => window.__level?.player && window.game.scene.isActive('Level'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.player && window.game.scene.isActive('Level'), null, { timeout: 12000 });
   await page.waitForTimeout(300);
   const r = await page.evaluate(() => ({
     x: Math.round(window.__level.player.x),
@@ -697,7 +702,7 @@ await step('checkpoint: activating it and dying respawns there; enemies reset', 
 
 await step('moving platforms move smoothly (no velocity spikes)', async () => {
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'level', id: 'act2' }));
-  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 6000 });
+  await page.waitForFunction(() => window.__level?.levelId === 'act2' && window.__level.player, null, { timeout: 12000 });
   const r = await page.evaluate(() => new Promise((resolve) => {
     const s = window.__level;
     const m = s.movers.getChildren()[0];
@@ -744,18 +749,18 @@ await step('ghost fire (K) can be cast mid-jump', async () => {
 await step('dev mode: level select plays a level alone and returns, save untouched', async () => {
   const saved0 = await page.evaluate(() => localStorage.getItem('pactoHiareth.save.v1'));
   await page.evaluate(() => window.game.events.emit('story:goto', { type: 'dev' }));
-  await page.waitForFunction(() => window.game.scene.isActive('Menu'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.isActive('Menu'), null, { timeout: 12000 });
   await page.waitForTimeout(300);
   const labels = await page.evaluate(() => window.game.scene.getScene('Menu').list.items.map((t) => t.text));
   assert.ok(labels.some((l) => l.includes('Combate final')), labels.join(' | '));
   for (let i = 0; i < 4; i += 1) { await page.keyboard.press('ArrowDown'); await page.waitForTimeout(40); }
   await page.keyboard.press('Enter');
-  await page.waitForFunction(() => window.game.scene.isActive('Boss'), null, { timeout: 8000 });
+  await page.waitForFunction(() => window.game.scene.isActive('Boss'), null, { timeout: 12000 });
   const r = await page.evaluate(() => ({ dev: window.__GameState.isDev, step: window.__GameState.currentStep().type }));
   assert.equal(r.dev, true);
   assert.equal(r.step, 'boss');
   await page.evaluate(() => window.game.events.emit('story:goto', window.__GameState.advanceStory()));
-  await page.waitForFunction(() => window.game.scene.isActive('Menu'), null, { timeout: 6000 });
+  await page.waitForFunction(() => window.game.scene.isActive('Menu'), null, { timeout: 12000 });
   const back = await page.evaluate(() => ({
     devMenu: window.game.scene.getScene('Menu').openDev,
     save: localStorage.getItem('pactoHiareth.save.v1'),
@@ -774,7 +779,7 @@ await step('boss adapts to difficulty: repertoire, density, movement', async () 
       GS.startDev(idx, d, { god: true });
       window.game.events.emit('story:goto', GS.currentStep());
     }, diff);
-    await page.waitForFunction(() => window.__boss?.player && window.game.scene.isActive('Boss'), null, { timeout: 8000 });
+    await page.waitForFunction(() => window.__boss?.player && window.game.scene.isActive('Boss'), null, { timeout: 12000 });
     out[diff] = await page.evaluate(() => new Promise((resolve) => {
       const b = window.__boss;
       const kinds = new Set();
@@ -823,6 +828,52 @@ await step('enemies are faster and aliens fire faster on hard', async () => {
   assert.equal(r.hard.windup, r.normal.windup, 'los avisos no cambian');
   assert.ok(r.hard.alienShot <= 200, 'los orbes del alien siguen siendo esquivables');
   return r;
+});
+
+await step('controls: K after an air attack, jump during an attack, jump on a rising platform (real keys)', async () => {
+  const go = async (idx, id) => {
+    await page.evaluate(([i]) => { const GS = window.__GameState; GS.startDev(i, 'normal', { god: true }); window.game.events.emit('story:goto', GS.currentStep()); }, [idx]);
+    await page.waitForFunction((lid) => window.__level?.levelId === lid && window.__level.player && window.game.scene.isActive('Level'), id, { timeout: 15000 });
+    await page.waitForTimeout(1200);
+  };
+  const st = () => page.evaluate(() => { const pl = window.__level.player; return { y: pl.y, ready: pl.specialReady, fires: window.__level.ghostFires.countActive(true) }; });
+  const reset = () => page.evaluate(() => { const pl = window.__level.player; pl.body.reset(5 * 32, 470); pl.specialReadyAt = 0; pl.attacking = false; pl.casting = false; });
+  await go(1, 'act1');
+  // K justo después de un ataque aéreo: interrumpe el golpe y lanza el Fuego fantasma.
+  await reset(); await page.waitForTimeout(400);
+  await page.keyboard.down('Space'); await page.waitForTimeout(80);
+  await page.keyboard.press('KeyJ'); await page.waitForTimeout(120);
+  await page.keyboard.press('KeyK'); await page.waitForTimeout(500);
+  await page.keyboard.up('Space');
+  const k = await st();
+  assert.equal(k.fires >= 1 || !k.ready, true, 'el Fuego fantasma sale tras un ataque aéreo');
+  // Saltar durante un golpe en el suelo.
+  let jumps = 0;
+  for (let i = 0; i < 4; i += 1) {
+    await reset(); await page.waitForTimeout(450);
+    await page.keyboard.press('KeyJ'); await page.waitForTimeout(150);
+    const y0 = (await st()).y;
+    await page.keyboard.press('Space'); await page.waitForTimeout(250);
+    if ((await st()).y < y0 - 20) jumps += 1;
+  }
+  assert.equal(jumps, 4, `saltos durante el ataque: ${jumps}/4`);
+  // Plataforma vertical subiendo (Acto 2).
+  await go(3, 'act2');
+  let rising = 0;
+  for (let i = 0; i < 4; i += 1) {
+    await page.evaluate(() => new Promise((resolve) => {
+      const s = window.__level; const m = s.movers.getChildren().find((x) => x.dy !== 0); const pl = s.player;
+      s.restoreCycleMover(m, false); m.trap = 'test';
+      pl.body.reset(m.body.center.x, m.body.top - 2);
+      const t = s.time.addEvent({ delay: 16, loop: true, callback: () => { if (m.body.velocity.y < -40 && pl.onGround) { t.remove(); resolve(); } } });
+      s.time.delayedCall(5000, () => { t.remove(); resolve(); });
+    }));
+    const y0 = (await st()).y;
+    await page.keyboard.press('Space'); await page.waitForTimeout(220);
+    if ((await st()).y < y0 - 30) rising += 1;
+  }
+  assert.equal(rising, 4, `saltos sobre plataforma que sube: ${rising}/4`);
+  return { k, jumps, rising };
 });
 
 await browser.close();

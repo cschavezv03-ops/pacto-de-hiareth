@@ -39,6 +39,7 @@ npx playwright install chromium
 npm run dev                     # en otra terminal, dejar corriendo
 node tests/smoke.mjs http://localhost:5173
 node tests/rules.e2e.mjs http://localhost:5173
+node tests/vn.e2e.mjs http://localhost:5173
 ```
 
 - `tests/smoke.mjs` recorre menú, los cuatro niveles y el jefe, comprueba que Aidan aterriza, mide FPS, detecta errores de consola y guarda capturas en `tests/screenshots/`.
@@ -59,12 +60,14 @@ node tests/rules.e2e.mjs http://localhost:5173
 | Pausa | `Esc` o `P` | Botón `❚❚` en la esquina | `Esc` o `P` | Botón `❚❚` |
 | Silenciar / activar sonido | `M` o botón `🔊` / `🔇` | Botón `🔊` / `🔇` | `M` o botón `🔊` / `🔇` | Botón `🔊` / `🔇` |
 
+En la **Visual Novel**: `Enter`, `Espacio` o clic avanzan (la primera pulsación completa la línea). **Saltar escena**: botón `Saltar ⏭` arriba a la derecha, o `Tab` / `Esc`; hay que pulsarlo dos veces (la primera lo arma durante 2,6 s) para no saltarse diálogos por accidente.
+
 Notas:
 
 - El ataque cuerpo a cuerpo y el Fuego fantasma se pueden usar en el suelo o en pleno salto; en el jefe se dispara en cualquier momento.
-- El **Fuego fantasma** de los niveles también exige estar en el suelo: lanza un proyectil violeta de 3 de daño con 560 px de alcance y **6.5 s de recarga**. La recarga se ve bajo la placa de corazones y en el botón `✦`.
+- El **Fuego fantasma** de los niveles se puede lanzar en el suelo o en pleno salto, e interrumpe un golpe cuerpo a cuerpo en curso: lanza un proyectil violeta de 3 de daño con 560 px de alcance y **6.5 s de recarga**. La recarga se ve bajo la placa de corazones y en el botón `✦`.
 - La **Media luna de fuego** y el **dash** son exclusivos del jefe. La media luna atraviesa y borra balas enemigas; el dash concede invulnerabilidad breve y tiene su propia recarga. El HUD muestra ambas recargas (medidor y símbolo `»`).
-- El salto es **simple** (sin doble salto). Soltar `Espacio` durante la subida acorta el salto.
+- El salto es **simple** (sin doble salto). Soltar `Espacio` durante la subida acorta el salto. Saltar tiene prioridad: también sale durante un golpe. `J` y `K` pulsados mientras otra acción termina se guardan 0,22 s en vez de perderse.
 - En móvil los controles son una **capa HTML** sobre el canvas: se muestran solos en dispositivos táctiles y no dependen del escalado del juego.
 - El botón de mute es único y compartido por menú, niveles, pausa, HUD y Visual Novel.
 

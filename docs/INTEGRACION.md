@@ -259,3 +259,7 @@ Pruebas automatizadas equivalentes: `npm test`, `node tests/smoke.mjs <url>` y `
 ### Acto 2 sin suelo
 
 El Acto 2 no tiene suelo continuo: islotes en el inicio, los checkpoints y la meta, y entre ellos plataformas móviles con `moverTrap: 'cycle'` (se rompen y reaparecen solas). `LevelScene.prepareRespawn()` recoloca a Aidan tras una caída sobre la última plataforma pisada; `LevelScene.returnToSafe()` lo usa el platillo al abducir. Detalles y tiempos en `docs/BALANCE.md` §11.
+
+### Saltar escena en la VN
+
+`VNScene.createSkipButton()` añade `Saltar ⏭` junto al mute (y `Tab` / `Esc`), con confirmación de doble pulsación. `skipScene()` destruye el runner y llama a `transitions.finish({ isEnding })`, de modo que `advanceStory()` se ejecuta una sola vez. `VNInput` consulta `scene.isUiPointer(pointer)` para que los clics en la UI superior no avancen el diálogo. Pruebas: `tests/vn.e2e.mjs` y `tests/vn.assets.test.js`.

@@ -35,7 +35,7 @@ export const VN_MUSIC = Object.freeze({
 /** Efectos y ambientes narrativos; las pistas largas se cargan bajo demanda. */
 export const VN_SFX = Object.freeze({
   portal: 'assets/sfx/vn/vn_portal.wav',
-  villageFire: 'assets/sfx/vn/vn_village_fire_loop.wav',
+  villageFire: 'assets/sfx/vn/vn_village_fire_loop.ogg',
   fireExtinguish: 'assets/sfx/vn/vn_fire_extinguish.mp3',
   waterHeal: 'assets/sfx/vn/vn_water_heal.wav',
   campfire: 'assets/sfx/vn/vn_campfire_crackle.mp3',
@@ -43,7 +43,7 @@ export const VN_SFX = Object.freeze({
   portalFall: 'assets/sfx/vn/vn_portal_fall.mp3',
   leaderLaugh: 'assets/sfx/vn/vn_leader_laugh.wav',
   teleport: 'assets/sfx/vn/vn_teleport.wav',
-  winterWind: 'assets/sfx/vn/vn_winter_wind.wav',
+  winterWind: 'assets/sfx/vn/vn_winter_wind.ogg',
   attackHit: 'assets/sfx/vn/vn_attack_hit.wav',
 });
 

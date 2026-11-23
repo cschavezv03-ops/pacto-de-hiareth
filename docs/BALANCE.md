@@ -431,3 +431,20 @@ Medido en la prueba E2E (fase 1 y fase 3, unos 19 s), el máximo de balas en pan
 | Velocidad de los orbes del alien | 135 | 150 | 180 px/s |
 
 Los **avisos (`windupMs`) no cambian** en ninguna dificultad, así que todo sigue siendo esquivable sin matar y la ruta pacifista sigue siendo posible. Los platillos nunca alcanzan a Aidan corriendo: van a 102 px/s como máximo, frente a 250.
+
+## 13. Controles más fiables y botón de saltar en la VN
+
+Fallos reproducidos con pulsaciones reales de teclado (Playwright) y corregidos en `Player.js`:
+
+| Fallo | Causa | Arreglo |
+|---|---|---|
+| `K` no salía en el aire tras un ataque aéreo con `J` | La pulsación se descartaba mientras durara el golpe | El Fuego fantasma interrumpe el golpe cuerpo a cuerpo, y `J`/`K` quedan 0,22 s en búfer (`actionBufferMs`) |
+| El salto fallaba durante un golpe en el suelo (0 de 5) | El salto exigía `!attacking` | El salto tiene prioridad; el golpe sigue en el aire |
+| El salto fallaba sobre plataformas que suben (3 de 6, Acto 2) | El suelo solo contaba con velocidad vertical ≥ 0, y sobre una plataforma que sube es negativa | Cuenta como suelo salvo durante 150 ms tras un salto propio |
+
+Prueba E2E: «controls: K after an air attack, jump during an attack, jump on a rising platform (real keys)».
+
+**Saltar escena en la VN.** Botón `Saltar ⏭` (y teclas `Tab` / `Esc`) en `VNScene`.
+- Hay que pulsar dos veces: la primera arma el botón durante 2,6 s y la segunda salta la escena entera, con el mismo cierre que al terminar el último diálogo.
+- El clic sobre el botón no avanza el diálogo.
+- En los finales, saltar lleva al menú.

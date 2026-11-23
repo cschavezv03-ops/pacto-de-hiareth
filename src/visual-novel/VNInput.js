@@ -10,7 +10,7 @@ export default class VNInput {
       if (event?.code === 'Enter' || event?.code === 'Space') this.advance?.();
     });
     this.pointerHandler = (pointer) => {
-      if (pointer.y < 60 && pointer.x > GAME_WIDTH - 76) return;
+      if (scene.isUiPointer ? scene.isUiPointer(pointer) : (pointer.y < 60 && pointer.x > GAME_WIDTH - 76)) return;
       this.advance?.();
     };
     scene.input.keyboard.on('keydown', this.keyHandler);

@@ -36,7 +36,7 @@ export default class DialogueRenderer {
       fontFamily: FONT_UI, fontSize: '13px', color: COLORS.dim,
       align: 'right', stroke: '#140e24', strokeThickness: 2,
     }).setOrigin(1, 0.5).setDepth(22);
-    this.promptText = scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 27, 'Enter / clic para continuar', {
+    this.promptText = scene.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 27, 'Enter / clic para continuar · Tab saltar escena', {
       fontFamily: FONT_UI, fontSize: '12px', color: COLORS.dim,
       align: 'center', stroke: '#140e24', strokeThickness: 2,
     }).setOrigin(0.5).setDepth(22).setAlpha(0.8);
